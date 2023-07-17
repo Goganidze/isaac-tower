@@ -814,7 +814,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, EnemySignLogic, "signp"
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, EnemySignRender, "sign")
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, EnemySignRender, "signp")
 
----------------------------------------КЛОТТИГ-------------------
+---------------------------------------КЛОТТИГ--------------------------------------------
 Isaac_Tower.RegisterEnemy("clottig", "gfx/enemies/clottig.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
 Isaac_Tower.editor.AddEnemies("clottig", 
 	GenSprite("gfx/enemies/clottig.anm2","idle",nil,nil,Vector(13,13)), 
@@ -872,5 +872,19 @@ local function EnemyClottigLogic(_,ent)
 	end
 end
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, EnemyClottigLogic, "clottig")
+
+
+---------------------------------------СРЕДНЕРОСТНЫЙ ПОРТАЛ--------------------------------------------
+
+Isaac_Tower.RegisterEnemy("mid portal", "gfx/enemies/mid_portal.anm2", Vector(5,5), {EntityCollision = 0})
+Isaac_Tower.editor.AddEnemies("mod portal", 
+	GenSprite("gfx/enemies/mid_portal.anm2","idle",nil,nil,Vector(13,13)), 
+	"mid portal",0,  
+	GenSprite("gfx/enemies/mid_portal.anm2","idle",nil,nil,Vector(13/2,13/2)))
+
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
+	ent.PositionOffset = Vector(0,25)
+end, "mid portal")
+
 
 end

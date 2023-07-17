@@ -957,7 +957,7 @@ mod:AddPriorityCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, CallbackPriorit
 		--local RenderPos =  Pos + fent.Position/(20/13) + fent.Velocity/(20/13)*Isaac_Tower.GetProcentUpdate() + Isaac_Tower.GetRenderZeroPoint()
 		--local RenderPos = TSJDNHC_PT:WorldToScreen(fent.Position+fent.Velocity*Isaac_Tower.GetProcentUpdate())
 
-		local RenderPos = TSJDNHC_PT:WorldToScreen(fent.Position + fent.Velocity*Isaac_Tower.GetProcentUpdate())
+		--local RenderPos = TSJDNHC_PT:WorldToScreen(fent.Position + fent.Velocity*Isaac_Tower.GetProcentUpdate())
 
 		--spr:SetFrame(fent.Flayer.Sprite:GetAnimation(), fent.Flayer.Sprite:GetFrame())
 		spr.FlipX = fent.Flayer.Sprite.FlipX
