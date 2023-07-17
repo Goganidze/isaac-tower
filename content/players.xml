@@ -1,0 +1,10 @@
+<players root="gfx/fakePlayer/"
+         portraitroot="gfx/ui/boss/"
+         nameimageroot="gfx/ui/boss/"
+         bigportraitroot="gfx/ui/stage/">
+    <player name="Isaac Tower" skin="costumes/Character_001_Isaac.png" hp="6" canShoot="false"
+            nameimage="PlayerName_01_Isaac.png"
+            portrait="PlayerPortrait_Isaac.png"
+            skinColor="-1" 
+            birthright=""/>
+</players>
