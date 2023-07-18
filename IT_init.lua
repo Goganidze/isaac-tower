@@ -753,8 +753,8 @@ Isaac_Tower.editor.AddEnvironment("t_hint4",
 -------------------------------------------------------------------ВРАГИ------------------------------------------------
 
 			--ЗНАК
-
-local function EnemySignLogic(_,ent)
+Isaac_Tower.ENT.LOGIC = {}
+function Isaac_Tower.ENT.LOGIC.EnemySignLogic(_,ent)
 	local data = ent:GetData().Isaac_Tower_Data
 	if data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
 		
@@ -778,7 +778,7 @@ local function EnemySignLogic(_,ent)
 	end
 end
 
-local function EnemySignRender(_,ent)
+function Isaac_Tower.ENT.LOGIC.EnemySignRender(_,ent)
 	if not Game():IsPaused() then
 		local data = ent:GetData()
 		if data.Isaac_Tower_Data.State >= 1 then
@@ -808,11 +808,11 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent:GetSprite():Play("pooo")
 end, "signp")
 
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, EnemySignLogic, "sign")
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, EnemySignLogic, "signp")
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemySignLogic, "sign")
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemySignLogic, "signp")
 
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, EnemySignRender, "sign")
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, EnemySignRender, "signp")
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, Isaac_Tower.ENT.LOGIC.EnemySignRender, "sign")
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, Isaac_Tower.ENT.LOGIC.EnemySignRender, "signp")
 
 ---------------------------------------КЛОТТИГ--------------------------------------------
 Isaac_Tower.RegisterEnemy("clottig", "gfx/enemies/clottig.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
@@ -825,7 +825,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,5)
 end, "clottig")
 
-local function EnemyClottigLogic(_,ent)
+function Isaac_Tower.ENT.LOGIC.EnemyClottigLogic(_,ent)
 	local data = ent:GetData().Isaac_Tower_Data
 	local spr = ent:GetSprite()
 	if data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
@@ -871,20 +871,63 @@ local function EnemyClottigLogic(_,ent)
 		end
 	end
 end
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, EnemyClottigLogic, "clottig")
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyClottigLogic, "clottig")
 
 
 ---------------------------------------СРЕДНЕРОСТНЫЙ ПОРТАЛ--------------------------------------------
 
 Isaac_Tower.RegisterEnemy("mid portal", "gfx/enemies/mid_portal.anm2", Vector(5,5), {EntityCollision = 0})
 Isaac_Tower.editor.AddEnemies("mod portal", 
-	GenSprite("gfx/enemies/mid_portal.anm2","idle",nil,nil,Vector(13,13)), 
+	GenSprite("gfx/enemies/mid_portal.anm2","editor",nil,nil,Vector(13,13)), 
 	"mid portal",0,  
-	GenSprite("gfx/enemies/mid_portal.anm2","idle",nil,nil,Vector(13/2,13/2)))
+	GenSprite("gfx/enemies/mid_portal.anm2","editor",nil,nil,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,25)
+	local d = ent:GetData().Isaac_Tower_Data
+	local x,y = d.SpawnXY.X, d.SpawnXY.Y
+	for i,k in pairs(Isaac_Tower.EnemyHandlers.GetRoomEnemies(true)) do
+		--if k:GetData().Isaac_Tower_Data then
+			--print(i,k.Variant, k:GetData().Isaac_Tower_Data.SpawnXY, ent:GetData().Isaac_Tower_Data.SpawnXY)
+		--end
+		local xs,ys = k:GetData().Isaac_Tower_Data.SpawnXY.X,k:GetData().Isaac_Tower_Data.SpawnXY.Y
+		if x==xs and y-1==ys then
+			d.SpawnTarget = {Name = k:GetData().Isaac_Tower_Data.Type, ST = k.SubType}
+			ent.Target = k
+		end
+	end
 end, "mid portal")
 
+function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
+	local data = ent:GetData().Isaac_Tower_Data
+	local spr = ent:GetSprite()
+
+	if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE and
+		(not ent.Target or ent.Target.Variant ~= Isaac_Tower.ENT.Enemy.VAR) then
+		if not spr:IsPlaying("spawn") then
+			data.State = 2
+			spr:Play("spawn")
+		end
+	elseif data.State == 2 then
+		if spr:IsFinished("stopping") then
+			data.State = Isaac_Tower.EnemyHandlers.EnemyState.IDLE
+			spr:Play("idle")
+		elseif spr:IsFinished("spawn") then
+			spr:Play("spawn_loop")
+		elseif spr:IsEventTriggered("spawn") then
+			ent.Target = Isaac_Tower.Spawn(data.SpawnTarget.Name,data.SpawnTarget.ST,ent.Position,Vector(0,0),ent)
+			ent:Update()
+			ent.Target:SetColor(Color(118/255,71/255,173/255,1,117/255,71/255,173/255),20,-1,true,true)
+			data.deley = 60
+		elseif data.deley then
+			data.deley = data.deley - 1
+			if data.deley <= 0 then
+				spr:Play("stopping")
+				data.deley = nil
+			end
+		end
+	end
+end
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.midportalLogic, "mid portal")
 
 end

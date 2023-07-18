@@ -115,6 +115,48 @@ local function SavePlacingTable(tab,...)
 	return itab
 end
 
+---made by skykittenpuppy
+local function DrawStringScaledBreakline(Font, String, PositionX, PositionY, ScaleX, ScaleY, RenderColor, BoxWidth, Allign)
+    BoxWidth = BoxWidth or 0
+    Allign = Allign or "Left"
+    if BoxWidth ~= 0 then
+        local spaceLeft = BoxWidth
+        local words = {}
+        for word in string.gmatch(String, '([^ ]+)') do --Split string into individual words
+            words[#words+1] = word;
+        end
+        String = ""
+        for i=1, #words do
+            local wordLength = Font:GetStringWidthUTF8(words[i])*ScaleX
+            if (words[i] == "\n") then --Word is purely breakline
+                String = String.."\n"
+            elseif (utf8_Sub(words[i], 1, 2) == "\n") then --Word starts with breakline
+                spaceLeft = BoxWidth - wordLength
+                String = String..words[i].." "
+            elseif (wordLength > spaceLeft) then --Word breaks text boundary
+                spaceLeft = BoxWidth - wordLength
+                String = String.."\n"..words[i].." "
+            else --Word is fine
+                spaceLeft = spaceLeft - wordLength
+                String = String..words[i].." "
+            end
+        end
+    end
+    local Center = false
+    if Allign == "Left" then
+        BoxWidth = 0
+    elseif Allign == "Center" then
+        BoxWidth = 2
+        Center = true
+    end
+    local line = 0
+    for word in string.gmatch(String, '([^\n]+)') do
+        Font:DrawStringScaledUTF8(word, PositionX-(Allign == "Center" and 1 or 0), PositionY+(line*Font:GetLineHeight()*ScaleY), ScaleX, ScaleY, RenderColor, BoxWidth, Center)
+        line = line + 1
+    end
+end
+
+
 
 Isaac_Tower.editor = {}
 Isaac_Tower.editor.InEditor = false
@@ -233,13 +275,14 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 		local x,y = grid.pos.X+1,grid.pos.Y+1
 		if pGrid.size then
 			for i,k in pairs(GetLinkedGrid(list, Vector(x,y), pGrid.size, true)) do
-				if not list[k[1]] then
-					list[k[1]] = {}
-				end
-				if not list[k[1]][k[2]] then
-					list[k[1]][k[2]] = {}
-				end
-				list[k[1]][k[2]].Parent = Vector(x,y)
+				--if not list[k[1]] then
+				--	list[k[1]] = {}
+				--end
+				--if not list[k[1]][k[2]] then
+				--	list[k[1]][k[2]] = {}
+				--end
+				SavePlacingTable(list,k[1],k[2]).Parent = Vector(x,y)
+				--list[k[1]][k[2]].Parent = Vector(x,y)
 			end
 		end
 	end
@@ -828,6 +871,52 @@ function Isaac_Tower.editor.RemoveButton(menuName, buttonName, NoError)
 	end
 end
 
+function Isaac_Tower.editor.ButtonSetHintText(menuName, buttonName, text, NoError)
+	if not Isaac_Tower.editor.MenuData[menuName] then
+		if NoError then return end
+		error("This menu does not exist",2)
+	elseif not Isaac_Tower.editor.MenuData[menuName].Buttons[buttonName] then
+		if NoError then return end
+		error("This button does not exist",2)
+	end
+	if Isaac_Tower.editor.MenuData[menuName].Buttons[buttonName] then
+		local BoxWidth = 150
+		local str = {}
+		if BoxWidth ~= 0 then
+			local spaceLeft = BoxWidth
+			local words = {}
+			for word in string.gmatch(text, '([^ ]+)') do --Split string into individual words
+				words[#words+1] = word;
+			end
+			text = ""
+			for i=1, #words do
+				local wordLength = font:GetStringWidthUTF8(words[i])*0.5
+				if (words[i] == "\n") then --Word is purely breakline
+					--text = text.."\n"
+					str[#str+1] = text
+					text = ""
+				elseif (utf8_Sub(words[i], 1, 2) == "\n") then --Word starts with breakline
+					spaceLeft = BoxWidth - wordLength
+					text = text..words[i].." "
+				elseif (wordLength > spaceLeft) then --Word breaks text boundary
+					spaceLeft = BoxWidth - wordLength
+					str[#str+1] = text
+					text = ""
+					text = words[i].." " --text.."\n"..
+				else --Word is fine
+					spaceLeft = spaceLeft - wordLength
+					text = text..words[i].." "
+				end
+			end
+			str[#str+1] = text
+		end
+		--for i,k in pairs(str) do
+		--	Isaac.DebugString(i .. k)
+		--end
+		Isaac_Tower.editor.MenuData[menuName].Buttons[buttonName].hintText = str
+	end
+end
+
 ---@return EditorButton
 function Isaac_Tower.editor.AddButton(menuName, buttonName, pos, sizeX, sizeY, sprite, pressFunc, renderFunc, notpressed, priority)
     if menuName and buttonName then
@@ -1381,6 +1470,30 @@ end
 mod:AddPriorityCallback(Isaac_Tower.Callbacks.EDITOR_POST_MENUS_RENDER, 1, Isaac_Tower.editor.SpecialEditMenu.onRender)
 
 
+local function RenderButtonHintText(text, pos)
+	
+	--DrawStringScaledBreakline(font, Isaac_Tower.editor.MouseHintText, pos.X, pos.Y, 0.5, 0.5, KColor(0.1,0.1,0.2,1), 60, "Left")
+	local Center = false
+	local BoxWidth = 0
+    local line = 0
+	if type(text) == "table" then
+		UIs.HintTextBG2.Scale = Vector(150/2+2.5,18*#text/4+2.5)
+		UIs.HintTextBG2:Render(pos-Vector(2.5,2.5))
+		UIs.HintTextBG1.Scale = Vector(150/2+1,18*#text/4+1)
+		UIs.HintTextBG1:Render(pos-Vector(1,1))
+
+		for li, word in pairs(text) do
+			font:DrawStringScaledUTF8(word, pos.X, pos.Y+(line*font:GetLineHeight()*0.5), 0.5, 0.5, KColor(0.1,0.1,0.2,1), BoxWidth, Center)
+			line = line + 1
+		end
+	elseif type(text) == "string" then
+		for word in string.gmatch(text, '([^\n]+)') do
+			font:DrawStringScaledUTF8(word, pos.X, pos.Y+(line*font:GetLineHeight()*0.5), 0.5, 0.5, KColor(0.1,0.1,0.2,1), BoxWidth, Center)
+			line = line + 1
+		end
+	end
+end
+
 
 function Isaac_Tower.editor.RenderMenuButtons(menuName)
   --if type(Isaac_Tower.editor.MenuButtons[menuName]) == "table" then
@@ -1405,6 +1518,7 @@ function Isaac_Tower.editor.RenderMenuButtons(menuName)
 		end
 	end
 end
+
 function Isaac_Tower.editor.DetectSelectedButton()
   if type(Isaac_Tower.editor.MenuData[Isaac_Tower.editor.SelectedMenu]) == "table" then
 	local mousePos = Isaac_Tower.editor.MousePos
@@ -1420,8 +1534,10 @@ function Isaac_Tower.editor.DetectSelectedButton()
 			and mousePos.X<(k.pos.X+k.x) and mousePos.Y<(k.pos.Y+k.y) then
 				onceTouch = true
 				if not k.IsSelected then
-					k.IsSelected = true
+					k.IsSelected = 0
 					k.spr:SetFrame(1)
+				else
+					k.IsSelected = k.IsSelected + 1
 				end
 				if IsMouseBtnTriggered(0) and not Isaac_Tower.editor.MouseDoNotPressOnButtons then
 					k.func(0)
@@ -1436,6 +1552,9 @@ function Isaac_Tower.editor.DetectSelectedButton()
 					k.spr:SetFrame(0)
 				end
 			end
+		end
+		if k.hintText and k.IsSelected and k.IsSelected > 10 then
+			Isaac_Tower.editor.MouseHintText = k.hintText
 		end
 	end
   end
@@ -1531,6 +1650,11 @@ function Isaac_Tower.editor.Render()
 	if Isaac_Tower.editor.MouseSprite then
 		Isaac_Tower.editor.MouseSprite:Render(Isaac_Tower.editor.MousePos)
 	end
+	if Isaac_Tower.editor.MouseHintText then
+		local pos = Isaac_Tower.editor.MousePos
+		--DrawStringScaledBreakline(font, Isaac_Tower.editor.MouseHintText, pos.X, pos.Y, 0.5, 0.5, KColor(0.1,0.1,0.2,1), 60, "Left")
+		RenderButtonHintText(Isaac_Tower.editor.MouseHintText, pos+Vector(8,8))
+	end
 end
 
 function Isaac_Tower.editor.MoveControl()
@@ -1571,6 +1695,7 @@ function Isaac_Tower.editor.MoveControl()
 	if Isaac_Tower.editor.MenuLogic[Isaac_Tower.editor.SelectedMenu] then
 		Isaac_Tower.editor.MenuLogic[Isaac_Tower.editor.SelectedMenu](Isaac_Tower.editor.MousePos)
 	end
+	Isaac_Tower.editor.MouseHintText = nil
 	Isaac_Tower.editor.DetectSelectedButton()
 end
 
@@ -1789,6 +1914,8 @@ Isaac_Tower.editor.AddButton("menuUp", "RoomSelect", Vector(8,12), 32, 32, UIs.R
 end, function(pos)
 	font:DrawStringScaledUTF8(GetStr("rooms"),pos.X+16,pos.Y-10,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true)
 end)
+Isaac_Tower.editor.ButtonSetHintText("menuUp", "RoomSelect","Тестовый текст для теста теста, ага ага, это текстовой тест, не удивляйся")
+
 --UIs.RoomSelectBack
 function Isaac_Tower.editor.RoomSelectMenu.GenRoomList()
 	local num = 2
