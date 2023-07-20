@@ -249,16 +249,17 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 		}
 		local pGrid = Isaac_Tower.editor.GridTypes.Grid[grid.EditorType]
 		local list = Isaac_Tower.editor.Memory.CurrentRoom.Solid
-		local x,y = grid.pos.X+1,grid.pos.Y+1
+		local x,y = grid.pos.X,grid.pos.Y
 		if pGrid.size then
 			for i,k in pairs(GetLinkedGrid(list, Vector(x,y), pGrid.size, true)) do
-				if not list[k[1]] then
-					list[k[1]] = {}
-				end
-				if not list[k[1]][k[2]] then
-					list[k[1]][k[2]] = {}
-				end
-				list[k[1]][k[2]].Parent = Vector(x,y)
+				--if not list[k[1]] then
+				--	list[k[1]] = {}
+				--end
+				--if not list[k[1]][k[2]] then
+				--	list[k[1]][k[2]] = {}
+				--end
+				--list[k[1]][k[2]].Parent = Vector(x,y)
+				SavePlacingTable(list,k[1],k[2]).Parent = Vector(x,y)
 			end
 		end
 	end
@@ -647,6 +648,17 @@ function Isaac_Tower.OpenEditor()
 		end]]
 	end
 
+	for i, ent in pairs(Isaac.FindByType(1000, Isaac_Tower.ENT.Enemy.VAR, -1)) do
+		if not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+			ent:Remove()
+		end
+	end
+	for i, ent in pairs(Isaac.FindByType(1000, Isaac_Tower.ENT.GIB.VAR, -1)) do
+		if not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+			ent:Remove()
+		end
+	end
+
 	Isaac_Tower.editor.MakeVersion()
 
 	mod:RemoveCallback(ModCallbacks.MC_POST_RENDER, Isaac_Tower.editor.Render)
@@ -700,10 +712,14 @@ Isaac_Tower.editor.strings = {
 	["addEnviSize"] = {en = "size", ru = "размер"},
 	["addEnviPivot"] = {en = "offset", ru = "смещение"},
 	["addEnviPos"] = {en = "position", ru = "позиция"},
+
+	["roomlist_hint"] = {en = nil, ru = "открывает список загруженных комнат"},
 }
 local function GetStr(str)
 	if Isaac_Tower.editor.strings[str] then
-		return Isaac_Tower.editor.strings[str][Options.Language] or Isaac_Tower.editor.strings[str].en
+		return Isaac_Tower.editor.strings[str][Options.Language] or Isaac_Tower.editor.strings[str].en or str
+	else
+		return str
 	end
 end
 
@@ -883,6 +899,7 @@ function Isaac_Tower.editor.ButtonSetHintText(menuName, buttonName, text, NoErro
 		local BoxWidth = 150
 		local str = {}
 		if BoxWidth ~= 0 then
+			local maxWidth = 0
 			local spaceLeft = BoxWidth
 			local words = {}
 			for word in string.gmatch(text, '([^ ]+)') do --Split string into individual words
@@ -904,11 +921,14 @@ function Isaac_Tower.editor.ButtonSetHintText(menuName, buttonName, text, NoErro
 					text = ""
 					text = words[i].." " --text.."\n"..
 				else --Word is fine
+					maxWidth = math.max(BoxWidth-spaceLeft, maxWidth)
 					spaceLeft = spaceLeft - wordLength
 					text = text..words[i].." "
 				end
+				maxWidth = math.max(BoxWidth-spaceLeft+2, maxWidth)
 			end
 			str[#str+1] = text
+			str.Width = maxWidth
 		end
 		--for i,k in pairs(str) do
 		--	Isaac.DebugString(i .. k)
@@ -1373,7 +1393,8 @@ function Isaac_Tower.editor.OpenSpecialEditMenu(name, grid)
 					local Sspr = UIs.Var_Sel()
 					Sspr.Scale = Vector(1.5,0.5)
 				
-					Isaac_Tower.editor.AddButton(Menuname, bntName, Repos, 96*1.5, 9, Sspr, function(button) 
+					local self
+					self = Isaac_Tower.editor.AddButton(Menuname, bntName, Repos, 96*1.5, 9, Sspr, function(button) 
 						if frame>2 and button ~= 0 then return end
 						local Otvet = k.ResultCheck(grid,romdat)
 						if Otvet == true then
@@ -1387,7 +1408,8 @@ function Isaac_Tower.editor.OpenSpecialEditMenu(name, grid)
 						if frame>2 and not Input.IsButtonPressed(Keyboard.KEY_SPACE, 0) and (IsMouseBtnTriggered(0) or IsMouseBtnTriggered(1)) then
 							Isaac_Tower.editor.RemoveButton(Menuname, tostring(knum).."s" .. tostring(qnum))
 						else
-							Isaac_Tower.editor.GetButton(Menuname, bntName).pos = Repos + offsetPos
+							--Isaac_Tower.editor.GetButton(Menuname, bntName).pos = Repos + offsetPos
+							self.pos = Repos + offsetPos
 						end
 						
 					end,nil,-2)
@@ -1477,12 +1499,14 @@ local function RenderButtonHintText(text, pos)
 	local BoxWidth = 0
     local line = 0
 	if type(text) == "table" then
-		UIs.HintTextBG2.Scale = Vector(150/2+2.5,18*#text/4+2.5)
+		UIs.HintTextBG1.Color = Color(1,1,1,0.5)
+		UIs.HintTextBG2.Color = Color(1,1,1,0.5)
+		UIs.HintTextBG2.Scale = Vector(text.Width/2+2.5,18*#text/4+2.5)
 		UIs.HintTextBG2:Render(pos-Vector(2.5,2.5))
-		UIs.HintTextBG1.Scale = Vector(150/2+1,18*#text/4+1)
+		UIs.HintTextBG1.Scale = Vector(text.Width/2+1,18*#text/4+1)
 		UIs.HintTextBG1:Render(pos-Vector(1,1))
 
-		for li, word in pairs(text) do
+		for li, word in ipairs(text) do
 			font:DrawStringScaledUTF8(word, pos.X, pos.Y+(line*font:GetLineHeight()*0.5), 0.5, 0.5, KColor(0.1,0.1,0.2,1), BoxWidth, Center)
 			line = line + 1
 		end
@@ -1914,7 +1938,7 @@ Isaac_Tower.editor.AddButton("menuUp", "RoomSelect", Vector(8,12), 32, 32, UIs.R
 end, function(pos)
 	font:DrawStringScaledUTF8(GetStr("rooms"),pos.X+16,pos.Y-10,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true)
 end)
-Isaac_Tower.editor.ButtonSetHintText("menuUp", "RoomSelect","Тестовый текст для теста теста, ага ага, это текстовой тест, не удивляйся")
+Isaac_Tower.editor.ButtonSetHintText("menuUp", "RoomSelect",GetStr("roomlist_hint"))
 
 --UIs.RoomSelectBack
 function Isaac_Tower.editor.RoomSelectMenu.GenRoomList()
