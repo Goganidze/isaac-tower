@@ -858,6 +858,7 @@ Isaac_Tower.editor.Overlay = {menus = {}, selectedMenu = -1, num = 0, order = {}
 ---@field func function
 ---@field render function
 ---@field canPressed boolean
+---@field hintText table
 
 ---@return nil|EditorButton
 function Isaac_Tower.editor.GetButton(menuName, buttonName, NoError)

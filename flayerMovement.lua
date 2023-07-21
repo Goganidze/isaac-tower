@@ -1107,6 +1107,7 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 		fent.GrabTarget.Position = fent.Position + Vector(rot*30,-10)
 	end
 	if spr:IsFinished(spr:GetAnimation()) then
+		fent.GrabDelay = 0
 		SetState(fent, "Ходьба")
 		Isaac_Tower.HandleMoving(player)
 		return

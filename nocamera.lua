@@ -1183,7 +1183,9 @@ TSJDNHC.FGrid = {}
 ---@field Anm2File string
 ---@field RenderGridList table
 ---@field StartPos Vector
+---@field CenterPos Vector
 ---@field CornerPos Vector
+---@field RenderCenterPos Vector
 ---@field Xsize number
 ---@field Ysize number
 ---@field RenderMethod integer
@@ -1225,6 +1227,8 @@ function TSJDNHC:MakeGridList(pos,y,x,xs,ys) --y = столбцы, x = ячей�
 			tab.Xsize, tab.Ysize = xs or 40, ys or 40
 			tab.StartPos = pos
 			tab.CornerPos = pos + Vector(x * tab.Xsize, y * tab.Ysize)
+			tab.CenterPos = pos + Vector(x * tab.Xsize, y * tab.Ysize)/2  --специально для isaac tower
+			tab.RenderCenterPos = tab.CenterPos/Wtr - BDCenter
 			tab.Grid = {}
 			--local CornerAngles = Vector(tab.Xsize, tab.Ysize):GetAngleDegrees()
 			--tab.CornerAngles = {CornerAngles, (180-math.abs(CornerAngles))/(math.abs(CornerAngles)/CornerAngles),

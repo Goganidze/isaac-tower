@@ -562,6 +562,23 @@ function Isaac_Tower.SetUpdateSpeed(num)
 	updateframe = 0
 end
 
+local enemyIndexReaction = {
+	Position = function(self)
+		return rawget(self, "Self").Position
+	end,
+	Velocity = function(self)
+		return rawget(self, "Self").Velocity
+	end,
+}
+
+local enemyMetatable = {}
+enemyMetatable.__index  = function(self, key)
+	--if not Game():IsPaused() then print(key) end
+	--if enemyIndexReaction[key] then
+	--	return rawget(self, "Self").Position
+	--end
+	return enemyIndexReaction[key] and enemyIndexReaction[key](self) or rawget(self, key)
+end
 
 Isaac_Tower.Enemies = {}
 ---@param name string
@@ -582,9 +599,10 @@ function Isaac_Tower.Spawn(name, subtype, pos, vec, spawner)
 	local ent = Isaac.Spawn(EntityType.ENTITY_EFFECT, IsaacTower_Enemy, subtype or 0, pos, vec, spawner)
 	ent:GetSprite():Load(data.gfx, true)
 	ent:GetSprite():Play(ent:GetSprite():GetDefaultAnimation())
-	ent:GetData().Isaac_Tower_Data = {Type = name, GridPoints = {}, Position = ent.Position, 
-		LastPosition = pos, Velocity = ent.Velocity, Half = data.Size, grounding = 0}
+	ent:GetData().Isaac_Tower_Data = {Type = name, GridPoints = {}, --Position = ent.Position, Velocity = ent.Velocity,
+		LastPosition = pos, Half = data.Size, grounding = 0}
 	local d = ent:GetData().Isaac_Tower_Data
+	d.Self = ent
 
 	local size = d.Half.X > d.Half.Y and d.Half.X*1.2 or d.Half.Y*1.2   --d.Half:Length()*2
 	for i=0,360-45,45 do
@@ -614,6 +632,8 @@ function Isaac_Tower.Spawn(name, subtype, pos, vec, spawner)
 
 	local addflag = EntityFlag.FLAG_NO_SPRITE_UPDATE
 	ent:AddEntityFlags(addflag)
+
+	--setmetatable(d, enemyMetatable)
 
 	--d.RNG = RNG()
 	--d.RNG:SetSeed(ent.GetDropRNG)
@@ -1155,6 +1175,7 @@ local function EnemyintersectAABB_Y(ent, box)
         end
       else
         this.Velocity.Y = math.max(0, this.Velocity.Y)
+		--this.Velocity = Vector(this.Velocity.X, math.max(0, this.Velocity.Y))
         this.CollideCeiling = true
         this.JumpActive = nil
 		--print("Ceiling", box.Index, px , py)
@@ -2316,7 +2337,9 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 							obj.spr:Render(pos)
 							obj.spr.Scale = preScale
 						else
-							obj.spr:Render(pos)
+							--local off = ((layer+1)/20*Offset) --obj.pos)
+							local off = ((layer+1)/20*(Offset+Isaac_Tower.GridLists.Solid.RenderCenterPos))
+							obj.spr:Render(pos+off)
 						end
 						--Isaac.RenderScaledText(tostring(pos), pos.X, pos.Y, 0.5, 0.5, 1,1,1,1)
 					end
@@ -2327,7 +2350,7 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.FLOOR_BACKDROP_RENDER, Isaac_Tower.Renders.PreGridRender)
 
---local 
+
 function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
 	--[[local zer = -Offset - Isaac.WorldToRenderPosition(Vector(-40,100))
@@ -2363,7 +2386,8 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 		zeroOffset = BDCenter*(Scale-1) +GridListStartPos*(1-Scale) ---BDCenter
 	end
 
-	local startPos = (Offset + Isaac.WorldToRenderPosition(Vector(-40,100)))
+	local zero = Isaac.WorldToRenderPosition(Vector(-40,100))
+	local startPos = (Offset + zero)
 	--for layer,gridlist in pairs(Isaac_Tower.Renders.EnviRender) do
 	local gridlist = Isaac_Tower.Renders.EnviRender[0]
 	if gridlist then
@@ -2395,7 +2419,8 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.GRID_BACKDROP_RENDER, Isaac_Tower.Renders.P
 
 function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
-	local startPos = (Offset + Isaac.WorldToRenderPosition(Vector(-40,100)))
+	local zero = Isaac.WorldToRenderPosition(Vector(-40,100))
+	local startPos = (Offset + zero)
 	local zeroOffset
 	if Scale ~= 1 then
 		zeroOffset = BDCenter*(Scale-1) +GridListStartPos*(1-Scale) ---BDCenter
@@ -2419,7 +2444,8 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 							obj.spr:Render(pos)
 							obj.spr.Scale = preScale
 						else
-							obj.spr:Render(pos)
+							local off = ((layer-1)/20*(Offset+Isaac_Tower.GridLists.Solid.RenderCenterPos))
+							obj.spr:Render(pos+off)
 						end
 						--obj.spr:Render(pos)
 						--Isaac.RenderScaledText(tostring(pos), pos.X, pos.Y, 0.5, 0.5, 1,1,1,1)
@@ -2439,14 +2465,14 @@ local background = {
 background.spr:Load("gfx/fakegrid/background.anm2",true)
 background.spr:Play(1)
 
-local function SetBGGfx(gfx, size)
+function Isaac_Tower.Renders.SetBGGfx(gfx, size)
 	background.spr:ReplaceSpritesheet(0,gfx)
 	background.spr:LoadGraphics()
 	background.size = size
 	background.size.X = background.size.X == 0 and 1 or background.size.X
 	background.size.Y = background.size.Y == 0 and 1 or background.size.Y
 end
-local function SetBGVisible(bol)
+function Isaac_Tower.Renders.SetBGVisible(bol)
 	background.visible = bol
 end
 
