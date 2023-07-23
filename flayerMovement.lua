@@ -1,5 +1,7 @@
 return function(mod) --, Isaac_Tower)
 
+local Isaac = Isaac
+
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
 
 

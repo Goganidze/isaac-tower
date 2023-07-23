@@ -1,11 +1,16 @@
 local mod = RegisterMod("platwormer", 1)
 
+local Isaac = Isaac
+
 local Wtr = 20/13
 local reloadData
 if Isaac_Tower and Isaac_Tower.CurrentRoom then
 	reloadData = {roomName =  Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name}
 end
-Isaac_Tower = {}
+Isaac_Tower = {
+	game = Game(),
+}
+--local Isaac_Tower = Isaac_Tower
 
 local camfunc = include("nocamera")
 camfunc(mod)
@@ -251,9 +256,10 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		end
 		for i, k in pairs(newRoom.EnviList) do
 			if Isaac_Tower.editor.GridTypes["Environment"][k.name or CustomType[k.ct]] then
-				if k.ct then
+				if k.ct and CustomType[k.ct] then
 					k.name = CustomType[k.ct]
 				end
+				
 				local spr = Isaac_Tower.editor.GridTypes["Environment"][k.name or CustomType[k.ct]].info()
 				list.List[i] = {pos = k.pos, spr = spr, l = k.l or 0}
 				local layer = k.l or 0
@@ -350,8 +356,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 
 	local offset = useOffset and Isaac_Tower.TransitionSpawnOffset or Vector(0,0)
 	Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
-	for i=0, Game():GetNumPlayers()-1 do
-		TSJDNHC_PT.SetPlayerPos(Isaac.GetPlayer(i), Isaac_Tower.SpawnPoint + offset)
+	for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
+		Isaac_Tower.SetPlayerPos(Isaac.GetPlayer(i), Isaac_Tower.SpawnPoint + offset)
 	end
 	TSJDNHC_PT:SetFocusPosition(Isaac.GetPlayer():GetData().TSJDNHC_FakePlayer.Position, 1)
 	Isaac_Tower.SmoothPlayerPos = Isaac.GetPlayer():GetData().TSJDNHC_FakePlayer.Position
@@ -418,7 +424,7 @@ end
 
 local function TowerInit(bool)
     local IsTower = false
-    for pid=0,Game():GetNumPlayers()-1 do
+    for pid=0,Isaac_Tower.game:GetNumPlayers()-1 do
 		local player = Isaac.GetPlayer(pid)
 		if player:GetPlayerType() == IsaacTower_Type then
 			IsTower = true
@@ -427,9 +433,9 @@ local function TowerInit(bool)
     end
     if IsTower then
 		Isaac.ExecuteCommand("stage 1")
-		--Game():GetLevel():SetStage(1,0)
-		Game():GetLevel():RemoveCurses( Game():GetLevel():GetCurses() )
-		Game():GetHUD():SetVisible(false)
+		--Isaac_Tower.game:GetLevel():SetStage(1,0)
+		Isaac_Tower.game:GetLevel():RemoveCurses( Isaac_Tower.game:GetLevel():GetCurses() )
+		Isaac_Tower.game:GetHUD():SetVisible(false)
 
 		TSJDNHC_PT:SpawnCamera(true)
 		TSJDNHC_PT:SetFocusMode(2)
@@ -439,7 +445,7 @@ local function TowerInit(bool)
 		--Isaac_Tower.SetRoom(Isaac_Tower.StartRoom)
 
 		for i=0, DoorSlot.NUM_DOOR_SLOTS-1 do
-			Game():GetRoom():RemoveDoor(i)
+			Isaac_Tower.game:GetRoom():RemoveDoor(i)
 		end
 		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
 		TSJDNHC_PT:SetRoomShadingVisible(false)
@@ -661,7 +667,7 @@ function Isaac_Tower.EnemyHandlers.GetCollidedEnemies(ent, CollideWithPlayers)
 			end
 		end
 		if CollideWithPlayers then
-			for i=0, Game():GetNumPlayers()-1 do
+			for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
 				local colData = Isaac.GetPlayer(i):GetData().TSJDNHC_FakePlayer
 				if colData then
 					local box1 = {pos = ent.Position, half = data.Half}
@@ -1247,7 +1253,7 @@ end
 
 
 
-function TSJDNHC_PT.SetPlayerPos(ent, pos)
+function Isaac_Tower.SetPlayerPos(ent, pos)
 	local d = ent:GetData()
 	local fent = d.TSJDNHC_FakePlayer
 	fent.Position = pos
@@ -1281,9 +1287,9 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		if not Isaac_Tower.GridLists.Solid:GetGrid(fent.Position) then
 			local result = Isaac.RunCallback(Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, ent)
 			if type(result) == "userdata" and result.X then
-				TSJDNHC_PT.SetPlayerPos(ent, result)
+				Isaac_Tower.SetPlayerPos(ent, result)
 			elseif result ~= true then
-				TSJDNHC_PT.SetPlayerPos(ent, Isaac_Tower.SpawnPoint or Vector(320, 280))
+				Isaac_Tower.SetPlayerPos(ent, Isaac_Tower.SpawnPoint or Vector(320, 280))
 			end
 		end
 
@@ -1631,10 +1637,10 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 	if fent.Shadowposes then
 		for i,k in pairs(fent.Shadowposes) do
 			local rpos = k[1]/Wtr
-			local renpos = Pos + rpos + ZeroPoint
+			local renpos = Pos + rpos*Scale + ZeroPoint
 			if Scale ~= 1 then
-				local scaledOffset = ((Scale-1)*rpos)-zeroOffset ---rpos
-				renpos = renpos+scaledOffset
+				--local scaledOffset = ((Scale-1)*rpos)-zeroOffset ---rpos
+				renpos = renpos-zeroOffset --+scaledOffset
 				if k[5] then
 					local preScale = fent.Flayer.Shadow.Scale/1
 					fent.Flayer.Shadow.Scale = fent.Flayer.Shadow.Scale*Scale
@@ -1665,13 +1671,13 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 	end
 
 
-	if Game():GetFrameCount()%4 <= 2 then
+	if Isaac_Tower.game:GetFrameCount()%4 <= 2 then
 		for i,k in pairs(fent.PosRecord) do
 			if Scale ~= 1 then
 				local rpos = k[1]/Wtr
-				local RenderPos =  Pos + rpos + ZeroPoint
-				local scaledOffset = ((Scale-1)*rpos)-zeroOffset ---rpos
-				RenderPos = RenderPos+scaledOffset
+				local RenderPos =  Pos + rpos*Scale + ZeroPoint
+				--local scaledOffset = ((Scale-1)*rpos)-zeroOffset ---rpos
+				RenderPos = RenderPos-zeroOffset --+scaledOffset
 				spr.Color = RunSpeedColors[k[2]]
 				--spr:Render(RenderPos)
 				local preScale = spr.Scale/1
@@ -1686,11 +1692,11 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 		end
 	end
 
-	local RenderPos =  (Pos + fent.Position/Wtr + fent.Velocity/Wtr*Isaac_Tower.GetProcentUpdate() + ZeroPoint) --*Scale
+	local RenderPos =  (Pos + fent.Position/Wtr*Scale + fent.Velocity/Wtr*Isaac_Tower.GetProcentUpdate() + ZeroPoint) --*Scale
 	--local RenderPos =  TSJDNHC_PT:WorldToScreen(fent.Position + fent.Velocity*Isaac_Tower.GetProcentUpdate())  -- + ZeroPoint
 	if Scale ~= 1 then
-		local scaledOffset = ((Scale-1)*(fent.Position/Wtr))-zeroOffset ---(fent.Position/Wtr)
-		RenderPos = RenderPos+scaledOffset --+Vector(0,12*(Scale-1))
+	--	local scaledOffset = ((Scale-1)*(fent.Position/Wtr))-zeroOffset ---(fent.Position/Wtr)
+		RenderPos = RenderPos-zeroOffset --+Vector(0,12*(Scale-1))
 
 
 	end
@@ -2018,7 +2024,7 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 		data.StateFrame = data.StateFrame + 1
 
 		if data.Flags.EntityCollision == 1 then
-			for i=0, Game():GetNumPlayers()-1 do
+			for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
 				local fent = Isaac_Tower.GetFlayer(i)
 				local dist = fent and fent.Position:Distance(ent.Position)
 				if fent and dist < data.FlayerDistanceCheck and data.State ~= Isaac_Tower.EnemyHandlers.EnemyState.GRABBED then
@@ -2168,7 +2174,7 @@ local GibsLogic = {
 	},
 	Render = {
 		[100] = function(e)
-			if Game():IsPaused() or not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
+			if Isaac_Tower.game:IsPaused() or not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
 			if not TSJDNHC_PT:IsCamRender() and e:GetData().color then
 				e:GetData().color.A = e:GetData().color.A-0.05
 				e:GetSprite().Color = e:GetData().color
@@ -2183,7 +2189,7 @@ local GibsLogic = {
 		end,
 		[Isaac_Tower.ENT.GibSubType.SOUND_BARRIER] = function(e)
 			--print(e.SubType, e:GetSprite():GetFrame())
-			if Game():IsPaused() or not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
+			if Isaac_Tower.game:IsPaused() or not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
 			if not TSJDNHC_PT:IsCamRender() then
 				e:GetSprite():Update()
 			end
@@ -2326,10 +2332,10 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 				for i,k in pairs(gridlist) do
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj then
-						local pos = obj.pos + startPos
+						local pos = obj.pos*Scale + startPos
 						if Scale ~= 1 then
-							local scaledOffset = ((Scale-1)*obj.pos) or Vector(0,0) ---obj.pos
-							pos = pos + scaledOffset-zeroOffset --+ vec
+							--local scaledOffset = ((Scale-1)*obj.pos) or Vector(0,0) ---obj.pos
+							pos = pos -zeroOffset --+ vec
 						end
 						if Scale ~= 1 then
 							local preScale = obj.spr.Scale/1
@@ -2395,10 +2401,10 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 			for i,k in pairs(gridlist) do
 				local obj = Isaac_Tower.GridLists.Evri.List[k]
 				if obj then
-					local pos = obj.pos + startPos
+					local pos = obj.pos*Scale + startPos
 					if Scale ~= 1 then
-						local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
-						pos = pos + scaledOffset-zeroOffset --+ vec
+						--local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
+						pos = pos -zeroOffset --+ vec + scaledOffset
 					end
 					if Scale ~= 1 then
 						local preScale = obj.spr.Scale/1
@@ -2433,10 +2439,10 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 				for i,k in pairs(gridlist) do
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj then
-						local pos = obj.pos + startPos
+						local pos = obj.pos*Scale + startPos
 						if Scale ~= 1 then
-							local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
-							pos = pos + scaledOffset-zeroOffset --+ vec
+							--local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
+							pos = pos -zeroOffset --+ vec
 						end
 						if Scale ~= 1 then
 							local preScale = obj.spr.Scale/1
@@ -2577,7 +2583,7 @@ local function debugFridRender(_, Pos, Offset, Scale)
 		end
 	end
 
-	for pl=0,Game():GetNumPlayers()-1 do
+	for pl=0,Isaac_Tower.game:GetNumPlayers()-1 do
 		local ent = Isaac.GetPlayer(pl)
 		local d = ent:GetData()
 		if d.DebugGridRen then
@@ -2599,7 +2605,7 @@ local function debugFridRender(_, Pos, Offset, Scale)
   end
 
   if TSJDNHC_PT.Isdebug(3) then
-	for pl=0,Game():GetNumPlayers()-1 do
+	for pl=0, Isaac_Tower.game:GetNumPlayers()-1 do
 		local ent = Isaac.GetPlayer(pl)
 		local d = ent:GetData()
 		local fent = d.TSJDNHC_FakePlayer

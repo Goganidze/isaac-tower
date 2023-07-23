@@ -1,5 +1,7 @@
 return function(mod) --, Isaac_Tower)
 
+local Isaac = Isaac
+
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
 
 local sprites = {}
@@ -779,7 +781,7 @@ function Isaac_Tower.ENT.LOGIC.EnemySignLogic(_,ent)
 end
 
 function Isaac_Tower.ENT.LOGIC.EnemySignRender(_,ent)
-	if not Game():IsPaused() then
+	if not Isaac_Tower.game:IsPaused() then
 		local data = ent:GetData()
 		if data.Isaac_Tower_Data.State >= 1 then
 			if data.Isaac_Tower_Data.OnGround then

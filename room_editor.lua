@@ -1,5 +1,9 @@
 return function(mod) --, Isaac_Tower)
 
+local Isaac = Isaac
+local string = string
+local Vector = Vector
+
 local function utf8_Sub(str, x, y)
 	local x2, y2
 	x2 = utf8.offset(str, x)
@@ -1106,7 +1110,7 @@ function Isaac_Tower.editor.OpenTextboxPopup(onlyNumber, resultCheckFunc, startT
 		--Isaac_Tower.editor.GetButton(Menuname, "Ok").pos = Isaac_Tower.editor.ScreenCenter - Vector(94,24)+Vector(112,44)
 		font:DrawStringScaledUTF8(GetStr("Ok"),pos.X+30,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true)
 
-		if not Game():IsPaused() and Input.IsButtonTriggered(Keyboard.KEY_ENTER,0) then
+		if not Isaac_Tower.game:IsPaused() and Input.IsButtonTriggered(Keyboard.KEY_ENTER,0) then
 			local result = Isaac_Tower.editor.TextboxPopup.ResultCheck(Isaac_Tower.editor.TextboxPopup.Text)
 			if result == true then
 				Isaac_Tower.editor.CloseTextboxPopup()
@@ -1251,7 +1255,7 @@ end
 local blockact = {[ButtonAction.ACTION_FULLSCREEN]=true, [ButtonAction.ACTION_RESTART]=true, [ButtonAction.ACTION_MUTE]=true,
 	[ButtonAction.ACTION_PAUSE] = true}
 function Isaac_Tower.editor.InputFilter(_, ent, InputHook, ButtonAction)
-	if Isaac_Tower.editor.TextboxPopup.InFocus and not Game():IsPaused() and blockact[ButtonAction] and (InputHook == 0 or InputHook == 1) then
+	if Isaac_Tower.editor.TextboxPopup.InFocus and not Isaac_Tower.game:IsPaused() and blockact[ButtonAction] and (InputHook == 0 or InputHook == 1) then
 		return false
 	end
 end
@@ -1683,7 +1687,7 @@ function Isaac_Tower.editor.Render()
 end
 
 function Isaac_Tower.editor.MoveControl()
-	if Game():IsPaused() then return end
+	if Isaac_Tower.game:IsPaused() then return end
 
 	--[[local addPos = Vector(-Input.GetActionValue(ButtonAction.ACTION_LEFT, 0) + Input.GetActionValue(ButtonAction.ACTION_RIGHT, 0),
 		-Input.GetActionValue(ButtonAction.ACTION_UP, 0) + Input.GetActionValue(ButtonAction.ACTION_DOWN, 0))
@@ -1850,7 +1854,7 @@ Isaac_Tower.editor.AddButton("menuUp", "Test", Vector(336,12), 32, 32, UIs.TestR
 	Isaac_Tower.editor.InEditorTestRoom = true
 	Isaac_Tower.CloseEditor()
 	Isaac_Tower.SetRoom(Isaac_Tower.editor.Memory.CurrentRoom.Name)
-	for i=0,Game():GetNumPlayers()-1 do
+	for i=0,Isaac_Tower.game:GetNumPlayers()-1 do
 		local d = Isaac.GetPlayer(i):GetData()
 		local fent = d.TSJDNHC_FakePlayer
 
@@ -2160,7 +2164,7 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 				Col0Grid:Render(renderpos)
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
-				and selGrid and not Game():IsPaused() then
+				and selGrid and not Isaac_Tower.game:IsPaused() then
 					chosenGrid:Render(renderpos)
 
 					local pGrid = Isaac_Tower.editor.GridTypes.Grid[Isaac_Tower.editor.SelectedGridType or ""]
@@ -2340,7 +2344,7 @@ Isaac_Tower.editor.AddOverlay("Obstacle", GenSprite("gfx/editor/ui.anm2","ове
 				--end
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
-				and selGrid and not Game():IsPaused() then
+				and selGrid and not Isaac_Tower.game:IsPaused() then
 					chosenGridHalf:Render(renderpos)
 
 					local pGrid = Isaac_Tower.editor.GridTypes.Obstacle[Isaac_Tower.editor.SelectedGridType or ""]
@@ -2522,7 +2526,7 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 				Col0Grid:Render(renderpos)
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
-				and selGrid and not Game():IsPaused() then
+				and selGrid and not Isaac_Tower.game:IsPaused() then
 					chosenGrid:Render(renderpos)
 
 					local pGrid = Isaac_Tower.editor.GridTypes.Enemies[Isaac_Tower.editor.SelectedGridType or ""]
@@ -2656,7 +2660,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 
 	Isaac.RunCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_UPDATE, IsSelected)
 
-	if not Game():IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" and IsSelected then
+	if not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" and IsSelected then
 		if Input.IsButtonPressed(Keyboard.KEY_LEFT_CONTROL, 0) then
 			Isaac_Tower.editor.BlockPlaceGrid = true
 			if not Isaac_Tower.editor.MouseSprite or Isaac_Tower.editor.MouseSprite:GetAnimation() ~= "mouse_tileEdit" then
@@ -2706,7 +2710,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 					Col0Grid:Render(renderpos)
 					
 					if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
-					and selGrid and not Game():IsPaused() then
+					and selGrid and not Isaac_Tower.game:IsPaused() then
 						chosenGrid:Render(renderpos)
 
 						local pGrid = Isaac_Tower.editor.GridTypes.Special[Isaac_Tower.editor.SelectedGridType or ""]
@@ -2822,7 +2826,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 		end
 	end
 
-	if not Game():IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" and IsSelected and Isaac_Tower.editor.SelectedGrid then
+	if not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" and IsSelected and Isaac_Tower.editor.SelectedGrid then
 		local pGrid = Isaac_Tower.editor.GridTypes.Special[Isaac_Tower.editor.SelectedGridType]
 		local y,x = Isaac_Tower.editor.SelectedGrid[1], Isaac_Tower.editor.SelectedGrid[2]
 		if not Isaac_Tower.editor.BlockPlaceGrid and pGrid then
@@ -3232,7 +3236,7 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 			local selGrid = selectedGrid and selectedGrid[1] == y and selectedGrid[2] == x
 			
 			if  Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
-			and selGrid and not Game():IsPaused() then
+			and selGrid and not Isaac_Tower.game:IsPaused() then
 				local pGrid = Isaac_Tower.editor.GridTypes.Environment[Isaac_Tower.editor.SelectedGridType or ""]
 				local renderpos = Isaac_Tower.editor.GridStartPos + Vector(x*13, y*13)
 				--chosenGrid:Render(renderpos)
@@ -4009,7 +4013,7 @@ do
 			Isaac_Tower.editor.IsStickyMenu = false
 		end, function(pos) 
 			font:DrawStringScaledUTF8(GetStr("Back"),pos.X+30,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true)
-			if not Game():IsPaused() and Isaac_Tower.editor.SelectedMenu == AddMenuMenu.Name and Input.IsButtonTriggered(Keyboard.KEY_ENTER,0) then
+			if not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == AddMenuMenu.Name and Input.IsButtonTriggered(Keyboard.KEY_ENTER,0) then
 				Isaac_Tower.editor.SelectedMenu = "GridList"
 				Isaac_Tower.editor.IsStickyMenu = false
 			end
@@ -4469,7 +4473,7 @@ SpecialConstMem.ArrowUp.Offset = Vector(-1,0)
 SpecialConstMem.ArrowDown.Offset = Vector(-1,0)
 
 mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_UPDATE, function(_,IsSelected)
-	if IsSelected and Isaac.GetFrameCount()%60 == 0 and not Game():IsPaused() then
+	if IsSelected and Isaac.GetFrameCount()%60 == 0 and not Isaac_Tower.game:IsPaused() then
 		local NeedRepeat = false
 		local DefPointNum = 0
 
@@ -4528,7 +4532,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 	local Linfo = info.info()
 	if Linfo and Linfo.ErrorMes then
 		ErrorSignSpr:Render(renderPos)
-		if not Game():IsPaused() and IsSel then
+		if not Isaac_Tower.game:IsPaused() and IsSel then
 			ShowErrorMes = Linfo.ErrorMes
 		end
 	end
@@ -4549,7 +4553,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 				SpecialConstMem.ArrowDown:Render(Cenpos+Vector(0,13/2*size.Y)+addOffset)
 			end
 
-			if not Game():IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" then
+			if not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" then
 				if Isaac_Tower.editor.NeedRemoveBlockPlaceGrid and not SpecialConstMem.OldMousePos then
 					Isaac_Tower.editor.NeedRemoveBlockPlaceGrid = nil
 					Isaac_Tower.editor.BlockPlaceGrid = nil
@@ -4853,7 +4857,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 			end
 		end
 		if Isaac_Tower.editor.SpecialSelectedTile == Linfo 
-		and not Game():IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" then
+		and not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" then
 			if not Isaac_Tower.editor.GetButton("grid", "_special_edit_button", true) then
 				local spr = UIs.Edit_Button()
 				spr.Scale = Vector(0.5,0.5)

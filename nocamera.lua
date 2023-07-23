@@ -1,5 +1,8 @@
 return function(mod)
 
+local Isaac = Isaac
+local game = Game()
+
 local mainfilepath = 'gfx/doubleRender/'
 local entCam = {ID = Isaac.GetEntityTypeByName('PIZTOW CamEnt'),VARIANT = Isaac.GetEntityVariantByName('PIZTOW CamEnt')}
 
@@ -133,10 +136,10 @@ end
 local function LoadBackdropSprite(sprite, backdrop, mode) -- modes are 1 (walls A), 2 (floors), 3 (walls B)
     sprite = sprite or Sprite()
     local BackdropRNG = RNG()
-    BackdropRNG:SetSeed(Game():GetRoom():GetDecorationSeed(), 1)
+    BackdropRNG:SetSeed(game:GetRoom():GetDecorationSeed(), 1)
 
     local needsExtra
-    local roomShape = Game():GetRoom():GetRoomShape()
+    local roomShape = game:GetRoom():GetRoomShape()
     local shapeName = ShapeToName[roomShape]
     if ShapeToWallAnm2Layers[shapeName .. "X"] then
         needsExtra = true
@@ -209,7 +212,7 @@ local function LoadBackdropSprite(sprite, backdrop, mode) -- modes are 1 (walls 
 
     sprite:LoadGraphics()
 
-    local renderPos = Game():GetRoom():GetTopLeftPos()
+    local renderPos = game:GetRoom():GetTopLeftPos()
     if mode ~= 2 then
         renderPos = renderPos - Vector(80, 80)
     end
@@ -267,7 +270,7 @@ function TSJDNHC.CamEntUpdat(_,e)
 			end
 		end
 
-		local roomDescriptor = Game():GetLevel():GetCurrentRoomDesc()
+		local roomDescriptor = game:GetLevel():GetCurrentRoomDesc()
 		local RoomIndex = roomDescriptor.ListIndex
 
 		if d.TargetEntity and type(d.TargetEntity) == 'table' then
@@ -322,7 +325,7 @@ function TSJDNHC.CamEntUpdat(_,e)
 		end
 
 		d.CameraOffset = Vector(-20,60) - e.Position
-		local centerPos = Game():GetRoom():GetRoomShape()>8 and Vector(580,420) or Game():GetRoom():GetCenterPos()
+		local centerPos = game:GetRoom():GetRoomShape()>8 and Vector(580,420) or game:GetRoom():GetCenterPos()
 		d.CenterPos = Isaac.WorldToRenderPosition(centerPos)*d.CurrentCameraScale+bg_RenderPos*(1-d.CurrentCameraScale)
 		
 		if #e:GetData().renderlist["stein"]>100 then
@@ -342,8 +345,8 @@ function TSJDNHC.CamEntUpdat(_,e)
 		end
 		d.renderlist.rock = {}
 		d.renderlist.underrock = {}
-		for i=0, Game():GetRoom():GetGridSize() do
-			local ent = Game():GetRoom():GetGridEntity(i)
+		for i=0, game:GetRoom():GetGridSize() do
+			local ent = game:GetRoom():GetGridEntity(i)
 			if ent and ent:GetType() ~= 15 then
 				local gesp = ent:GetSprite()
 				local Pos --= Isaac.WorldToRenderPosition(ent.Position)
@@ -363,7 +366,7 @@ function TSJDNHC.CamEntUpdat(_,e)
 		--end
 
 		if d.CurrentCameraScale ~= 1 then
-			for i=0,Game():GetNumPlayers()-1 do
+			for i=0,game:GetNumPlayers()-1 do
 				local player = Isaac.GetPlayer(i) 
 				player:AddCacheFlags(CacheFlag.CACHE_SIZE)
  				player:EvaluateItems()
@@ -386,15 +389,15 @@ function TSJDNHC.CamEntUpdat(_,e)
 
 		d.RoomShading = Sprite()
 		d.RoomShading:Load(Filepath.RoomShading,false)
-		d.RoomShading:ReplaceSpritesheet(0,ShapeToRoomShading[Game():GetRoom():GetRoomShape()])
+		d.RoomShading:ReplaceSpritesheet(0,ShapeToRoomShading[game:GetRoom():GetRoomShape()])
 		d.RoomShading:LoadGraphics()
-		d.RoomShading:Play(tostring(Game():GetRoom():GetRoomShape()))
+		d.RoomShading:Play(tostring(game:GetRoom():GetRoomShape()))
 
 		d.SpecialRender = {igronelist = {}, room = {}, stein = {}, creep = {}, rock = {}, underrock = {}, entity = {} }
 		d.renderlist = {stein = {}, creep = {}, rock = {}, underrock = {}, entity = {} }
 		--e:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
 
-		local roomDescriptor = Game():GetLevel():GetCurrentRoomDesc()
+		local roomDescriptor = game:GetLevel():GetCurrentRoomDesc()
 		local RoomIndex = roomDescriptor.ListIndex
 		d.RoomIndex = RoomIndex 
 
@@ -404,7 +407,7 @@ function TSJDNHC.CamEntUpdat(_,e)
 		d.fakeShadow.Offset = entitiesShadowOffset --Vector(0,1)
 		d.fakeShadow.Color = Color(1,1,1,0.2)
 
-		d.CenterPos = Isaac.WorldToRenderPosition(Game():GetRoom():GetCenterPos())
+		d.CenterPos = Isaac.WorldToRenderPosition(game:GetRoom():GetCenterPos())
 		d.ofsset = 1
 		d.FocusMode = 1
 		d.StainVisible = true
@@ -452,14 +455,14 @@ function TSJDNHC.ChangeCamSpriteOffsets()
 			end
 		end
 
-		d.RoomShading:Play(Game():GetRoom():GetRoomShape())
-		d.RoomShading:ReplaceSpritesheet(0,ShapeToRoomShading[Game():GetRoom():GetRoomShape()])
+		d.RoomShading:Play(game:GetRoom():GetRoomShape())
+		d.RoomShading:ReplaceSpritesheet(0,ShapeToRoomShading[game:GetRoom():GetRoomShape()])
 		d.RoomShading:LoadGraphics()
 
 		d.CenterPos = Vector(0,0) --Isaac.WorldToRenderPosition(Game():GetRoom():GetCenterPos())*d.CurrentCameraScale+bg_RenderPos*(1-d.CurrentCameraScale)
 
 		if d.TargetEntity then
-			local clsh = RoomClamp[Game():GetRoom():GetRoomShape()]
+			local clsh = RoomClamp[game:GetRoom():GetRoomShape()]
 			if type(d.TargetEntity) ~= 'table' then
 				local targetPos = ((d.TargetEntity.Position+d.TargetEntity.Velocity*15)/Wtr+fixpos)
 				if d.TargetEntity.Type == 1 then
@@ -479,7 +482,7 @@ function TSJDNHC.ChangeCamSpriteOffsets()
 			end
 		end
 		if d.CameraPosition then
-			local clsh = RoomClamp[Game():GetRoom():GetRoomShape()]
+			local clsh = RoomClamp[game:GetRoom():GetRoomShape()]
 			local targetPos = d.CameraPosition
 			if d.FocusMode == 2 then	
 				local scaleclamp = Vector(140,97)*(d.CurrentCameraScale-1)
@@ -502,7 +505,7 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 	local LerpPower = 0.05 
 	local scale = d.CurrentCameraScale --math.floor(d.CurrentCameraScale*40)/40
 	
-	if not Game():IsPaused() then
+	if not game:IsPaused() then
 		if d.FocusMode ~= 1 then
 			d.ofsset = d.ofsset and (d.ofsset*0.95 + 0) or 0
 		elseif d.FocusMode == 1 then
@@ -510,7 +513,7 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		end
 		if d.TargetEntity then
 			
-			local clsh = RoomClamp[Game():GetRoom():GetRoomShape()]
+			local clsh = RoomClamp[game:GetRoom():GetRoomShape()]
 			if type(d.TargetEntity) ~= 'table' then
 				local targetPos = ((d.TargetEntity.Position+d.TargetEntity.Velocity*45)/Wtr+fixpos)
 				if d.TargetEntity.Type == 1 then
@@ -531,7 +534,7 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		end
 		if d.CameraPosition or d.FocusCameraPosition then
 			local LerpP = d.FocusLerp or LerpPower
-			local clsh = d.RoomClamp or RoomClamp[Game():GetRoom():GetRoomShape()]
+			local clsh = d.RoomClamp or RoomClamp[game:GetRoom():GetRoomShape()]
 
 			local targetPos = d.FocusCameraPosition or d.CameraPosition
  			if d.FocusCameraPosition and d.CameraPosition and (d.CameraPosition.X~=0 or d.CameraPosition.Y~=0) then
@@ -723,9 +726,9 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 					k[1]:Render(scaledOffset+CameraOffset)
 					--k[1]:ToPlayer():RenderGlow(Vector(120,120))
 					k[1].PositionOffset = TruePositionOfset
-					if not Game():IsPaused() then
+					--if not Game():IsPaused() then
 						--k[1].Size = k[1].Size / d.CurrentCameraScale 
-					end
+					--end
 				else
 					k[1].PositionOffset = k[1].PositionOffset*scale
 					k[1]:GetSprite().Scale = k[1]:GetSprite().Scale*scale
@@ -759,7 +762,7 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 				d.State = 4
 				d.BlackAlpha = nil
 				d.IsEnable = false
-				for i=0,Game():GetNumPlayers()-1 do
+				for i=0,game:GetNumPlayers()-1 do
 					local player = Isaac.GetPlayer(i) 
 					player:AddCacheFlags(CacheFlag.CACHE_SIZE)
  					player:EvaluateItems()
@@ -795,7 +798,7 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 				d.IsEnable = 1
 				d.State = 2 
 				d.BlackAlpha = nil
-				for i=0,Game():GetNumPlayers()-1 do
+				for i=0,game:GetNumPlayers()-1 do
 					local player = Isaac.GetPlayer(i) 
 					player:AddCacheFlags(CacheFlag.CACHE_SIZE)
  					player:EvaluateItems()
@@ -935,9 +938,9 @@ function TSJDNHC:SetScale(scale, noLerp)
 			d.WallSprite.Scale = vec
 			d.WallSprite2.Scale = vec
 			d.RoomShading.Scale = vec
-			local centerPos = Game():GetRoom():GetRoomShape()>8 and Vector(580,420) or Game():GetRoom():GetCenterPos()
+			local centerPos = game:GetRoom():GetRoomShape()>8 and Vector(580,420) or game:GetRoom():GetCenterPos()
 			d.CenterPos = Isaac.WorldToRenderPosition(centerPos)*scale+bg_RenderPos*(1-scale)
-			for i=0,Game():GetNumPlayers()-1 do
+			for i=0,game:GetNumPlayers()-1 do
 				local player = Isaac.GetPlayer(i) 
 				player:AddCacheFlags(CacheFlag.CACHE_SIZE)
  				player:EvaluateItems()
@@ -971,7 +974,7 @@ function TSJDNHC:SpawnCamera(bool)
 	end
 	return CameraEntity.Ref
     else
-	local cam = Isaac.Spawn(1000,entCam.VARIANT,2,Game():GetRoom():GetTopLeftPos()-CameraOffset,Vector(0,0),nil)
+	local cam = Isaac.Spawn(1000,entCam.VARIANT,2,game:GetRoom():GetTopLeftPos()-CameraOffset,Vector(0,0),nil)
 	cam:Update()
 	cam:GetData().IsEnable = bool
 	return cam
@@ -1126,10 +1129,10 @@ function TSJDNHC:WorldToScreen(pos)
 
 		if Scale ~= 1 then
 			local revScale = (Scale-1)
-			local RenderPos = scrPos 
+			local RenderPos = scrPos * Scale
 			local zeroOffset = BDCenter*revScale
-			local scaledOffset = (revScale*(pos/Wtr)) -zeroOffset
-			RenderPos = RenderPos +scaledOffset - (d.CurrentCameraPosition*d.CurrentCameraScale)
+			--local scaledOffset = (revScale*(pos/Wtr)) 
+			RenderPos = RenderPos  - (d.CurrentCameraPosition*d.CurrentCameraScale) - zeroOffset
 
 			return RenderPos
 		else
@@ -1417,10 +1420,10 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 		for y=math.min(EndPosRenderGrid.Y, self.Y), math.max(1,StartPosRenderGrid.Y),-1 do
 			for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, self.X) do
 				local tab = self.Grid[y][x]
-				local renderPos = tab.RenderPos + startPos
+				local renderPos = tab.RenderPos*scale + startPos
 				if scale ~= 1 then
 					local scaledOffset = ((scale-1)*tab.RenderPos) or Vector(0,0) ---tab.RenderPos
-					renderPos = renderPos + scaledOffset-zeroOffset --+ vec
+					renderPos = renderPos -zeroOffset --+ vec
 				end
 
 				if tab.Sprite then
@@ -1839,7 +1842,7 @@ local PlayerColor = Color(2,0,2,1)
 
 local function EntityfrigPoint(_, Pos, Offset, Scale)
   if TSJDNHC.Isdebug(2) or TSJDNHC.Isdebug(3) then
-    for pl=0,Game():GetNumPlayers()-1 do
+    for pl=0,game:GetNumPlayers()-1 do
 	local ent = Isaac.GetPlayer(pl)
 	local d = ent:GetData()
 	if d.TSJDNHC_GridPoints then
@@ -1913,7 +1916,7 @@ mod:AddCallback(TSJDNHC.Callbacks.GRID_BACKDROP_RENDER, debugFridRender)
 
 function TSJDNHC.TestGridColl()
 	
-    for pid=0,Game():GetNumPlayers()-1 do
+    for pid=0,game:GetNumPlayers()-1 do
 	local d = Isaac.GetPlayer(pid):GetData()
 	d.TSJDNHC_GridPoints = {}
 	for i=0,360-45,45 do    --i=-0,3 do
