@@ -375,7 +375,7 @@ Enemy={
   {pos=Vector(19,24),name='clottig',st=0,EditorType='clottig',},
   {pos=Vector(21,24),name='clottig',st=0,EditorType='clottig',},
   {pos=Vector(22,24),name='clottig',st=0,EditorType='clottig',},
-  {pos=Vector(26,24),name='mid portal',st=0,EditorType='mod portal',},
+  {pos=Vector(26,24),name='mid portal',st=0,EditorType='mid portal',},
 },
 SolidList={
   gfx='gfx/fakegrid/tutorial.png',

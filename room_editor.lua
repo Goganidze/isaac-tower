@@ -1120,6 +1120,8 @@ function Isaac_Tower.editor.OpenTextboxPopup(onlyNumber, resultCheckFunc, startT
 		end
 	end)
 
+	local ctrlVPressed = false
+
 	Isaac_Tower.editor.MenuLogic[Menuname] = function(MousePos)
 		mousePosi = MousePos
 		
@@ -1189,6 +1191,7 @@ function Isaac_Tower.editor.OpenTextboxPopup(onlyNumber, resultCheckFunc, startT
 			local newChar
 			local remove
 			local charTable
+			local ignoreKeybord = false
 
 			if Isaac_Tower.editor.TextboxPopup.OnlyNumber then
 				if shift then
@@ -1217,6 +1220,16 @@ function Isaac_Tower.editor.OpenTextboxPopup(onlyNumber, resultCheckFunc, startT
 			--		end
 			--	end
 			--else
+			if not ctrlVPressed and Input.IsButtonPressed(Keyboard.KEY_LEFT_CONTROL,0) and Input.IsButtonPressed(Keyboard.KEY_V,0) then
+				ctrlVPressed = true
+				ignoreKeybord = true
+				newChar = Isaac_Tower.GetClipBroad and Isaac_Tower.GetClipBroad()
+			elseif not (Input.IsButtonPressed(Keyboard.KEY_LEFT_CONTROL,0) or Input.IsButtonPressed(Keyboard.KEY_V,0)) then
+				ctrlVPressed = false
+			else
+				ignoreKeybord = true
+			end
+			if not ignoreKeybord then
 				for btn,b in pairs(charTable) do
 					if Input.IsButtonPressed(btn,0) then
 						if Isaac_Tower.editor.TextboxPopup.lastChar ~= btn then
@@ -1227,7 +1240,7 @@ function Isaac_Tower.editor.OpenTextboxPopup(onlyNumber, resultCheckFunc, startT
 						Isaac_Tower.editor.TextboxPopup.lastChar = nil
 					end
 				end
-			--end
+			end
 			if newChar then
 				--local minusPos = utf8.offset(Isaac_Tower.editor.TextboxPopup.Text, Isaac_Tower.editor.TextboxPopup.TextPos-1)
 				local curjspos = Isaac_Tower.editor.TextboxPopup.TextPos --utf8.offset(Isaac_Tower.editor.TextboxPopup.Text, Isaac_Tower.editor.TextboxPopup.TextPos)
@@ -1242,7 +1255,7 @@ function Isaac_Tower.editor.OpenTextboxPopup(onlyNumber, resultCheckFunc, startT
 					end
 				else
 					Isaac_Tower.editor.TextboxPopup.Text = firstPart .. newChar .. secondPart
-					Isaac_Tower.editor.TextboxPopup.TextPos = Isaac_Tower.editor.TextboxPopup.TextPos + 1
+					Isaac_Tower.editor.TextboxPopup.TextPos = Isaac_Tower.editor.TextboxPopup.TextPos + utf8.len(newChar)
 				end
 			end
 		end
@@ -3718,10 +3731,21 @@ do
 			local Rpos = centerPos+Vector(16,4)
 			Isaac_Tower.editor.AddButton(Menuname, "RG_auto", Rpos, 64, 16, UIs.ButtonWide(), function(button) 
 				if button ~= 0 then return end
+				if Isaac_Tower.RG then
+					local anmdata = {Isaac_Tower.editor.GetEnviAutoSpriteFormat(AddMenuMenu.sprite)}
+					AddMenuMenu.sprite.Scale = Vector(1,1)*Vector(math.min(1,26/NewTileData.Size.X), math.min(1,26/NewTileData.Size.Y))
+					NewTileData.Size = anmdata[1]
+					NewTileData.Pivot = anmdata[2]
+					NewTileData.Pos = anmdata[3]+Vector(13,13)
+				end
 			end, function(pos)
-				font:DrawStringScaledUTF8(GetStr("Auto"),pos.X+30,pos.Y+2.5,0.5,0.5,KColor(0.5,0.5,0.6,1),1,true)
+				if Isaac_Tower.RG then
+					font:DrawStringScaledUTF8(GetStr("Auto"),pos.X+30,pos.Y+2.5,0.5,0.5,KColor(0.1,0.1,0.2,0.8),1,true)
+				else
+					font:DrawStringScaledUTF8(GetStr("Auto"),pos.X+30,pos.Y+2.5,0.5,0.5,KColor(0.5,0.5,0.6,1),1,true)
+				end
 				UIs.RG_icon:Render(pos-Vector(8,-6))
-			end,true)
+			end)
 
 			local polosa = UIs.Var_Sel()
 			polosa.Scale = Vector(2,1)
@@ -4026,6 +4050,7 @@ do
 			ingrid.Scale = Vector(.5,.5)
 			local sprr = GenSprite(NewTileData.AnmFile,NewTileData.AnimName)
 			sprr.Offset = NewTileData.Pos
+			sprr.Scale = AddMenuMenu.sprite.Scale
 			--Isaac_Tower.editor.AddEnvironment(NewTileData.AnmFile .. NewTileData.AnimName, 
 			--	sprr, 
 			--	function() return GenSprite(NewTileData.AnmFile,NewTileData.AnimName) end, 

@@ -879,7 +879,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.E
 ---------------------------------------СРЕДНЕРОСТНЫЙ ПОРТАЛ--------------------------------------------
 
 Isaac_Tower.RegisterEnemy("mid portal", "gfx/enemies/mid_portal.anm2", Vector(5,5), {EntityCollision = 0})
-Isaac_Tower.editor.AddEnemies("mod portal", 
+Isaac_Tower.editor.AddEnemies("mid portal", 
 	GenSprite("gfx/enemies/mid_portal.anm2","editor",nil,nil,Vector(13,13)), 
 	"mid portal",0,  
 	GenSprite("gfx/enemies/mid_portal.anm2","editor",nil,nil,Vector(13/2,13/2)))

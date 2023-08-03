@@ -1036,7 +1036,9 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 	if fent.GrabTarget and fent.GrabTarget:Exists() then
 		local tarData = fent.GrabTarget:GetData().Isaac_Tower_Data
 		local oldpos = fent.GrabTarget.Position/1
-		fent.GrabTarget.Position = fent.Position + TargetPos + fent.TrueVelocity --Velocity
+		local extraoffset = Isaac_Tower.MovementHandlers.GetGrabNullOffset 
+			and Isaac_Tower.MovementHandlers.GetGrabNullOffset(spr)
+		fent.GrabTarget.Position = fent.Position + (extraoffset or TargetPos) + fent.TrueVelocity
 		fent.GrabTarget.Velocity = Vector(0,0) --oldpos-fent.GrabTarget.Position  --Vector(0,0)
 		fent.GrabTarget.DepthOffset = 110
 		--fent.GrabTarget.SpriteOffset = TargetPos
@@ -1106,7 +1108,9 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 		fent.RunSpeed = fent.RunSpeed * 0.55
 
 		local rot = spr.FlipX and -1 or 1
-		fent.GrabTarget.Position = fent.Position + Vector(rot*30,-10)
+		local extraoffset = Isaac_Tower.MovementHandlers.GetGrabNullOffset 
+			and Isaac_Tower.MovementHandlers.GetGrabNullOffset(spr)
+		fent.GrabTarget.Position = fent.Position + (extraoffset and (extraoffset*Vector(rot,1)) or Vector(rot*30,-10))
 	end
 	if spr:IsFinished(spr:GetAnimation()) then
 		fent.GrabDelay = 0

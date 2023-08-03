@@ -4,7 +4,7 @@ local Isaac = Isaac
 
 local Wtr = 20/13
 local reloadData
-if Isaac_Tower and Isaac_Tower.CurrentRoom then
+if Isaac_Tower and Isaac_Tower.CurrentRoom and Isaac.GetPlayer() then
 	reloadData = {roomName =  Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name}
 end
 Isaac_Tower = {
@@ -49,7 +49,7 @@ local function GenSprite(gfx,anim,frame)
 	end
   end
 
-if EntityPlayer.GetMarkedTarget then
+if Renderer then
 	Isaac_Tower.RG = true
 end
 
@@ -115,7 +115,7 @@ local ZeroPoint = Vector(0,0)
 local function UpdateZeroPoint()
 	ZeroPoint = Isaac.WorldToRenderPosition(Vector(0,0))
 end
-mod:AddCallback(ModCallbacks.MC_POST_UPDATE, UpdateZeroPoint) --MC_POST_UPDATE
+--mod:AddCallback(ModCallbacks.MC_POST_UPDATE, UpdateZeroPoint) --MC_POST_UPDATE
 function Isaac_Tower.GetRenderZeroPoint()
 	return ZeroPoint
 end
@@ -522,11 +522,13 @@ function Isaac_Tower.RoomPostCompilator()
 end
 
 local updateframe = 0
+local updateframe30 = 0
 local UpdatesInThatFrame = 0
+local UpdatesInThatFrame30 = 0
 
 local ScrenX,ScrenY = 0, 0
 mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
-	if not Isaac_Tower.InAction and Isaac_Tower.Pause and Game():IsPaused() then return end
+	if not Isaac_Tower.InAction or (Isaac_Tower.Pause and Game():IsPaused()) then return end
 	if Isaac_Tower.GridLists.Solid and ScrenX ~= Isaac.GetScreenWidth() and ScrenY ~= Isaac.GetScreenHeight() then
 		ScrenX,ScrenY = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
@@ -539,12 +541,34 @@ mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
 			updateframe = updateframe - 1
 			UpdatesInThatFrame = UpdatesInThatFrame + 1
 		end
-	end 
+	end
+end)
+
+mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
+	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
+	UpdateZeroPoint()
+
+	updateframe30 = updateframe30 + Isaac_Tower.UpdateSpeed
+	UpdatesInThatFrame30 = 0
+	if updateframe30 >= 1 then
+		for i=1, math.floor(updateframe30) do
+			updateframe30 = updateframe30 - 1
+			UpdatesInThatFrame30 = UpdatesInThatFrame30 + 1
+		end
+	end
 end)
 
 function Isaac_Tower.UpdateSpeedHandler(func, ...)
 	if UpdatesInThatFrame >= 1 then
 		for i=1, UpdatesInThatFrame do
+			func(...)
+		end
+	end
+end
+
+function Isaac_Tower.UpdateSpeedHandler30(func, ...)
+	if UpdatesInThatFrame30 >= 1 then
+		for i=1, UpdatesInThatFrame30 do
 			func(...)
 		end
 	end
@@ -1733,6 +1757,7 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 		local preScale = spr.Scale/1
 		spr.Scale = spr.Scale*Scale
 		spr:Render(RenderPos+Vector(0,12*(math.abs(Scale)-1))) --+scaledOffset+Vector(0,12*(Scale-1)))
+		
 		function fent.Flayer.RenderRightHandSprite()
 			fent.Flayer.RightHandSprite.Scale = fent.Flayer.RightHandSprite.Scale*Scale
 			fent.Flayer.RightHandSprite:Render(RenderPos+Vector(0,12*(math.abs(Scale)-1)))
@@ -1769,7 +1794,7 @@ end
 function Isaac_Tower.SpecialGridUpdate()
 	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
 	if not Isaac_Tower.GridLists.Special then return end
-	Isaac_Tower.UpdateSpeedHandler(function()
+	Isaac_Tower.UpdateSpeedHandler30(function()
 
 		for gtype, tab in pairs(Isaac_Tower.GridLists.Special) do
 			for index, grid in pairs(tab) do
@@ -1903,7 +1928,7 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 	if ent.FrameCount > 0 then
 		ent.Velocity = ent.Velocity/Isaac_Tower.UpdateSpeed
 	end
-	Isaac_Tower.UpdateSpeedHandler(function()
+	Isaac_Tower.UpdateSpeedHandler30(function()
 		ent:GetSprite():Update()
 		local typ = ent:GetData().Isaac_Tower_Data and ent:GetData().Isaac_Tower_Data.Type
 		local data = ent:GetData().Isaac_Tower_Data
@@ -2665,6 +2690,11 @@ editor(mod, Isaac_Tower)
 
 local init = include("IT_init")
 init(mod, Isaac_Tower)
+
+local rgon = include("rgon")
+if Isaac_Tower.RG then
+	rgon(mod, Isaac_Tower)
+end
 
 local rooms = {
 	"rooms.test",
