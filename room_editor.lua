@@ -1869,7 +1869,7 @@ Isaac_Tower.editor.AddButton("menuUp", "Test", Vector(336,12), 32, 32, UIs.TestR
 	Isaac_Tower.SetRoom(Isaac_Tower.editor.Memory.CurrentRoom.Name)
 	for i=0,Isaac_Tower.game:GetNumPlayers()-1 do
 		local d = Isaac.GetPlayer(i):GetData()
-		local fent = d.TSJDNHC_FakePlayer
+		local fent = d.Isaac_Tower_Data
 
 		fent.State = 0
 		fent.StateFrame = 0
@@ -3271,15 +3271,16 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 						local childs = {}
 						for i, k in pairs(FindCollidedGrid(list, Isaac_Tower.editor.SelectedGrid-pGrid.pivot/2, pGrid.size, true)) do
 							local yi,xi = k[1], k[2]
-							if not list[yi] then
-								list[yi] = {}
-							end
-							if not list[yi][xi] then
-								list[yi][xi] = {}
-							end
-
-							list[yi][xi].Parents = list[yi][xi].Parents or {}
-							list[yi][xi].Parents[newindex] = true
+							--if not list[yi] then
+							--	list[yi] = {}
+							--end
+							--if not list[yi][xi] then
+							--	list[yi][xi] = {}
+							--end
+							--list[yi][xi].Parents = list[yi][xi].Parents or {}
+							
+							SavePlacingTable(list,yi,xi,"Parents")[newindex] = true
+							--list[yi][xi].Parents[newindex] = true
 							childs[#childs+1] = {yi,xi}
 						end
 

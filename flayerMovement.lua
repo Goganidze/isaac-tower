@@ -1,6 +1,7 @@
 return function(mod) --, Isaac_Tower)
 
 local Isaac = Isaac
+local Isaac_Tower = Isaac_Tower
 
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
 
@@ -45,6 +46,7 @@ local function sign0(num)
 end
 
 local function SetState(fent, state)
+	fent.PreviousState = fent.State
 	fent.State = state
 	fent.StateFrame = 0
 	fent.InputWait = nil
@@ -53,7 +55,7 @@ end
 local function CheckCanUp(ent)
 	local result = true
 	local d = ent:GetData()
-	local fent = d.TSJDNHC_FakePlayer
+	local fent = d.Isaac_Tower_Data
 
 	local half = fent.Half/1
 	local offset = fent.CollisionOffset/1
@@ -288,6 +290,10 @@ function Isaac_Tower.MovementHandlers.GrabHandler(fent)
 				spr.Rotation = 0
 				spr.Offset = Vector(0,12)
 				return true
+			elseif Inp.PressUp(idx) then
+				SetState(fent, "Аперкот-не-кот")
+				spr.Rotation = 0
+				spr.Offset = Vector(0,12)
 			else
 				SetState(fent, "Захват")--fent.State = 20
 				if Inp.PressLeft(idx)>0 then
@@ -343,6 +349,11 @@ Isaac_Tower.FlayerMovementState = {}
 Isaac_Tower.FlayerMovementState["Ходьба"] = function(player, fent, spr, idx)
 	if player.ControlsEnabled then
 		fent.CanJump = true
+		if fent.StateFrame == 1 and math.abs(fent.Velocity.X) > 0.2 and Inp.PressRun(idx) then
+			SetState(fent,"НачалоБега")
+			Isaac_Tower.HandleMoving(player) --player:Update()
+			return
+		end
 
 		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
 		if rot<0 then --Inp.PressLeft(idx)>0 then
@@ -849,7 +860,12 @@ Isaac_Tower.FlayerMovementState["Захват"] = function(player, fent, spr, id
 		elseif fent.StateFrame > 1 and not Inp.PressDown(idx) and fent.CollideWall then
 			SetState(fent, "Остановка_бега")
 		end
-			
+		
+		if Inp.PressUp(idx) then
+			if fent.StateFrame < 6 then
+				SetState(fent, "Аперкот-не-кот")
+			end
+		end
 		if Inp.PressDown(idx) then
 			if fent.OnGround and fent.StateFrame < 15 then
 				SetState(fent, "Скольжение_Захват")--fent.State = 16
@@ -1121,6 +1137,78 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 	return toReturn
 end
 
+Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player, fent, spr, idx)
+	local Flayer = fent.Flayer
+	local toReturn = {}
+	if fent.StateFrame <= 1 then
+		spr:Play("attack_up")
+		fent.TempSpeedRun = fent.Velocity.X  --fent.RunSpeed/1
+	end
+	if spr:IsFinished("attack_up_end") then
+		SetState(fent, "Ходьба")
+		spr.Rotation = 0
+		spr.Offset = Vector(0,12)
+	elseif spr:IsPlaying("attack_up") then
+		fent.Velocity.Y = fent.Velocity.Y * 0.8 + -1.5 * 0.2
+		fent.Velocity.X = fent.Velocity.X * 0.85
+		toReturn.donttransformRunSpeedtoX = true
+
+		spr.Rotation = spr.Rotation * 0.8 + 
+			math.abs(Vector(fent.TrueVelocity.X,math.min(-1,fent.TrueVelocity.Y)):GetAngleDegrees()+90)*math.max(0,70-30)/50 * 0.2
+	elseif spr:IsFinished("attack_up") then
+		spr:Play("attack_up_loop")
+		fent.Velocity.Y = -6
+		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
+		print(sign0(rot) , sign0(fent.TempSpeedRun))
+		if sign0(rot) == sign0(fent.TempSpeedRun) then
+			fent.RunSpeed = fent.TempSpeedRun
+		else
+			fent.RunSpeed = math.max(2,math.abs(fent.RunSpeed)*0.2)*sign0(fent.TempSpeedRun)
+		end
+		fent.TempSpeedRun = nil
+		spr.Rotation = spr.Rotation * 0.8 + 
+			math.abs(Vector(fent.TrueVelocity.X,math.min(-1,fent.TrueVelocity.Y)):GetAngleDegrees()+90)*math.max(0,70-30)/50 * 0.2
+
+		spawnSpeedEffect(fent.Position,-Vector(fent.RunSpeed,-6):Normalized(),spr.Rotation*sign0(fent.RunSpeed)-90,1 ).Color = Color(1,1,1,0.5)
+	elseif spr:IsPlaying("attack_up_loop") or spr:IsPlaying("attack_up_end") then
+		fent.grounding = 0
+		fent.Velocity.Y = math.max(-5, fent.Velocity.Y + (-1.5 * math.max(0,50-fent.StateFrame)/30))
+
+		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
+		if rot<0 and fent.RunSpeed>-2 then --Inp.PressLeft(idx)>0 then
+			fent.RunSpeed = fent.RunSpeed + Inp.PressLeft(idx)*-2 * 0.07 --* 0.95
+		elseif rot>0 and fent.RunSpeed<2 then --Inp.PressRight(idx)>0 then
+			fent.RunSpeed = fent.RunSpeed + Inp.PressRight(idx)*2 * 0.07
+		end
+		local mis = spr.FlipX and -1 or 1
+		spr.Rotation = (Vector(fent.TrueVelocity.X*mis,math.min(-1,fent.TrueVelocity.Y)):GetAngleDegrees()+90)*math.max(0,70-fent.StateFrame)/50 
+			--math.abs(Vector(fent.TrueVelocity.X,math.min(-1,fent.TrueVelocity.Y)):GetAngleDegrees()+90)*math.max(0,70-fent.StateFrame)/50
+		spr.Offset = Vector(-spr.Rotation/6,16)
+
+		if fent.StateFrame > 50 then
+			spr:Play("attack_up_end")
+		end
+		if fent.Velocity.Y > 0 and fent.OnGround and fent.StateFrame>30 then
+			SetState(fent, "Ходьба")
+			spr.Rotation = 0
+			spr.Offset = Vector(0,12)
+		end
+
+		fent.CanBreakPoop = true
+		if spr:IsPlaying("attack_up_loop") then
+			fent.ShowSpeedEffect = spr.Rotation*mis-90 --sign0(fent.RunSpeed)-90
+		end
+		SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,0.2*(math.max(1,fent.StateFrame/60))))
+		Isaac_Tower.MovementHandlers.SpeedEffects(fent, spr)
+	elseif spr:IsPlaying("attack_up_end")  then
+		spr.Rotation = spr.Rotation * 0.9
+	end
+
+	--if Isaac_Tower.MovementHandlers.GrabHandler(fent) then
+	--	return
+	--end
+	return toReturn
+end
 Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 	local Flayer = fent.Flayer
 
@@ -1538,9 +1626,9 @@ function Isaac_Tower.HandleMoving(player)
 	
 	player = player:ToPlayer() or player
 	local idx = player.ControllerIndex
-	local fent = player:GetData().TSJDNHC_FakePlayer
-	local spr = player:GetData().TSJDNHC_FakePlayer.Flayer and player:GetData().TSJDNHC_FakePlayer.Flayer.Sprite
-	local Flayer = player:GetData().TSJDNHC_FakePlayer.Flayer and player:GetData().TSJDNHC_FakePlayer.Flayer --Flayer.Queue
+	local fent = player:GetData().Isaac_Tower_Data
+	local spr = player:GetData().Isaac_Tower_Data.Flayer and player:GetData().Isaac_Tower_Data.Flayer.Sprite
+	local Flayer = player:GetData().Isaac_Tower_Data.Flayer and player:GetData().Isaac_Tower_Data.Flayer --Flayer.Queue
 
 	local newVel = Vector(0,0)
 	fent.GrabDelay = fent.GrabDelay or 0

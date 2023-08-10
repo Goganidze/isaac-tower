@@ -135,7 +135,7 @@ Isaac_Tower.editor.AddGrid("platform3", "platform3", GenSprite("gfx/fakegrid/gri
 ---==================================================================================================================================
 
 local function poopObsLogic(ent, grid)
-	local fent = ent:GetData().TSJDNHC_FakePlayer or ent:GetData().Isaac_Tower_Data
+	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
 	if fent and fent.CanBreakPoop then
 		local gridType = grid.EditorType
 		if fent.AttackAngle then
@@ -145,7 +145,7 @@ local function poopObsLogic(ent, grid)
 			if math.abs(GJG-180) <= 45 then
 				grid.HitAngle = TarAngle
 				grid.HitPower = math.abs(fent.Velocity:Length())
-				if ent:GetData().Isaac_Tower_Data then
+				if not ent:ToPlayer() then
 					grid.HitPower = grid.HitPower / 4
 				end
 
@@ -158,7 +158,7 @@ local function poopObsLogic(ent, grid)
 			local TarAngle = math.floor((grid.CenterPos-fentPos):GetAngleDegrees())
 			grid.HitAngle = TarAngle
 			grid.HitPower = math.abs(fent.Velocity:Length())
-			if ent:GetData().Isaac_Tower_Data then
+			if not ent:ToPlayer() then
 				grid.HitPower = grid.HitPower / 4
 			end
 			
@@ -170,7 +170,7 @@ local function poopObsLogic(ent, grid)
 end
 
 local function stonePoopObsLogic(ent, grid)
-	local fent = ent:GetData().TSJDNHC_FakePlayer or ent:GetData().Isaac_Tower_Data
+	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
 	if fent and fent.CanBreakMetal then
 		local gridType = grid.EditorType
 		if fent.AttackAngle then
@@ -180,7 +180,7 @@ local function stonePoopObsLogic(ent, grid)
 			if math.abs(GJG-180) <= 40 then
 				grid.HitAngle = TarAngle
 				grid.HitPower = math.abs(fent.Velocity:Length())
-				if ent:GetData().Isaac_Tower_Data then
+				if not ent:ToPlayer() then
 					grid.HitPower = grid.HitPower / 4
 				end
 
@@ -193,7 +193,7 @@ local function stonePoopObsLogic(ent, grid)
 			local TarAngle = math.floor((grid.CenterPos-fentPos):GetAngleDegrees())
 			grid.HitAngle = TarAngle
 			grid.HitPower = math.abs(fent.Velocity:Length())
-			if ent:GetData().Isaac_Tower_Data then
+			if not ent:ToPlayer() then
 				grid.HitPower = grid.HitPower / 4
 			end
 			
@@ -443,7 +443,7 @@ local function Room_Transition_Collision(_, player, grid)
 	--	print(i,k)
 	--end
 	if grid.TargetRoom then
-		local flayer = player:GetData().TSJDNHC_FakePlayer
+		local flayer = player:GetData().Isaac_Tower_Data
 		if grid.FrameCount<2 then
 			grid.PreFrameCount = grid.FrameCount
 			if grid.Size.X>1 then
@@ -471,12 +471,12 @@ local function Room_Transition_Collision(_, player, grid)
 			local GJG = math.floor((ang-flayer.Velocity:GetAngleDegrees())%360)-180
 			print(GJG, grid.Rot, flayer.Velocity:GetAngleDegrees())
 			if GJG>0 then
-				local offset = grid.pos - player:GetData().TSJDNHC_FakePlayer.Position
+				local offset = grid.pos - player:GetData().Isaac_Tower_Data.Position
 				Isaac_Tower.TransitionSpawnOffset = -offset
 				Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
 			end]]
 		else
-			local offset = grid.pos - player:GetData().TSJDNHC_FakePlayer.Position
+			local offset = grid.pos - player:GetData().Isaac_Tower_Data.Position
 			Isaac_Tower.TransitionSpawnOffset = -offset
 			Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
 		end
@@ -485,7 +485,7 @@ end
 mod:AddCallback(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, Room_Transition_Collision, "Room_Transition")
 
 mod:AddCallback(Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, function(_, ent)
-	local Fpos = ent:GetData().TSJDNHC_FakePlayer.Position
+	local Fpos = ent:GetData().Isaac_Tower_Data.Position
 	if Isaac_Tower.GridLists.Special.Room_Transition then
 		for index, grid in pairs(Isaac_Tower.GridLists.Special.Room_Transition) do
 			if not grid.Parent and grid.Rot then
@@ -734,6 +734,13 @@ Isaac_Tower.editor.AddEnvironment("t_hint4",
 	GenSprite("gfx/evrom/tutorial.anm2","hint4", Vector(.5,.5)), 
 	Vector(29,32),
 	Vector(16,16))
+
+Isaac_Tower.editor.AddEnvironment("t_bigrock", 
+	GenSprite("gfx/evrom/tutorial.anm2","bigrock",Vector(.15,.15),nil,Vector(11,13)), 
+	function() return GenSprite("gfx/evrom/tutorial.anm2","bigrock") end, 
+	GenSprite("gfx/evrom/tutorial.anm2","bigrock", Vector(.5,.5)), 
+	Vector(208,208),
+	Vector(104,104))
 
 
 

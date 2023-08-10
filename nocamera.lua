@@ -1,5 +1,7 @@
 return function(mod)
 
+local L54 = _G._VERSION == "Lua 5.4"
+
 local Isaac = Isaac
 local game = Game()
 

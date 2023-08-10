@@ -5,7 +5,7 @@ local Isaac = Isaac
 local Wtr = 20/13
 local reloadData
 if Isaac_Tower and Isaac_Tower.CurrentRoom and Isaac.GetPlayer() then
-	reloadData = {roomName =  Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name}
+	reloadData = {roomName =  Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name, inEditor = Isaac_Tower.editor.InEditor}
 end
 Isaac_Tower = {
 	game = Game(),
@@ -359,8 +359,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 	for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
 		Isaac_Tower.SetPlayerPos(Isaac.GetPlayer(i), Isaac_Tower.SpawnPoint + offset)
 	end
-	TSJDNHC_PT:SetFocusPosition(Isaac.GetPlayer():GetData().TSJDNHC_FakePlayer.Position, 1)
-	Isaac_Tower.SmoothPlayerPos = Isaac.GetPlayer():GetData().TSJDNHC_FakePlayer.Position
+	TSJDNHC_PT:SetFocusPosition(Isaac.GetPlayer():GetData().Isaac_Tower_Data.Position, 1)
+	Isaac_Tower.SmoothPlayerPos = Isaac.GetPlayer():GetData().Isaac_Tower_Data.Position
 	Isaac_Tower.TransitionSpawnOffset = nil
 	
     end
@@ -462,7 +462,7 @@ end
 mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.LATE, TowerInit)
 
 local function Init_Player(_,player)
-	if player:GetPlayerType() == IsaacTower_Type and not player:GetData().TSJDNHC_FakePlayer then
+	if player:GetPlayerType() == IsaacTower_Type and not player:GetData().Isaac_Tower_Data then
 		Isaac_Tower.INIT_FLAYER(player)
 	elseif player:GetPlayerType() == IsaacTower_Type then
 		player.GridCollisionClass = 0
@@ -528,7 +528,7 @@ local UpdatesInThatFrame30 = 0
 
 local ScrenX,ScrenY = 0, 0
 mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
-	if not Isaac_Tower.InAction or (Isaac_Tower.Pause and Game():IsPaused()) then return end
+	if not Isaac_Tower.InAction or (Isaac_Tower.Pause and Isaac_Tower.game:IsPaused()) then return end
 	if Isaac_Tower.GridLists.Solid and ScrenX ~= Isaac.GetScreenWidth() and ScrenY ~= Isaac.GetScreenHeight() then
 		ScrenX,ScrenY = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
@@ -692,7 +692,7 @@ function Isaac_Tower.EnemyHandlers.GetCollidedEnemies(ent, CollideWithPlayers)
 		end
 		if CollideWithPlayers then
 			for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
-				local colData = Isaac.GetPlayer(i):GetData().TSJDNHC_FakePlayer
+				local colData = Isaac.GetPlayer(i):GetData().Isaac_Tower_Data
 				if colData then
 					local box1 = {pos = ent.Position, half = data.Half}
 					local box2 = {pos = colData.Position, half = colData.Half}
@@ -780,7 +780,7 @@ end]]
 
 function Isaac_Tower.ShouldCollide(ent, grid, check) --d.TSJDNHC_GridColl, grid.Collision
 	local entCol, gridColl = ent:GetData().TSJDNHC_GridColl, grid.Collision
-	local fent = ent:GetData().TSJDNHC_FakePlayer or ent:GetData().Isaac_Tower_Data
+	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
 	
 	if not check and grid.OnCollisionFunc and grid.OnCollisionFunc(ent, grid) then
 		return false
@@ -793,7 +793,7 @@ function Isaac_Tower.ShouldCollide(ent, grid, check) --d.TSJDNHC_GridColl, grid.
 
 	if entCol == 1 and gridColl == 1 then
 		if grid.OnlyUp then
-			if ent:GetData().Isaac_Tower_Data then
+			if not ent:ToPlayer() then
 
 				if ent.Position.Y > (grid.CenterPos.Y-grid.Half.Y) then
 					return
@@ -1227,7 +1227,7 @@ GridCollPoint:Play("point")
 local function CheckCanUp(ent)
 	local result = true
 	local d = ent:GetData()
-	local fent = d.TSJDNHC_FakePlayer
+	local fent = d.Isaac_Tower_Data
 
 	local half = fent.Half/1
 	local offset = fent.CollisionOffset/1
@@ -1279,7 +1279,7 @@ end
 
 function Isaac_Tower.SetPlayerPos(ent, pos)
 	local d = ent:GetData()
-	local fent = d.TSJDNHC_FakePlayer
+	local fent = d.Isaac_Tower_Data
 	fent.Position = pos
 	fent.Velocity = Vector(0,0)
 end
@@ -1301,7 +1301,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
 
 	local d = ent:GetData()
-	local fent = d.TSJDNHC_FakePlayer
+	local fent = d.Isaac_Tower_Data
 
 	Isaac_Tower.UpdateSpeedHandler(function()
 		Isaac_Tower.HandleMoving(ent)
@@ -1591,7 +1591,7 @@ function Isaac_Tower.INIT_FLAYER(player)
 		d.TSJDNHC_GridPoints[i] = {pos, vec}
 	end
 
-	d.TSJDNHC_FakePlayer = {
+	d.Isaac_Tower_Data = {
 		FrameCount = 0,
 		Position = Isaac.GetPlayer(pid).Position,
 		Velocity = Vector(0,0),
@@ -1602,6 +1602,7 @@ function Isaac_Tower.INIT_FLAYER(player)
 		CroachDefaultCollisionOffset = Vector(0,9),
 		jumpDelay = 0,
 		State = 1,
+		StateFrame = 0,
 		JumpPressed = 0,
 		CanJump = true,
 		grounding = 5,
@@ -1613,24 +1614,24 @@ function Isaac_Tower.INIT_FLAYER(player)
 		},
 		PosRecord = {},
 	}
-	d.TSJDNHC_FakePlayer.Flayer.Sprite:Load("gfx/fakePlayer/flayer.anm2", true)
-	d.TSJDNHC_FakePlayer.Flayer.Sprite:Play("idle")
-	d.TSJDNHC_FakePlayer.Flayer.Sprite.Offset = Vector(0,12)
+	d.Isaac_Tower_Data.Flayer.Sprite:Load("gfx/fakePlayer/flayer.anm2", true)
+	d.Isaac_Tower_Data.Flayer.Sprite:Play("idle")
+	d.Isaac_Tower_Data.Flayer.Sprite.Offset = Vector(0,12)
 
-	d.TSJDNHC_FakePlayer.Flayer.SpeedEffectSprite:Load("gfx/fakePlayer/speedEffect.anm2", true)
-	d.TSJDNHC_FakePlayer.Flayer.SpeedEffectSprite:Play("effect")
-	--d.TSJDNHC_FakePlayer.Flayer.SpeedEffectSprite.Offset = Vector(0,12)
+	d.Isaac_Tower_Data.Flayer.SpeedEffectSprite:Load("gfx/fakePlayer/speedEffect.anm2", true)
+	d.Isaac_Tower_Data.Flayer.SpeedEffectSprite:Play("effect")
+	--d.Isaac_Tower_Data.Flayer.SpeedEffectSprite.Offset = Vector(0,12)
 
-	d.TSJDNHC_FakePlayer.Flayer.RightHandSprite:Load("gfx/fakePlayer/flayer.anm2", true)
-	for i=1,d.TSJDNHC_FakePlayer.Flayer.RightHandSprite:GetLayerCount() do
-		d.TSJDNHC_FakePlayer.Flayer.RightHandSprite:ReplaceSpritesheet(i-1,"gfx/fakePlayer/flayer_rightHand.png")
+	d.Isaac_Tower_Data.Flayer.RightHandSprite:Load("gfx/fakePlayer/flayer.anm2", true)
+	for i=1,d.Isaac_Tower_Data.Flayer.RightHandSprite:GetLayerCount() do
+		d.Isaac_Tower_Data.Flayer.RightHandSprite:ReplaceSpritesheet(i-1,"gfx/fakePlayer/flayer_rightHand.png")
 	end
-	d.TSJDNHC_FakePlayer.Flayer.RightHandSprite:LoadGraphics()
-	d.TSJDNHC_FakePlayer.Flayer.RightHandSprite:Play("idle")
-	d.TSJDNHC_FakePlayer.Flayer.RightHandSprite.Offset = Vector(0,12)
+	d.Isaac_Tower_Data.Flayer.RightHandSprite:LoadGraphics()
+	d.Isaac_Tower_Data.Flayer.RightHandSprite:Play("idle")
+	d.Isaac_Tower_Data.Flayer.RightHandSprite.Offset = Vector(0,12)
 
-	d.TSJDNHC_FakePlayer.Flayer.Shadow = GenSprite("gfx/fakePlayer/flayer_shadow.anm2","shadow")
-	d.TSJDNHC_FakePlayer.Flayer.Shadow.Color = Color(1,1,1,2)
+	d.Isaac_Tower_Data.Flayer.Shadow = GenSprite("gfx/fakePlayer/flayer_shadow.anm2","shadow")
+	d.Isaac_Tower_Data.Flayer.Shadow.Color = Color(1,1,1,2)
 
 	--d.TSJDNHC_GridColFunc = Isaac_Tower.PlatformerCollHandler
 end
@@ -1655,8 +1656,8 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 	if Scale ~= 1 then
 		zeroOffset = BDCenter*(Scale-1) --BDCenter --+GridListStartPos*(1-Scale)
 	end
-	local fent = player:GetData().TSJDNHC_FakePlayer
-	local spr = player:GetData().TSJDNHC_FakePlayer.Flayer.Sprite
+	local fent = player:GetData().Isaac_Tower_Data
+	local spr = player:GetData().Isaac_Tower_Data.Flayer.Sprite
 	
 	if fent.Shadowposes then
 		for i,k in pairs(fent.Shadowposes) do
@@ -1730,7 +1731,7 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 	spr.Color = player:GetColor()
 
 	if fent.ShowSpeedEffect then
-		local speedSpr = player:GetData().TSJDNHC_FakePlayer.Flayer.SpeedEffectSprite
+		local speedSpr = player:GetData().Isaac_Tower_Data.Flayer.SpeedEffectSprite
 		--speedSpr:Update()
 		speedSpr.Rotation = fent.ShowSpeedEffect
 		if Scale ~= 1 then
@@ -1770,7 +1771,7 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 	--spr:Render(TSJDNHC_PT:WorldToScreen(fent.Position) or Vector(0,0))
 
 	if fent.ShowSpeedEffect then
-		local speedSpr = player:GetData().TSJDNHC_FakePlayer.Flayer.SpeedEffectSprite
+		local speedSpr = player:GetData().Isaac_Tower_Data.Flayer.SpeedEffectSprite
 		speedSpr.Color = Color(1,1,1,0.8)
 		if Scale ~= 1 then
 			local preScale = spr.Scale/1
@@ -1788,7 +1789,7 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.ENTITY_POSTRENDER, Isaac_Tower.FlayerRender
 
 function Isaac_Tower.GetFlayer(num)
 	local player = Isaac.GetPlayer(num)
-	return player:GetData().TSJDNHC_FakePlayer
+	return player:GetData().Isaac_Tower_Data
 end
 
 function Isaac_Tower.SpecialGridUpdate()
@@ -2633,7 +2634,7 @@ local function debugFridRender(_, Pos, Offset, Scale)
 	for pl=0, Isaac_Tower.game:GetNumPlayers()-1 do
 		local ent = Isaac.GetPlayer(pl)
 		local d = ent:GetData()
-		local fent = d.TSJDNHC_FakePlayer
+		local fent = d.Isaac_Tower_Data
 		local fentPos = Isaac.WorldToRenderPosition(fent.Position) + Offset
 		for i,k in pairs(d.TSJDNHC_GridPoints) do
 			GridCollPoint:Render(fentPos + (Vector(0,12) + k[1])/1.54 ) --+ Offset
@@ -2708,6 +2709,14 @@ end
 
 
 if reloadData then
+	if Isaac.GetPlayer() then
+		for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
+			Isaac.GetPlayer(i):GetData().Isaac_Tower_Data = nil
+		end
+	end
 	TowerInit()
 	Isaac_Tower.RoomTransition(reloadData.roomName, true)
+	if reloadData.inEditor then
+		Isaac_Tower.OpenEditor()
+	end
 end

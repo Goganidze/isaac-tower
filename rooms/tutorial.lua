@@ -1,5 +1,7 @@
 return function(mod, Isaac_Tower)
 
+local Vector = Vector
+
 local roomdata = {Name='tutorial_1',Size=Vector(40.0,22.0),DefSpawnPoint=Vector(380.0,640.0),
 ObsList={
   gfx='gfx/fakegrid/tutorial.png',
