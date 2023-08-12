@@ -716,16 +716,20 @@ function Isaac_Tower.EnemyHandlers.GetRoomEnemies(cache)
 	return tab
 end
 
---[[function Isaac_Tower.GetItemIDByQuality(min, max)
-	::repe::
-	local itemID = Game():GetItemPool():GetCollectible(
-		Game():GetItemPool():GetLastPool())
-	if Isaac.GetItemConfig():GetCollectible(itemID).Quality < min 
-	   or Isaac.GetItemConfig():GetCollectible(itemID).Quality > max then
-		  goto repe
+function Isaac_Tower.GerNearestFlayer(pos)
+	if not pos then error("[1] is not a Vector") end
+	local maxdist = 100000
+	local pls = Isaac_Tower.GetFlayer()
+	for i=0, Isaac_Tower.game:GetNumPlayers() do
+		local flayer = Isaac_Tower.GetFlayer(i)
+		local dist = flayer.Position:Distance(pos)
+		if dist < maxdist then
+			maxdist = dist
+			pls = flayer
+		end
 	end
-	return itemID
- end]]
+	return pls
+end
 
 --.....................................................................................................
 

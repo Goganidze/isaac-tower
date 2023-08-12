@@ -1,5 +1,5 @@
 <AnimatedActor>
-	<Info CreatedBy="Unknown" CreatedOn="13.08.2023 0:54:03" Version="19" Fps="45"/>
+	<Info CreatedBy="Unknown" CreatedOn="13.08.2023 1:18:51" Version="16" Fps="45"/>
 	<Content>
 		<Spritesheets>
 			<Spritesheet Path="it_gaper.png" Id="0"/>

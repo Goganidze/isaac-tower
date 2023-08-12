@@ -426,6 +426,7 @@ Isaac_Tower.FlayerMovementState["Ходьба"] = function(player, fent, spr, id
 	end
 end
 Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent, spr, idx)
+	local toReturn = {}
 	if player.ControlsEnabled then
 		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
 		local press = Inp.PressLeft(idx) + Inp.PressRight(idx) ~= 0
@@ -458,7 +459,7 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 				end
 			end
 		end
-
+		local curanm = spr:GetAnimation()
 		if rot~=0 and fent.OnGround then
 			if math.abs(fent.RunSpeed) < 4 then
 				fent.RunSpeed = 4*sign(rot)
@@ -480,7 +481,7 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 			if math.abs(fent.RunSpeed) < 2 then
 				SetState(fent, "Ходьба") --fent.State = 1
 			end
-			if fent.StateFrame%4 == 0 and math.abs(fent.RunSpeed) > 5 then
+			if curanm ~= "lunge_down_wall" and fent.StateFrame%4 == 0 and math.abs(fent.RunSpeed) > 5 then
 				spawnSpeedEffect(fent.Position+Vector(spr.FlipX and 15 or -15, (fent.StateFrame%24)*2-16),
 					fent.TrueVelocity, (fent.TrueVelocity*Vector(1,-1)):GetAngleDegrees()).Color = Color(1,1,1,.5)
 			end
@@ -493,19 +494,38 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 		
 		if fent.OnGround and (not press or (nextVel~= 0 and sign(nextVel) ~= sign(fent.RunSpeed))) and math.abs(fent.RunSpeed) > 3 then
 			SetState(fent,  "Остановка_бега") --fent.State = 5
-		end		
+		end
 
 		fent.RunSpeed = (fent.RunSpeed + nextVel)
 
-		if spr:GetAnimation() ~= "pre_run" then
-			spr:Play("pre_run", true)
+		--local curanm = spr:GetAnimation()
+		if curanm ~= "pre_run" then
+			if curanm ~= "lunge_down" and curanm ~= "lunge_down_wall" or fent.OnGround then
+				spr:Play("pre_run", true)
+				fent.TempLoseY = nil
+			end
 		end
 		if Inp.PressDown(idx) then
 			if fent.OnGround then
 				SetState(fent, "Скольжение")
 			else
-				spr:Play("lunge_down")
-				fent.Velocity.Y = 8
+				if fent.CollideWall then
+					spr:Play("lunge_down_wall")
+					fent.Velocity.Y = fent.Velocity.Y*0.9 - 0.0*0.1
+					fent.TempLoseY = fent.TempLoseY and math.min(1,fent.TempLoseY + 0.02) or 0
+					Isaac_Tower.MovementHandlers.SetForsedVelocity(fent, Vector(fent.RunSpeed,0), fent.TempLoseY, 1, false)
+					if fent.Velocity.Y == 0 then
+						SetState(fent, "Ходьба")
+						Isaac_Tower.MovementHandlers.SetForsedVelocity(fent, Vector(spr.FlipX and 5 or -5,-5), 0.5, 10, false)
+						fent.RunSpeed = 0
+						--fent.Velocity = Vector(spr.FlipX and 5 or -5,-2)
+					end
+				else
+					fent.TempLoseY = nil
+					spr:Play("lunge_down")
+					fent.Velocity.Y = 8
+				end
+				--fent.Velocity.Y = 8
 				fent.CanBreakPoop = true
 			end
 		elseif fent.OnGround and not Inp.PressRun(idx) then
@@ -521,9 +541,10 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 	spr.FlipX = math.abs(fent.Velocity.X) < 0.001 and spr.FlipX or (fent.Velocity.X < 0)
 	if spr:GetAnimation() == "run" and math.abs(fent.RunSpeed) < 3.7 then
 		spr:Play("pre_run")
-	elseif math.abs(fent.Velocity.X) < 0.1 then
+	elseif fent.OnGround and math.abs(fent.Velocity.X) < 0.1 then
 		spr:Play("idle")
 	end
+	return toReturn
 end
 Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 	if player.ControlsEnabled then
@@ -633,8 +654,22 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 				spr.Rotation = 0
 				spr.Offset = Vector(0,12)
 			else
-				spr:Play("lunge_down")
-				fent.Velocity.Y = 8
+				if fent.CollideWall then
+					spr:Play("lunge_down_wall")
+					fent.Velocity.Y = fent.Velocity.Y*0.9 - 0.0*0.1
+					fent.TempLoseY = fent.TempLoseY and math.min(1,fent.TempLoseY + 0.02) or 0
+					Isaac_Tower.MovementHandlers.SetForsedVelocity(fent, Vector(fent.RunSpeed,0), fent.TempLoseY, 1, false)
+					if fent.Velocity.Y == 0 then
+						SetState(fent, "Ходьба")
+						Isaac_Tower.MovementHandlers.SetForsedVelocity(fent, Vector(spr.FlipX and 5 or -5,-5), 0.5, 10, false)
+						fent.RunSpeed = 0
+						--fent.Velocity = Vector(spr.FlipX and 5 or -5,-2)
+					end
+				else
+					spr:Play("lunge_down")
+					fent.Velocity.Y = 8
+				end
+				--fent.Velocity.Y = 8
 				fent.CanBreakPoop = true
 			end
 		else
@@ -931,6 +966,11 @@ Isaac_Tower.MovementHandlers.CrashState = { --true or function(fent, target)
 			return true
 		end
 	end,
+	["Аперкот-не-кот"] = function(fent, target)
+		if fent.ShowSpeedEffect then
+			return true
+		end
+	end,
 }
 function Isaac_Tower.MovementHandlers.EnemyCrashCollision(fent, target)
 	local stateCheck = Isaac_Tower.MovementHandlers.CrashState[fent.State]
@@ -1159,7 +1199,6 @@ Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player,
 		spr:Play("attack_up_loop")
 		fent.Velocity.Y = -6
 		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
-		print(sign0(rot) , sign0(fent.TempSpeedRun))
 		if sign0(rot) == sign0(fent.TempSpeedRun) then
 			fent.RunSpeed = fent.TempSpeedRun
 		else
@@ -1719,9 +1758,17 @@ function Isaac_Tower.HandleMoving(player)
 		if not fent.ForsedVelocity.noGrav then
 			forvel = Vector(fent.ForsedVelocity.Velocity.X, math.max(-6, fent.ForsedVelocity.Velocity.Y))
 		end
-		fent.Velocity = fent.Velocity*0.85 + forvel * 0.15 + newVel * (0.15 * fent.ForsedVelocity.Lerp)
-		fent.ForsedVelocity.Time = fent.ForsedVelocity.Time - 1
+		local revpower = 1-fent.ForsedVelocity.Power
+		local power = fent.ForsedVelocity.Power
+		--fent.Velocity = fent.Velocity*0.85 + forvel * 0.15 + newVel * (0.15 * fent.ForsedVelocity.Lerp)
+		local lerp = 1-0.15*power
+		local rlerp = 0.15*revpower --1 - lerp
 		
+		fent.Velocity = fent.Velocity*lerp + forvel * (0.15*power)
+			+ newVel * (rlerp * (1-fent.ForsedVelocity.Lerp)*revpower)
+		fent.ForsedVelocity.Time = fent.ForsedVelocity.Time - 1
+		--print("ar",lerp,rlerp, fent.ForsedVelocity.Power, fent.ForsedVelocity.Lerp)
+		--print("gg",fent.Velocity,newVel , (rlerp * fent.ForsedVelocity.Lerp*revpower))
 		if not fent.ForsedVelocity.noGrav then
 			if fent.OnGround then
 				fent.ForsedVelocity.Velocity.Y = math.min(0, fent.ForsedVelocity.Velocity.Y)

@@ -1,6 +1,8 @@
 return function(mod) --, Isaac_Tower)
 
 local Isaac = Isaac
+local Vector = Vector
+local Isaac_Tower = Isaac_Tower
 
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
 
@@ -824,6 +826,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, Isaac_Tower.ENT.LOGIC.E
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, Isaac_Tower.ENT.LOGIC.EnemySignRender, "signp")
 
 ---------------------------------------КЛОТТИГ--------------------------------------------
+
 Isaac_Tower.RegisterEnemy("clottig", "gfx/enemies/clottig.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
 Isaac_Tower.editor.AddEnemies("clottig", 
 	GenSprite("gfx/enemies/clottig.anm2","idle",nil,nil,Vector(13,13)), 
@@ -938,5 +941,95 @@ function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
 	end
 end
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.midportalLogic, "mid portal")
+
+
+---------------------------------------ЗЕВАКА--------------------------------------------
+
+Isaac_Tower.RegisterEnemy("gaper", "gfx/enemies/it_gaper.anm2", Vector(20,25), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
+Isaac_Tower.editor.AddEnemies("gaper", 
+	GenSprite("gfx/enemies/it_gaper.anm2","idle",nil,nil,Vector(13,13)), 
+	"gaper",0,  
+	GenSprite("gfx/enemies/it_gaper.anm2","idle",nil,nil,Vector(13/2,13/2)))
+
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
+	ent.PositionOffset = Vector(0,3)
+end, "gaper")
+
+local lvec,rvec = Vector(-7,0), Vector(7,0)
+function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
+	local data = ent:GetData().Isaac_Tower_Data
+	local spr = ent:GetSprite()
+	if data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
+		
+		if data.OnGround  then
+			if data.State ~= 4 then
+				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(0,ent.Velocity.Y))
+			end
+		else
+			ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+0.8))) or ent.Velocity
+		end
+
+		if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
+			if data.State ~= 4 and data.InRage then
+				data.State = 4
+				return
+			end
+			if not spr:IsPlaying("idle") then
+				spr:Play("idle")
+			end
+			data.Delay = data.Delay and (data.Delay-1) or ent:GetDropRNG():RandomInt(60)+50
+			if data.Delay<0 then
+				data.State = 2
+			end
+
+			for i=0, Isaac_Tower.game:GetNumPlayers() do
+				local flayer = Isaac_Tower.GetFlayer(i)
+				if flayer.Position:Distance(ent.Position) < 200 then
+					spr:Play("pre_attack")
+					data.State = 4
+				end
+			end
+		elseif data.State == 2 then
+			if data.State ~= 4 and data.InRage then
+				data.State = 4
+				return
+			end
+			if spr:IsFinished(spr:GetAnimation()) then
+				data.Delay = nil
+				data.State = Isaac_Tower.EnemyHandlers.EnemyState.IDLE
+			elseif spr:IsPlaying("idle") then
+				local anm = "idle" .. (ent:GetDropRNG():RandomInt(2)+1)
+				spr:Play(anm)
+			end
+
+			for i=0, Isaac_Tower.game:GetNumPlayers() do
+				local flayer = Isaac_Tower.GetFlayer(i)
+				if flayer.Position:Distance(ent.Position) < 200 then
+					spr:Play("pre_attack")
+					data.State = 4
+				end
+			end
+		elseif data.State == 4 then
+			data.InRage = true
+			if spr:IsPlaying("stun") then
+				spr:Play("attack")
+			end
+			if spr:IsFinished("pre_attack") then
+				spr:Play("attack", true)
+			elseif spr:IsPlaying("attack") then
+				spr:Play("attack")
+				local targetVel = Isaac_Tower.GerNearestFlayer(ent.Position).Position.X<ent.Position.X and lvec or rvec
+				if ent.FrameCount%2==0 then
+					ent.Velocity = ent.Velocity * 0.8 + targetVel * 0.2
+				end
+				spr.FlipX = math.abs(ent.Velocity.X) < 0.001 and spr.FlipX or (ent.Velocity.X < 0)
+			elseif spr:IsFinished("attack") then
+				spr:Play("attack", true)
+			end
+		end
+	end
+end
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyGaperLogic, "gaper")
+
 
 end
