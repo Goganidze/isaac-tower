@@ -896,6 +896,7 @@ Isaac_Tower.editor.AddEnemies("mid portal",
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,25)
+	ent.DepthOffset = -13
 	local d = ent:GetData().Isaac_Tower_Data
 	local x,y = d.SpawnXY.X, d.SpawnXY.Y
 	for i,k in pairs(Isaac_Tower.EnemyHandlers.GetRoomEnemies(true)) do
@@ -953,6 +954,7 @@ Isaac_Tower.editor.AddEnemies("gaper",
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,3)
+	ent:GetSprite().FlipX = ent:GetDropRNG():RandomInt(2)>0
 end, "gaper")
 
 local lvec,rvec = Vector(-7,0), Vector(7,0)
@@ -964,6 +966,8 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 		if data.OnGround  then
 			if data.State ~= 4 then
 				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(0,ent.Velocity.Y))
+			else
+				ent.Velocity = Vector(ent.Velocity.X, math.min(0,ent.Velocity.Y))
 			end
 		else
 			ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+0.8))) or ent.Velocity
@@ -1011,6 +1015,7 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 			end
 		elseif data.State == 4 then
 			data.InRage = true
+			--ent.Velocity = ent.Velocity * 0.8
 			if spr:IsPlaying("stun") then
 				spr:Play("attack")
 			end
@@ -1020,12 +1025,20 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 				spr:Play("attack")
 				local targetVel = Isaac_Tower.GerNearestFlayer(ent.Position).Position.X<ent.Position.X and lvec or rvec
 				if ent.FrameCount%2==0 then
-					ent.Velocity = ent.Velocity * 0.8 + targetVel * 0.2
+					ent.Velocity = Vector(ent.Velocity.X * 0.8, ent.Velocity.Y) + targetVel * 0.2
 				end
-				spr.FlipX = math.abs(ent.Velocity.X) < 0.001 and spr.FlipX or (ent.Velocity.X < 0)
+				local needRotate = math.abs(ent.Velocity.X) < 0.001 and spr.FlipX or (ent.Velocity.X < 0)
+				if spr.FlipX ~= needRotate then
+					spr:Play("rotat", true)
+				end
+				--spr.FlipX = math.abs(ent.Velocity.X) < 0.001 and spr.FlipX or (ent.Velocity.X < 0)
 			elseif spr:IsFinished("attack") then
 				spr:Play("attack", true)
+			elseif spr:IsFinished("rotat") then
+				spr.FlipX = not spr.FlipX
+				spr:Play("attack", true)
 			end
+			--ent.Velocity = ent.Velocity * 0.8
 		end
 	end
 end
