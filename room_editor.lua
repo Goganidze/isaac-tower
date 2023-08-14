@@ -815,30 +815,30 @@ mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function() -- MC_POST_UPDATE MC_POS
 end)
 
 
-local Col0Grid = Sprite()
-Col0Grid:Load("gfx/doubleRender/gridDebug/debug.anm2")
-Col0Grid.Color = Color(0.5,0.3,1.0,0.5)
-Col0Grid:Play(0)
-Col0Grid.Scale = Vector(0.58, 0.58)
+Isaac_Tower.sprites.Col0Grid = Sprite()
+Isaac_Tower.sprites.Col0Grid:Load("gfx/doubleRender/gridDebug/debug.anm2")
+Isaac_Tower.sprites.Col0Grid.Color = Color(0.5,0.3,1.0,0.5)
+Isaac_Tower.sprites.Col0Grid:Play(0)
+Isaac_Tower.sprites.Col0Grid.Scale = Vector(0.58, 0.58)
 
-local Col0GridHalf = Sprite()
-Col0GridHalf:Load("gfx/doubleRender/gridDebug/debug.anm2")
-Col0GridHalf.Color = Color(0.5,0.3,1.0,0.5)
-Col0GridHalf:Play(0)
-Col0GridHalf.Scale = Vector(0.31, 0.31)
+Isaac_Tower.sprites.Col0GridHalf = Sprite()
+Isaac_Tower.sprites.Col0GridHalf:Load("gfx/doubleRender/gridDebug/debug.anm2")
+Isaac_Tower.sprites.Col0GridHalf.Color = Color(0.5,0.3,1.0,0.5)
+Isaac_Tower.sprites.Col0GridHalf:Play(0)
+Isaac_Tower.sprites.Col0GridHalf.Scale = Vector(0.31, 0.31)
 --Col0GridHalf.Offset = Vector(13/2,13/2) 
 
-local chosenGrid = Sprite()
-chosenGrid:Load("gfx/doubleRender/gridDebug/debug.anm2")
-chosenGrid.Color = Color(2,0,2,0.5)
-chosenGrid:Play(0)
-chosenGrid.Scale = Vector(0.58, 0.58)
+Isaac_Tower.sprites.chosenGrid = Sprite()
+Isaac_Tower.sprites.chosenGrid:Load("gfx/doubleRender/gridDebug/debug.anm2")
+Isaac_Tower.sprites.chosenGrid.Color = Color(2,0,2,0.5)
+Isaac_Tower.sprites.chosenGrid:Play(0)
+Isaac_Tower.sprites.chosenGrid.Scale = Vector(0.58, 0.58)
 
-local chosenGridHalf = Sprite()
-chosenGridHalf:Load("gfx/doubleRender/gridDebug/debug.anm2")
-chosenGridHalf.Color = Color(2,0,2,0.5)
-chosenGridHalf:Play(0)
-chosenGridHalf.Scale = Vector(0.31, 0.31)
+Isaac_Tower.sprites.chosenGridHalf = Sprite()
+Isaac_Tower.sprites.chosenGridHalf:Load("gfx/doubleRender/gridDebug/debug.anm2")
+Isaac_Tower.sprites.chosenGridHalf.Color = Color(2,0,2,0.5)
+Isaac_Tower.sprites.chosenGridHalf:Play(0)
+Isaac_Tower.sprites.chosenGridHalf.Scale = Vector(0.31, 0.31)
 
 Isaac_Tower.editor.GridStartPos = Vector(50,50)
 Isaac_Tower.editor.RoomSize = Vector(25,15)
@@ -2105,16 +2105,16 @@ end]]
 
 Isaac_Tower.editor.AddOverlay("Collision", GenSprite("gfx/editor/ui.anm2","оверлей_иконки",0), function(IsSelected)
 	if IsSelected then
-		local prescale = Col0Grid.Scale/1
+		local prescale = Isaac_Tower.sprites.Col0Grid.Scale/1
 
-		Col0Grid.Scale = Vector(Isaac_Tower.editor.Memory.CurrentRoom.Size.X/1.77,2)
-		Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,13), nil, Vector(0,22))
-		Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,11+Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*13), nil, Vector(0,22))
-		Col0Grid.Scale = Vector(2, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y/1.77-0.16)
-		Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,15), nil, Vector(22,0))
-		Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(11+Isaac_Tower.editor.Memory.CurrentRoom.Size.X*13,15), nil, Vector(22,0))
+		Isaac_Tower.sprites.Col0Grid.Scale = Vector(Isaac_Tower.editor.Memory.CurrentRoom.Size.X/1.77,2)
+		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,13), nil, Vector(0,22))
+		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,11+Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*13), nil, Vector(0,22))
+		Isaac_Tower.sprites.Col0Grid.Scale = Vector(2, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y/1.77-0.16)
+		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,15), nil, Vector(22,0))
+		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(11+Isaac_Tower.editor.Memory.CurrentRoom.Size.X*13,15), nil, Vector(22,0))
 
-		Col0Grid.Scale = prescale
+		Isaac_Tower.sprites.Col0Grid.Scale = prescale
 	end
 end)
 local holdMouse
@@ -2174,11 +2174,11 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 
 			if IsSelected then
 				local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
-				Col0Grid:Render(renderpos)
+				Isaac_Tower.sprites.Col0Grid:Render(renderpos)
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
 				and selGrid and not Isaac_Tower.game:IsPaused() then
-					chosenGrid:Render(renderpos)
+					Isaac_Tower.sprites.chosenGrid:Render(renderpos)
 
 					local pGrid = Isaac_Tower.editor.GridTypes.Grid[Isaac_Tower.editor.SelectedGridType or ""]
 					if pGrid then
@@ -2353,12 +2353,12 @@ Isaac_Tower.editor.AddOverlay("Obstacle", GenSprite("gfx/editor/ui.anm2","ове
 				local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
 				--if ScreenWidth > renderpos.X and ScreenHeight > renderpos.Y
 				--and 0 < renderpos.X and 0 < renderpos.Y then
-					Col0GridHalf:Render(renderpos)
+					Isaac_Tower.sprites.Col0GridHalf:Render(renderpos)
 				--end
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
 				and selGrid and not Isaac_Tower.game:IsPaused() then
-					chosenGridHalf:Render(renderpos)
+					Isaac_Tower.sprites.chosenGridHalf:Render(renderpos)
 
 					local pGrid = Isaac_Tower.editor.GridTypes.Obstacle[Isaac_Tower.editor.SelectedGridType or ""]
 					if pGrid then
@@ -2536,11 +2536,11 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 
 			if IsSelected then
 				local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
-				Col0Grid:Render(renderpos)
+				Isaac_Tower.sprites.Col0Grid:Render(renderpos)
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
 				and selGrid and not Isaac_Tower.game:IsPaused() then
-					chosenGrid:Render(renderpos)
+					Isaac_Tower.sprites.chosenGrid:Render(renderpos)
 
 					local pGrid = Isaac_Tower.editor.GridTypes.Enemies[Isaac_Tower.editor.SelectedGridType or ""]
 					if pGrid then
@@ -2720,11 +2720,11 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 
 				if IsSelected then
 					local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
-					Col0Grid:Render(renderpos)
+					Isaac_Tower.sprites.Col0Grid:Render(renderpos)
 					
 					if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
 					and selGrid and not Isaac_Tower.game:IsPaused() then
-						chosenGrid:Render(renderpos)
+						Isaac_Tower.sprites.chosenGrid:Render(renderpos)
 
 						local pGrid = Isaac_Tower.editor.GridTypes.Special[Isaac_Tower.editor.SelectedGridType or ""]
 						if pGrid then
@@ -3134,16 +3134,16 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 		end
 		
 
-		local prescale = Col0Grid.Scale/1
+		local prescale = Isaac_Tower.sprites.Col0Grid.Scale/1
 
-		Col0Grid.Scale = Vector(Isaac_Tower.editor.Memory.CurrentRoom.Size.X/1.77,2)
-		Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,13), nil, Vector(0,22))
-		Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,11+Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*13), nil, Vector(0,22))
-		Col0Grid.Scale = Vector(2, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y/1.77-0.16)
-		Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,15), nil, Vector(22,0))
-		Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(11+Isaac_Tower.editor.Memory.CurrentRoom.Size.X*13,15), nil, Vector(22,0))
+		Isaac_Tower.sprites.Col0Grid.Scale = Vector(Isaac_Tower.editor.Memory.CurrentRoom.Size.X/1.77,2)
+		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,13), nil, Vector(0,22))
+		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,11+Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*13), nil, Vector(0,22))
+		Isaac_Tower.sprites.Col0Grid.Scale = Vector(2, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y/1.77-0.16)
+		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(13,15), nil, Vector(22,0))
+		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(11+Isaac_Tower.editor.Memory.CurrentRoom.Size.X*13,15), nil, Vector(22,0))
 
-		Col0Grid.Scale = prescale
+		Isaac_Tower.sprites.Col0Grid.Scale = prescale
 	end
 
 	--for y= math.max(2,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y+1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2+1) do   --Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2+1 do
@@ -3256,7 +3256,7 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 
 				if pGrid and pGrid.size then
 					for i, k in pairs(FindCollidedGrid(list, Isaac_Tower.editor.SelectedGrid-pGrid.pivot/2, pGrid.size, true)) do
-						chosenGrid:Render(Isaac_Tower.editor.GridStartPos + Vector(k[2]*13, k[1]*13))
+						Isaac_Tower.sprites.chosenGrid:Render(Isaac_Tower.editor.GridStartPos + Vector(k[2]*13, k[1]*13))
 					end
 				end
 				

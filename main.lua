@@ -9,8 +9,9 @@ if Isaac_Tower and Isaac_Tower.CurrentRoom and Isaac.GetPlayer() then
 end
 Isaac_Tower = {
 	game = Game(),
+	sprites = {},
 }
---local Isaac_Tower = Isaac_Tower
+--local Isaac_Tower = Isaac_Tower 
 
 local camfunc = include("nocamera")
 camfunc(mod)
@@ -37,17 +38,17 @@ local function TabDeepCopy(tbl)
     return t
 end
 
-local function GenSprite(gfx,anim,frame)
+local function GenSprite(gfx, anim, frame)
 	if gfx and anim then
-	  local spr = Sprite()
-	  spr:Load(gfx, true)
-	  spr:Play(anim)
-	  if frame then
-		  spr:SetFrame(frame)
-	  end
-	  return spr
+		local spr = Sprite()
+		spr:Load(gfx, true)
+		spr:Play(anim)
+		if frame then
+			spr:SetFrame(frame)
+		end
+		return spr
 	end
-  end
+end
 
 if Renderer then
 	Isaac_Tower.RG = true
@@ -100,15 +101,15 @@ Isaac_Tower.ENT.GibSubType = {
 }
 Isaac_Tower.ENT.Enemy = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_Enemy}
 
-local BlackNotCube = Sprite()
-BlackNotCube:Load("gfx/doubleRender/black.anm2",true)
-BlackNotCube:Play("ПрямоугольникМалевича",true)
+Isaac_Tower.sprites.BlackNotCube = Sprite()
+Isaac_Tower.sprites.BlackNotCube:Load("gfx/doubleRender/black.anm2",true)
+Isaac_Tower.sprites.BlackNotCube:Play("ПрямоугольникМалевича",true)
 
 function Isaac_Tower.RenderBlack(alpha)
 	local pos = Vector(Isaac.GetScreenWidth()/2,Isaac.GetScreenHeight()/2)
-	BlackNotCube.Color = Color(1,1,1,alpha)
-	BlackNotCube:Render(pos)
-	BlackNotCube.Color = Color(1,1,1,1)
+	Isaac_Tower.sprites.BlackNotCube.Color = Color(1,1,1,alpha)
+	Isaac_Tower.sprites.BlackNotCube:Render(pos)
+	Isaac_Tower.sprites.BlackNotCube.Color = Color(1,1,1,1)
 end
 
 local ZeroPoint = Vector(0,0)
@@ -167,6 +168,11 @@ function Isaac_Tower.Menus.Fading()
 end
 mod:AddCallback(ModCallbacks.MC_POST_RENDER, Isaac_Tower.Menus.Fading)
 
+function Isaac_Tower.GameExit()
+	Isaac_Tower.InAction = false
+end
+mod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, Isaac_Tower.GameExit)
+
 --room.Name
 --room.Size
 --room.SolidList
@@ -201,6 +207,7 @@ end
 
 --Isaac_Tower.TransitionSpawnOffset
 function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
+	--if not Isaac_Tower.InAction then error("Func called outside the Isaac Tower mod",2) end
     if Isaac_Tower.Rooms[roomName] then
 
 	for i, ent in pairs(Isaac.FindByType(1000, IsaacTower_Enemy, -1)) do
@@ -367,6 +374,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 end
 
 function Isaac_Tower.RoomTransition(roomName, force, preRoomName, TargetSpawnPoint)
+	--if not Isaac_Tower.InAction then error("Func called outside the Isaac Tower mod",2) end
     if Isaac_Tower.Rooms[roomName] then
 	if force then
 		Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
@@ -527,10 +535,12 @@ local UpdatesInThatFrame = 0
 local UpdatesInThatFrame30 = 0
 
 local ScrenX,ScrenY = 0, 0
+local ScrenXX,ScrenYY = 0, 0
 mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
 	if not Isaac_Tower.InAction or (Isaac_Tower.Pause and Isaac_Tower.game:IsPaused()) then return end
+	ScrenXX,ScrenYY = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 	if Isaac_Tower.GridLists.Solid and ScrenX ~= Isaac.GetScreenWidth() and ScrenY ~= Isaac.GetScreenHeight() then
-		ScrenX,ScrenY = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
+		ScrenX,ScrenY = ScrenXX,ScrenYY --Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
 	end
 
@@ -543,6 +553,10 @@ mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
 		end
 	end
 end)
+
+function Isaac_Tower.GetScreenCenter()
+	return Vector(ScrenXX/2, ScrenYY/2)
+end
 
 mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
 	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
@@ -1222,10 +1236,10 @@ end
 
 
 
-local GridCollPoint = Sprite()
-GridCollPoint:Load("gfx/doubleRender/gridDebug/debug.anm2")
-GridCollPoint.Scale = Vector(0.5,0.5)
-GridCollPoint:Play("point")
+Isaac_Tower.sprites.GridCollPoint = Sprite()
+Isaac_Tower.sprites.GridCollPoint:Load("gfx/doubleRender/gridDebug/debug.anm2")
+Isaac_Tower.sprites.GridCollPoint.Scale = Vector(0.5,0.5)
+Isaac_Tower.sprites.GridCollPoint:Play("point")
 
 
 local function CheckCanUp(ent)
@@ -1284,6 +1298,7 @@ end
 function Isaac_Tower.SetPlayerPos(ent, pos)
 	local d = ent:GetData()
 	local fent = d.Isaac_Tower_Data
+	if not fent then error("Func called outside the Isaac Tower mod",2) end
 	fent.Position = pos
 	fent.Velocity = Vector(0,0)
 end
@@ -2284,10 +2299,10 @@ end, IsaacTower_GibVariant)
 
 ---------------------------------------------------------------------------------------------------------------
 
-local GridCollPoint = Sprite()
-GridCollPoint:Load('gfx/doubleRender/' .. "gridDebug/debug.anm2")
-GridCollPoint.Scale = Vector(2.5,2.5)
-GridCollPoint:Play("point")
+Isaac_Tower.sprites.GridCollPoint = Sprite()
+Isaac_Tower.sprites.GridCollPoint:Load('gfx/doubleRender/' .. "gridDebug/debug.anm2")
+Isaac_Tower.sprites.GridCollPoint.Scale = Vector(2.5,2.5)
+Isaac_Tower.sprites.GridCollPoint:Play("point")
 
 
 --Isaac_Tower.GridLists.Evri
@@ -2513,7 +2528,7 @@ function Isaac_Tower.Renders.SetBGVisible(bol)
 end
 
 function Isaac_Tower.Renders.backgroung_render(_, Pos, Offset, Scale)
-	local w,h = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
+	local w,h = ScrenX,ScrenY   --Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 	
 	local x, y = math.ceil(w/background.size.X) + 0, math.ceil(h/background.size.Y) + 0
 	local off = Vector(Offset.X%(background.size.X*2), Offset.Y%(background.size.Y*2))/2
