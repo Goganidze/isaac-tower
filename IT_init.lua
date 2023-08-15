@@ -744,6 +744,20 @@ Isaac_Tower.editor.AddEnvironment("t_bigrock",
 	Vector(208,208),
 	Vector(104,104))
 
+Isaac_Tower.editor.AddEnvironment("t_robebig_1", 
+	GenSprite("gfx/evrom/tutorial.anm2","robebig_1",Vector(.5,.25),nil,Vector(11,-3)), 
+	function() return GenSprite("gfx/evrom/tutorial.anm2","robebig_1") end, 
+	GenSprite("gfx/evrom/tutorial.anm2","robebig_1", Vector(.5,.5)), 
+	Vector(10,144),
+	Vector(3,6))
+
+Isaac_Tower.editor.AddEnvironment("t_robebig_2", 
+	GenSprite("gfx/evrom/tutorial.anm2","robebig_2",Vector(.3,.15),nil,Vector(11,0)), 
+	function() return GenSprite("gfx/evrom/tutorial.anm2","robebig_2") end, 
+	GenSprite("gfx/evrom/tutorial.anm2","robebig_2", Vector(.5,.5)), 
+	Vector(10,284),
+	Vector(3,16))
+
 
 
 --Isaac_Tower.editor.AddEnvironment("testpoop1", 
@@ -1044,5 +1058,21 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 end
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyGaperLogic, "gaper")
 
+Isaac_Tower.EnemyHandlers.FlayerCollision["gaper"] = function(fent, ent, EntData)
+	local spr = ent:GetSprite()
+	if spr:IsPlaying("attack") then
+		local check
+		if spr.FlipX then
+			check = (ent.Position.X-10) > fent.Position.X
+		else
+			check = (ent.Position.X+10) < fent.Position.X
+		end
+		if check or ((ent.Position.Y-5+6) < fent.Position.Y and (ent.Position.Y+5+6) > fent.Position.Y) then
+			if Isaac_Tower.FlayerHandlers.TryTakeDamage(fent, 0, 0, ent) then
+				return true
+			end
+		end
+	end
+end
 
 end

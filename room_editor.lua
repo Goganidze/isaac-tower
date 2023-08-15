@@ -107,7 +107,8 @@ local function CheckEmpty(grid, pos, size)
 	return true
 end
 
-local function SavePlacingTable(tab,...)
+---@return table
+local function SafePlacingTable(tab,...)
 	tab = tab or {}
 	local itab = tab
 	for i,k in pairs({...}) do
@@ -263,7 +264,7 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 				--	list[k[1]][k[2]] = {}
 				--end
 				--list[k[1]][k[2]].Parent = Vector(x,y)
-				SavePlacingTable(list,k[1],k[2]).Parent = Vector(x,y)
+				SafePlacingTable(list,k[1],k[2]).Parent = Vector(x,y)
 			end
 		end
 	end
@@ -286,7 +287,7 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 				--if not list[k[1]][k[2]] then
 				--	list[k[1]][k[2]] = {}
 				--end
-				SavePlacingTable(list,k[1],k[2]).Parent = Vector(x,y)
+				SafePlacingTable(list,k[1],k[2]).Parent = Vector(x,y)
 				--list[k[1]][k[2]].Parent = Vector(x,y)
 			end
 		end
@@ -339,7 +340,7 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 				local yi, xi = k[1], k[2]
 				--list[yi] = list[yi] or {}
 				--list[yi][xi] = list[yi][xi] or {Parents = {}}
-				local ob = SavePlacingTable(list,yi,xi)
+				local ob = SafePlacingTable(list,yi,xi)
 				ob.Parents = ob.Parents or {}
 				ob.Parents[newindex] = true
 				childs[#childs + 1] = { yi, xi }
@@ -365,7 +366,7 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 	defspawn = 	Vector(math.ceil(defspawn.X/40),math.ceil(defspawn.Y/40))
 	--Isaac_Tower.editor.Memory.CurrentRoom.Special["spawnpoint_def"] = Isaac_Tower.editor.Memory.CurrentRoom.Special["spawnpoint_def"] or {}
 	--Isaac_Tower.editor.Memory.CurrentRoom.Special["spawnpoint_def"][defspawn.Y] = Isaac_Tower.editor.Memory.CurrentRoom.Special["spawnpoint_def"][defspawn.Y] or {}
-	SavePlacingTable(Isaac_Tower.editor.Memory.CurrentRoom.Special,"spawnpoint_def",defspawn.Y,defspawn.X)
+	SafePlacingTable(Isaac_Tower.editor.Memory.CurrentRoom.Special,"spawnpoint_def",defspawn.Y,defspawn.X)
 	Isaac_Tower.editor.Memory.CurrentRoom.Special["spawnpoint_def"][defspawn.Y][defspawn.X] = {info = pGrid.info, type = "spawnpoint_def", pos = Vector(defspawn.X*26/2,defspawn.Y*26/2), XY = Vector(defspawn.X,defspawn.Y)}
 	local index = tostring(math.ceil(defspawn.X)) .. "." .. tostring(math.ceil(defspawn.Y)) --(defspawn.Y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + defspawn.X
 	local info = function() return Isaac_Tower.editor.Memory.CurrentRoom.Special["spawnpoint_def"][defspawn.Y][defspawn.X] end
@@ -2185,12 +2186,13 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 						
 						if Input.IsMouseBtnPressed(0) then
 							if not pGrid.size or CheckEmpty(list, Vector(x,y), pGrid.size) then
-								if not list[y] then
-									list[y] = {}
-								end
-								if not list[y][x] then
-									list[y][x] = {}
-								end
+								--if not list[y] then
+								--	list[y] = {}
+								--end
+								--if not list[y][x] then
+								--	list[y][x] = {}
+								--end
+								SafePlacingTable(list,y,x)
 								list[y][x].sprite = pGrid.trueSpr
 								list[y][x].info = pGrid.info
 								list[y][x].type = Isaac_Tower.editor.SelectedGridType
@@ -2372,7 +2374,7 @@ Isaac_Tower.editor.AddOverlay("Obstacle", GenSprite("gfx/editor/ui.anm2","ове
 								--if not list[y][x] then
 								--	list[y][x] = {}
 								--end
-								SavePlacingTable(list,y,x)
+								SafePlacingTable(list,y,x)
 								list[y][x].sprite = pGrid.trueSpr
 								list[y][x].info = pGrid.info
 								list[y][x].type = Isaac_Tower.editor.SelectedGridType
@@ -2384,7 +2386,7 @@ Isaac_Tower.editor.AddOverlay("Obstacle", GenSprite("gfx/editor/ui.anm2","ове
 										--if not list[k[1]][k[2]] then
 										--	list[k[1]][k[2]] = {}
 										--end
-										SavePlacingTable(list,k[1],k[2])
+										SafePlacingTable(list,k[1],k[2])
 										list[k[1]][k[2]].Parent = Vector(x,y)
 									end
 								end
@@ -2553,7 +2555,7 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 								--if not list[y][x] then
 								--	list[y][x] = {}
 								--end
-								SavePlacingTable(list,y,x)
+								SafePlacingTable(list,y,x)
 								list[y][x].sprite = pGrid.trueSpr
 								list[y][x].info = pGrid.info
 								list[y][x].type = Isaac_Tower.editor.SelectedGridType
@@ -2565,7 +2567,7 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 										--if not list[k[1]][k[2]] then
 										--	list[k[1]][k[2]] = {}
 										--end
-										SavePlacingTable(list,k[1],k[2])
+										SafePlacingTable(list,k[1],k[2])
 										list[k[1]][k[2]].Parent = Vector(x,y)
 									end
 								end
@@ -2744,7 +2746,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 										--if not list[y][x] then
 										--	list[y][x] = {}
 										--end
-										SavePlacingTable(list,y,x)
+										SafePlacingTable(list,y,x)
 										--list[y][x].sprite = pGrid.trueSpr
 										local Gtype = Isaac_Tower.editor.SelectedGridType
 										list[y][x].info = pGrid.info
@@ -2764,7 +2766,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 												--if not list[k[1]][k[2]] then
 												--	list[k[1]][k[2]] = {}
 												--end
-												SavePlacingTable(list,k[1],k[2])
+												SafePlacingTable(list,k[1],k[2])
 												list[k[1]][k[2]].Parent = Vector(x,y)
 											end
 										end
@@ -2789,7 +2791,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 								local Gtype = Isaac_Tower.editor.SelectedGridType
 								--Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
 								--Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = nil
-								SavePlacingTable(Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab,Gtype)[index] = nil
+								SafePlacingTable(Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab,Gtype)[index] = nil
 								holdMouse = 1
 							end
 						end
@@ -3279,7 +3281,7 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 							--end
 							--list[yi][xi].Parents = list[yi][xi].Parents or {}
 							
-							SavePlacingTable(list,yi,xi,"Parents")[newindex] = true
+							SafePlacingTable(list,yi,xi,"Parents")[newindex] = true
 							--list[yi][xi].Parents[newindex] = true
 							childs[#childs+1] = {yi,xi}
 						end
@@ -4747,14 +4749,15 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 							local pGrid = Isaac_Tower.editor.GridTypes.Special[Linfo.type]
 							local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
 							local x,y = math.ceil(Linfo.XY.X-(size.X-SpecialConstMem.OldSize.X)), math.ceil(Linfo.XY.Y-(size.Y-SpecialConstMem.OldSize.Y))
-							if not list[y] then
-								list[y] = {}
-							end
-							if not list[y][x] then
-								list[y][x] = {}
-							end
+							--if not list[y] then
+							--	list[y] = {}
+							--end
+							--if not list[y][x] then
+							--	list[y][x] = {}
+							--end
 							--list[y][x].sprite = pGrid.trueSpr
 							local Gtype = Linfo.type
+							SafePlacingTable(list,y,x)
 							list[y][x] = TabDeepCopy(Linfo)
 							list[y][x].info = pGrid.info
 							list[y][x].type = Gtype --Isaac_Tower.editor.SelectedGridType
@@ -4787,12 +4790,13 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 							------------------
 							for i,k in pairs(GetLinkedGrid(list, Vector(x,y), size, true)) do
 								if k[1] ~= y or k[2] ~= x then
-									if not list[k[1]] then
-										list[k[1]] = {}
-									end
-									--if not list[k[1]][k[2]] then
-										list[k[1]][k[2]] = {}
+									--if not list[k[1]] then
+									--	list[k[1]] = {}
 									--end
+									--if not list[k[1]][k[2]] then
+									--	list[k[1]][k[2]] = {}
+									--end
+									SafePlacingTable(list,k[1],k[2])
 									list[k[1]][k[2]].Parent = Vector(x,y)
 								end
 							end
@@ -4867,9 +4871,10 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 
 							for i,k in pairs(GetLinkedGrid(list, Linfo.XY, Linfo.Size, true)) do
 								if k[1] ~= ys or k[2] ~= xs then
-									if not list[k[1] ] then
-										list[k[1] ] = {}
-									end
+									--if not list[k[1] ] then
+									--	list[k[1] ] = {}
+									--end
+									SafePlacingTable(list,k[1],k[2])
 									list[k[1] ][k[2] ] = {Parent = Vector(xs,ys)}
 								end
 							end

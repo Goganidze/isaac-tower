@@ -687,6 +687,7 @@ function Isaac_Tower.Spawn(name, subtype, pos, vec, spawner)
 end
 
 Isaac_Tower.EnemyHandlers = {}
+Isaac_Tower.EnemyHandlers.FlayerCollision = {}
 
 function Isaac_Tower.EnemyHandlers.GetCollidedEnemies(ent, CollideWithPlayers)
 	local data = ent:GetData().Isaac_Tower_Data
@@ -1669,6 +1670,7 @@ RunSpeedColors[false]:SetColorize(0.5,0.65,0.95, 1)
 Isaac_Tower.FlayerExtraInfo = {
 
 }
+local nilFunc = function() end
 
 function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 	local zeroOffset
@@ -1714,6 +1716,10 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 		end
 	end
 
+	if fent.InvulnerabilityFrames and player.FrameCount%6 < 3 then
+		fent.Flayer.RenderRightHandSprite = nilFunc
+		return
+	end
 
 	if Isaac_Tower.game:GetFrameCount()%4 <= 2 then
 		for i,k in pairs(fent.PosRecord) do
@@ -1741,8 +1747,6 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 	if Scale ~= 1 then
 	--	local scaledOffset = ((Scale-1)*(fent.Position/Wtr))-zeroOffset ---(fent.Position/Wtr)
 		RenderPos = RenderPos-zeroOffset --+Vector(0,12*(Scale-1))
-
-
 	end
 
 
@@ -2078,6 +2082,9 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 					local box2 = {pos = fent.Position, half = fent.Half}
 					if Isaac_Tower.NoType_CheckAABB(box1, box2) then
 						local result = Isaac.RunCallback(Isaac_Tower.Callbacks.FLAYER_PRE_COLLIDING_ENEMY, fent, ent)
+						if result == nil and Isaac_Tower.EnemyHandlers.FlayerCollision[data.Type] then
+							result = Isaac_Tower.EnemyHandlers.FlayerCollision[data.Type](fent, ent, data)
+						end
 						--if result ~= "false"  and fent.OnGround then --and data.State == Isaac_Tower.EnemyHandlers.EnemyState.STUN
 						--	if fent.Position.X < ent.Position.X then
 						--		ent.Velocity = ent.Velocity*0.8 - (fent.Position-ent.Position):Resized(dist/20)
@@ -2086,9 +2093,9 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 						--	end
 						--else
 							if result == nil then
-							Isaac_Tower.MovementHandlers.EnemyStandeartCollision(fent, ent, dist)
-							Isaac_Tower.MovementHandlers.EnemyGrabCollision(fent, ent)
-							Isaac_Tower.MovementHandlers.EnemyCrashCollision(fent, ent)
+							Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
+							Isaac_Tower.FlayerHandlers.EnemyGrabCollision(fent, ent)
+							Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, ent)
 						end
 					end
 				end

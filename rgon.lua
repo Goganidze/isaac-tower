@@ -234,7 +234,7 @@ return function(mod)
 
 	mod:AddCallback(ModCallbacks.MC_PRE_PAUSE_SCREEN_RENDER, mod.PauseScreenRender)
 
-	function Isaac_Tower.MovementHandlers.GetGrabNullOffset(spr)
+	function Isaac_Tower.FlayerHandlers.GetGrabNullOffset(spr)
 		return spr:GetNullFrame("hold"):GetPos()
 	end
 
