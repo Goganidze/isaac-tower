@@ -1203,10 +1203,11 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 	return toReturn
 end
 
+local appercotAnims = {["attack_up"]=true,["attack_up_end"]=true,["attack_up_loop"]=true}
 Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player, fent, spr, idx)
 	local Flayer = fent.Flayer
 	local toReturn = {}
-	if fent.StateFrame <= 1 then
+	if fent.StateFrame <= 1 or not appercotAnims[spr:GetAnimation()] then
 		spr:Play("attack_up")
 		fent.TempSpeedRun = fent.Velocity.X  --fent.RunSpeed/1
 	end
@@ -1237,7 +1238,7 @@ Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player,
 		spawnSpeedEffect(fent.Position,-Vector(fent.RunSpeed,-6):Normalized(),spr.Rotation*sign0(fent.RunSpeed)-90,1 ).Color = Color(1,1,1,0.5)
 	elseif spr:IsPlaying("attack_up_loop") or spr:IsPlaying("attack_up_end") then
 		fent.grounding = 0
-		fent.Velocity.Y = math.max(-5, fent.Velocity.Y + (-1.5 * math.max(0,50-fent.StateFrame)/30))
+		fent.Velocity.Y = math.max(-5, fent.Velocity.Y + (-1.5 * math.max(0,40-fent.StateFrame)/30))
 
 		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
 		if rot<0 and fent.RunSpeed>-2 then --Inp.PressLeft(idx)>0 then
@@ -1250,7 +1251,7 @@ Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player,
 			--math.abs(Vector(fent.TrueVelocity.X,math.min(-1,fent.TrueVelocity.Y)):GetAngleDegrees()+90)*math.max(0,70-fent.StateFrame)/50
 		spr.Offset = Vector(-spr.Rotation/6,16)
 
-		if fent.StateFrame > 50 then
+		if fent.StateFrame > 40 then
 			spr:Play("attack_up_end")
 		end
 		if fent.Velocity.Y > 0 and fent.OnGround and fent.StateFrame>30 then

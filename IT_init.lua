@@ -433,6 +433,12 @@ Isaac_Tower.editor.AddSpecial("spawnpoint_def", nil,
 	{IsDefSpawnPoint = true},
 	GenSprite("gfx/editor/special_tiles.anm2","checkpoint_def"))
 
+Isaac_Tower.editor.AddSpecial("spawnpoint", nil, 
+	GenSprite("gfx/editor/special_tiles.anm2","checkpoint"),
+	{IsSpawnPoint = true, Name = ""},
+	GenSprite("gfx/editor/special_tiles.anm2","checkpoint"))
+
+
 local nilSpr = GenSprite("gfx/editor/special_tiles.anm2","room_transition")
 nilSpr.Color = Color(1,1,1,0)
 Isaac_Tower.editor.AddSpecial("Room_Transition", nil, 

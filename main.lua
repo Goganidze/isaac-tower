@@ -1,6 +1,10 @@
 local mod = RegisterMod("platwormer", 1)
 
 local Isaac = Isaac
+local math = math
+local Vector = Vector
+local pairs = pairs
+--local Render = getmetatable(Sprite).__class.Render
 
 local Wtr = 20/13
 local reloadData
@@ -1360,7 +1364,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		for i = 1, repeatNum do
 			local indexs = {}
 			local pointIndex = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position)
-			pointIndex = pointIndex and (tostring(math.ceil(pointIndex.XY.X)) .. "." .. tostring(math.ceil(pointIndex.XY.Y)))
+			pointIndex = pointIndex and (math.ceil(pointIndex.XY.X) .. "." .. math.ceil(pointIndex.XY.Y))
 			for ia, k in pairs(d.TSJDNHC_GridPoints) do
 				local grid = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position + Vector(0, 12) + fent.Velocity + k[1])
 
@@ -1370,7 +1374,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 						--collidedGrid[grid][i] = k[1] + fent.Position
 						ent:GetData().LastcollidedGrid[#ent:GetData().LastcollidedGrid + 1] = grid
 					end
-					local index = tostring(math.ceil(grid.XY.X)) .. "." .. tostring(math.ceil(grid.XY.Y))
+					local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
 					indexs[index] = true
 				end
 				--fent.Velocity = origVelocity
@@ -2030,7 +2034,8 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 
 			data.TrueVelocity = ent.Position - data.LastPosition
 			
-			if data.TrueVelocity.Y >= 0 and data.grounding and data.grounding > 0 then
+			if data.State ~= Isaac_Tower.EnemyHandlers.EnemyState.PUNCHED 
+			and data.TrueVelocity.Y >= 0 and data.grounding and data.grounding > 0 then
 				local collGrid = {}
 				for i = -1, 1 do
 					local grid = Isaac_Tower.rayCast((ent.Position - ent.Velocity + Vector(data.Half.X * i, -10)),
@@ -2316,7 +2321,12 @@ Isaac_Tower.sprites.GridCollPoint:Play("point")
 
 local IsOddRenderFrame = false
 Isaac_Tower.Renders = {}
+local t = 0
+local v26 = Vector(26,26)
+local v0 = Vector(0,0)
+local v40100 = Vector(-40,100)
 function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
+	t = Isaac.GetTime()
 	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
 	IsOddRenderFrame = not IsOddRenderFrame
 	if IsOddRenderFrame and Isaac_Tower.GridLists.Evri and Isaac_Tower.GridLists.Evri.List then
@@ -2331,10 +2341,10 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 	end
 
 	local modScale = math.abs(Scale)
-	local zer = -Offset - Isaac.WorldToRenderPosition(Vector(-40,100))
+	local zer = -Offset - Isaac.WorldToRenderPosition(v40100)
 	local modZer = Vector(math.abs(zer.X), math.abs(zer.Y))
 
-	local startPosRender = modZer - Vector(26,26) + (zeroOffset or Vector(0,0))
+	local startPosRender = modZer - v26 + (zeroOffset or v0)
 	local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(26*modScale)), math.ceil(startPosRender.Y/(26*modScale)))
 	local EndPosRender = modZer + Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())*(math.max(1,modScale)) -- + (zeroOffset or Vector(0,0)) -- + Vector(26*2,26*2)
 	local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(26*modScale)), math.ceil(EndPosRender.Y/(26*modScale)))
@@ -2344,16 +2354,30 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 	--GridCollPoint:Render( Isaac.WorldToRenderPosition(Vector(-40,100)) )
 
 	local RenderList = {}
-	local list = Isaac_Tower.GridLists.Evri
-	for layer, gridlist in pairs(list) do
+	local list = Isaac_Tower.GridLists.Evri 
+	for layer, gridlist in pairs(list) do  --Спрайты с эффектом параллакса не оптимизируются, разница в 1 миллисекунду
 		if layer ~= "List" then
-			for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y), math.max(1,StartPosRenderGrid.Y),-1 do
-				for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X) do
-					local tab = gridlist[y] and gridlist[y][x]
-					if tab and tab.Ps then
-						RenderList[layer] = RenderList[layer] or {}
-						for id in pairs(tab.Ps) do
-							RenderList[layer][id] = id
+			if layer>-2 and layer<2 then
+				for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y), math.max(1,StartPosRenderGrid.Y),-1 do
+					for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X) do
+						local tab = gridlist[y] and gridlist[y][x]
+						if tab and tab.Ps then
+							RenderList[layer] = RenderList[layer] or {}
+							for id in pairs(tab.Ps) do
+								RenderList[layer][id] = id
+							end
+						end
+					end
+				end
+			else
+				for y=Isaac_Tower.GridLists.Solid.Y, 1, -1 do
+					for x=1, Isaac_Tower.GridLists.Solid.X do
+						local tab = gridlist[y] and gridlist[y][x]
+						if tab and tab.Ps then
+							RenderList[layer] = RenderList[layer] or {}
+							for id in pairs(tab.Ps) do
+								RenderList[layer][id] = id
+							end
 						end
 					end
 				end
@@ -2444,7 +2468,7 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 		zeroOffset = BDCenter*(Scale-1) +GridListStartPos*(1-Scale) ---BDCenter
 	end
 
-	local zero = Isaac.WorldToRenderPosition(Vector(-40,100))
+	local zero = Isaac.WorldToRenderPosition(v40100)
 	local startPos = (Offset + zero)
 	--for layer,gridlist in pairs(Isaac_Tower.Renders.EnviRender) do
 	local gridlist = Isaac_Tower.Renders.EnviRender[0]
@@ -2477,7 +2501,7 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.GRID_BACKDROP_RENDER, Isaac_Tower.Renders.P
 
 function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
-	local zero = Isaac.WorldToRenderPosition(Vector(-40,100))
+	local zero = Isaac.WorldToRenderPosition(v40100)
 	local startPos = (Offset + zero)
 	local zeroOffset
 	if Scale ~= 1 then
@@ -2512,6 +2536,7 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 			end
 		end
 	end
+	--print(Isaac.GetTime()-t)
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, Isaac_Tower.Renders.PostAllEntityRender)
 

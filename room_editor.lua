@@ -2754,7 +2754,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","Ð¾Ð²ÐµÑ
 										list[y][x].XY = Vector(x,y)
 										list[y][x].pos = Vector(x*26/2, ypos)
 
-										local index = tostring(x) .. "." .. tostring(y)   --(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + x
+										local index = math.ceil(x) .. "." .. math.ceil(y)   --(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + x
 										local info = function() return Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y][x] end
 										Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
 										Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = {spr = pGrid.trueSpr, pos = Vector(x*26/2, ypos), info = info}
@@ -2787,7 +2787,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","Ð¾Ð²ÐµÑ
 								end
 								list[y][x] = nil
 
-								local index = tostring(x) .. "." .. tostring(y)   --(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + x
+								local index = tostring(math.ceil(x)) .. "." .. tostring(math.ceil(y))   --(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + x
 								local Gtype = Isaac_Tower.editor.SelectedGridType
 								--Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
 								--Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = nil
@@ -2816,6 +2816,7 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","Ð¾Ð²ÐµÑ
 	end
 	if Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Isaac_Tower.editor.SelectedGridType] then
 		for i,k in pairs(Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Isaac_Tower.editor.SelectedGridType]) do
+			--print(Isaac_Tower.editor.SpecialSelectedTile, k.info(), Isaac_Tower.editor.SpecialSelectedTile ~= k.info())
 			if Isaac_Tower.editor.SpecialSelectedTile ~= k.info() then
 				local renderPos = Isaac_Tower.editor.GridStartPos + k.pos
 				local scale = k.spr.Scale/1
@@ -2870,7 +2871,8 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","Ð¾Ð²ÐµÑ
 				end
 			end
 			if Isaac_Tower.editor.Memory.CurrentRoom.Special[Isaac_Tower.editor.SelectedGridType] then
-				grid = Isaac_Tower.editor.Memory.CurrentRoom.Special[Isaac_Tower.editor.SelectedGridType][y] and Isaac_Tower.editor.Memory.CurrentRoom.Special[Isaac_Tower.editor.SelectedGridType][y][x] or grid
+				grid = Isaac_Tower.editor.Memory.CurrentRoom.Special[Isaac_Tower.editor.SelectedGridType][y] 
+					and Isaac_Tower.editor.Memory.CurrentRoom.Special[Isaac_Tower.editor.SelectedGridType][y][x] or grid
 			end
 			if grid and grid.Parent then
 				grid = Isaac_Tower.editor.Memory.CurrentRoom.Special[Isaac_Tower.editor.SelectedGridType][grid.Parent.Y] 
@@ -3002,7 +3004,7 @@ GridCollPoint:Load('gfx/doubleRender/' .. "gridDebug/debug.anm2")
 GridCollPoint.Scale = Vector(0.5,0.5)
 GridCollPoint:Play("point")
 
-local function FindCollidedGrid(list, pos, size, onlyfind)
+local function FindCollidedGrid(list, pos, size, onlyfind, sizer)
 	if size and pos then
 		local tab = {}
 		local ignorelist = {}
@@ -3013,15 +3015,17 @@ local function FindCollidedGrid(list, pos, size, onlyfind)
 		--		tab[#tab+1] = {Sy+k[2], Sx+k[1]}
 		--	end
 		--end
-		local maxX, maxY = math.ceil(size.X/26)+1, math.ceil(size.Y/26)+1
+		local maxX, maxY = math.ceil(size.X/sizer)+1, math.ceil(size.Y/sizer)+1 --26
 		for xi=1, maxX do
 			for yi=1, maxY do
 				local y,x -- = math.ceil((pos.Y-26)/13)+yi, math.ceil((pos.X-26)/13)+xi
 				local pointpos = Vector(0,0)
 				if xi == maxX then
-					x = math.ceil((pos.X-13+size.X/2)/13)
+					x = math.ceil((pos.X-13+size.X/2)/13) --13
 					pointpos.X = pos.X-13+size.X/2
 				else
+					--x = math.ceil((pos.X-26)/13)+xi
+					--pointpos.X = pos.X-26 + xi*13
 					x = math.ceil((pos.X-26)/13)+xi
 					pointpos.X = pos.X-26 + xi*13
 				end
@@ -3029,6 +3033,8 @@ local function FindCollidedGrid(list, pos, size, onlyfind)
 					y = math.ceil((pos.Y-13+size.Y/2)/13)
 					pointpos.Y = pos.Y-13+size.Y/2
 				else
+					--y = math.ceil((pos.Y-26)/13)+yi
+					--pointpos.Y = pos.Y-26 + yi*13
 					y = math.ceil((pos.Y-26)/13)+yi
 					pointpos.Y = pos.Y-26 + yi*13
 				end
@@ -3114,9 +3120,6 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 	if IsSelected then
 		local mouseOffset = Vector(0,0)
 		local pGrid = Isaac_Tower.editor.GridTypes.Environment[Isaac_Tower.editor.SelectedGridType or ""]
-		--if pGrid and pGrid.size and pGrid.size.X then
-		--	mouseOffset = pGrid.size*13/4
-		--end
 
 		local algMousePos = Isaac_Tower.editor.MousePos - Isaac_Tower.editor.GridStartPos - mouseOffset
 		if Isaac_Tower.editor.EnvironmentGridMode == 0 then
@@ -3147,10 +3150,6 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 
 		Isaac_Tower.sprites.Col0Grid.Scale = prescale
 	end
-
-	--for y= math.max(2,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y+1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2+1) do   --Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2+1 do
-	--	local ypos = 26*y/4
-	--	for x=math.max(2,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X+1, Isaac_Tower.editor.Memory.CurrentRoom.Size.X*2+1) do
 
 	local Overindex 
 	if selectedGrid then
@@ -3238,8 +3237,6 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 					grid.sprite.Scale = scale
 				end
 			end
-
-			
 		end
 	end
 	if IsSelected and Isaac_Tower.editor.SelectedGrid then
@@ -3257,7 +3254,7 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 				--chosenGrid:Render(renderpos)
 
 				if pGrid and pGrid.size then
-					for i, k in pairs(FindCollidedGrid(list, Isaac_Tower.editor.SelectedGrid-pGrid.pivot/2, pGrid.size, true)) do
+					for i, k in pairs(FindCollidedGrid(list, Isaac_Tower.editor.SelectedGrid-pGrid.pivot/2, pGrid.size, true, 208)) do
 						Isaac_Tower.sprites.chosenGrid:Render(Isaac_Tower.editor.GridStartPos + Vector(k[2]*13, k[1]*13))
 					end
 				end
@@ -3271,16 +3268,8 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 						--	upleft = Isaac_Tower.editor.SelectedGrid-pGrid.pivot/2, downright = Isaac_Tower.editor.SelectedGrid+pGrid.pivot/2}
 						
 						local childs = {}
-						for i, k in pairs(FindCollidedGrid(list, Isaac_Tower.editor.SelectedGrid-pGrid.pivot/2, pGrid.size, true)) do
+						for i, k in pairs(FindCollidedGrid(list, Isaac_Tower.editor.SelectedGrid-pGrid.pivot/2, pGrid.size, true, 26)) do
 							local yi,xi = k[1], k[2]
-							--if not list[yi] then
-							--	list[yi] = {}
-							--end
-							--if not list[yi][xi] then
-							--	list[yi][xi] = {}
-							--end
-							--list[yi][xi].Parents = list[yi][xi].Parents or {}
-							
 							SafePlacingTable(list,yi,xi,"Parents")[newindex] = true
 							--list[yi][xi].Parents[newindex] = true
 							childs[#childs+1] = {yi,xi}
@@ -3404,9 +3393,33 @@ end, nil, function(str)
 						solidTab = solidTab .. "l=" .. grid.layer .. ","
 						--EditorType
 						solidTab = solidTab .. "chl={"
-						for _, id in pairs(grid.childs) do
-							solidTab = solidTab .. "{"..id[1]..","..id[2].."},"
+
+						if #grid.childs>4 then
+							local min, max = {1000000000,1000000000},{0,0}
+							for _, id in pairs(grid.childs) do
+								if id[1]<min[1] then
+									min[1] = id[1]
+								end
+								if id[2]<min[2] then
+									min[2] = id[2]
+								end
+								if id[1]>max[1] then
+									max[1] = id[1]
+								end
+								if id[2]>max[2] then
+									max[2] = id[2]
+								end
+							end
+							solidTab = solidTab .. "{"..min[1]..","..min[2].."},"
+							solidTab = solidTab .. "{"..min[1]..","..max[2].."},"
+							solidTab = solidTab .. "{"..max[1]..","..min[2].."},"
+							solidTab = solidTab .. "{"..max[1]..","..max[2].."},"
+						else
+							for _, id in pairs(grid.childs) do
+								solidTab = solidTab .. "{"..id[1]..","..id[2].."},"
+							end
 						end
+
 						solidTab = solidTab .. "},},\n"
 					else
 						local pos = Vector(math.ceil(grid.pos.X*2)/2, math.ceil(grid.pos.Y*2)/2)*2-Vector(26,26)
@@ -3415,8 +3428,31 @@ end, nil, function(str)
 						solidTab = solidTab .. "l=" .. grid.layer .. ","
 						--EditorType
 						solidTab = solidTab .. "chl={"
-						for _, id in pairs(grid.childs) do
-							solidTab = solidTab .. "{"..id[1]..","..id[2].."},"
+
+						if #grid.childs>4 then
+							local min, max = {1000000000,1000000000},{0,0}
+							for _, id in pairs(grid.childs) do
+								if id[1]<min[1] then
+									min[1] = id[1]
+								end
+								if id[2]<min[2] then
+									min[2] = id[2]
+								end
+								if id[1]>max[1] then
+									max[1] = id[1]
+								end
+								if id[2]>max[2] then
+									max[2] = id[2]
+								end
+							end
+							solidTab = solidTab .. "{"..min[1]..","..min[2].."},"
+							solidTab = solidTab .. "{"..min[1]..","..max[2].."},"
+							solidTab = solidTab .. "{"..max[1]..","..min[2].."},"
+							solidTab = solidTab .. "{"..max[1]..","..max[2].."},"
+						else
+							for _, id in pairs(grid.childs) do
+								solidTab = solidTab .. "{"..id[1]..","..id[2].."},"
+							end
 						end
 						solidTab = solidTab .. "},},\n"
 					end
