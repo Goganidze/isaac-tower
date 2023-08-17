@@ -438,6 +438,18 @@ Isaac_Tower.editor.AddSpecial("spawnpoint", nil,
 	{IsSpawnPoint = true, Name = ""},
 	GenSprite("gfx/editor/special_tiles.anm2","checkpoint"))
 
+Isaac_Tower.editor.AddSpecialEditData("spawnpoint", "Name", 1, {HintText = GetStr("spawnpoint_name"), ResultCheck = function(info, result)
+		if not result then
+			return true
+		else
+			if #result < 1 or not string.find(result,"%S") then
+				return GetStr("emptyField")
+			end
+			info.Name = result
+			return true
+		end
+	end})
+
 
 local nilSpr = GenSprite("gfx/editor/special_tiles.anm2","room_transition")
 nilSpr.Color = Color(1,1,1,0)

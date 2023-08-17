@@ -290,7 +290,7 @@ function Isaac_Tower.FlayerHandlers.GrabHandler(fent)
 				spr.Rotation = 0
 				spr.Offset = Vector(0,12)
 				return true
-			elseif Inp.PressUp(idx) then
+			elseif Inp.PressUp(idx) and not fent.UseApperkot then
 				SetState(fent, "Аперкот-не-кот")
 				spr.Rotation = 0
 				spr.Offset = Vector(0,12)
@@ -585,7 +585,6 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 		end
 		
 		if not Inp.PressDown(idx) then
-
 			if fent.StateFrame%4 == 0 then
 				if spr.Rotation < -10 then
 					spawnSpeedEffect(fent.Position+Vector(spr.FlipX and 15 or -15, (fent.StateFrame%24)*2-32),
@@ -921,7 +920,7 @@ Isaac_Tower.FlayerMovementState["Захват"] = function(player, fent, spr, id
 		end
 		
 		if Inp.PressUp(idx) then
-			if fent.StateFrame < 6 then
+			if fent.StateFrame < 6 and not fent.UseApperkot then
 				SetState(fent, "Аперкот-не-кот")
 			end
 		end
@@ -1195,7 +1194,7 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 		fent.GrabTarget.Position = fent.Position + (extraoffset and (extraoffset*Vector(rot,1)) or Vector(rot*30,-10))
 	end
 	if spr:IsFinished(spr:GetAnimation()) then
-		fent.GrabDelay = 0
+		fent.GrabDelay = 20
 		SetState(fent, "Ходьба")
 		Isaac_Tower.HandleMoving(player)
 		return
@@ -1207,6 +1206,7 @@ local appercotAnims = {["attack_up"]=true,["attack_up_end"]=true,["attack_up_loo
 Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player, fent, spr, idx)
 	local Flayer = fent.Flayer
 	local toReturn = {}
+	fent.UseApperkot = true
 	if fent.StateFrame <= 1 or not appercotAnims[spr:GetAnimation()] then
 		spr:Play("attack_up")
 		fent.TempSpeedRun = fent.Velocity.X  --fent.RunSpeed/1
@@ -1261,13 +1261,14 @@ Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player,
 		end
 
 		fent.CanBreakPoop = true
+		fent.OnAttack = true
 		if spr:IsPlaying("attack_up_loop") then
 			fent.ShowSpeedEffect = spr.Rotation*mis-90 --sign0(fent.RunSpeed)-90
 		end
 		SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,0.2*(math.max(1,fent.StateFrame/60))))
 		Isaac_Tower.FlayerHandlers.SpeedEffects(fent, spr)
 	elseif spr:IsPlaying("attack_up_end")  then
-		spr.Rotation = spr.Rotation * 0.9
+		spr.Rotation = spr.Rotation * 0.8
 	end
 
 	--if Isaac_Tower.MovementHandlers.GrabHandler(fent) then
@@ -1813,6 +1814,7 @@ function Isaac_Tower.HandleMoving(player)
 	
 	if not dontLoseY then
 		if fent.OnGround then
+			fent.UseApperkot = nil
 			fent.Velocity.Y =  math.min(0,fent.Velocity.Y)
 			--newVel.Y = math.min(0,fent.Velocity.Y)
 		end

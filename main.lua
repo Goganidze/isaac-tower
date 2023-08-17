@@ -298,6 +298,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 	end
 
 	local EntersSpawn = {}
+	local SpawnPoints = {}
 	if newRoom.Special then
 		for gType, tab in pairs(newRoom.Special) do
 			if gType ~= "spawnpoint_def" and gType ~= "" then
@@ -314,6 +315,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 					end
 					if gType == "Room_Transition" then
 						EntersSpawn[#EntersSpawn+1] = {Name = grid.Name, pos = Isaac_Tower.GridLists.Special[gType][index].pos, HasOffset = true}
+					elseif gType == "spawnpoint" then
+						SpawnPoints[grid.Name] = {Name = grid.Name, pos = Isaac_Tower.GridLists.Special[gType][index].pos}
 					end
 				end
 			end
@@ -325,6 +328,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 	--	Isaac_Tower.SpawnPoint = newRoom.EntersSpawn[oldRoomName]
 	--end
 	local useOffset = false
+	local targetName
 	for i,k in pairs(EntersSpawn) do
 		--[[if k.FromRoom and preRoomName == k.FromRoom then
 			if TargetSpawnPoint and TargetSpawnPoint == k.Name then
@@ -349,6 +353,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				useOffset = k.HasOffset
 			end
 		elseif TargetSpawnPoint == k.Name then
+			targetName = k.Name
 			if k.FromRoom and preRoomName == k.FromRoom then
 				Isaac_Tower.SpawnPoint = k.pos
 				useOffset = k.HasOffset
@@ -374,6 +379,9 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 	Isaac_Tower.SmoothPlayerPos = Isaac.GetPlayer():GetData().Isaac_Tower_Data.Position
 	Isaac_Tower.TransitionSpawnOffset = nil
 	
+	if targetName and SpawnPoints[targetName] then
+		Isaac_Tower.SpawnPoint = SpawnPoints[targetName].pos - Vector(7,7)
+	end
     end
 end
 
@@ -1468,7 +1476,6 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 					fent.SmoothUp = nil
 				end
 			end
-
 			local prePosition = fent.Position / 1
 
 			fent.Position = fent.Position + fent.Velocity -- * Isaac_Tower.UpdateSpeed
