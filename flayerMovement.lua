@@ -482,6 +482,38 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 					fent.InputWait = nil
 				end
 			end
+		elseif not Inp.PressDown(idx) and fent.CollideWall == sign0(-rot) then
+			spr:Play("lunge_down_wall")
+			fent.Velocity.Y = fent.Velocity.Y*0.9 - 0.0*0.1
+			fent.TempLoseY = fent.TempLoseY and math.min(1,fent.TempLoseY + 0.02) or 0
+			Isaac_Tower.FlayerHandlers.SetForsedVelocity(fent, Vector(fent.RunSpeed,0), fent.TempLoseY, 1, false)
+			if fent.Velocity.Y == 0 then
+				SetState(fent, "Ходьба")
+				Isaac_Tower.FlayerHandlers.SetForsedVelocity(fent, Vector(spr.FlipX and 5 or -5,-1), 0.5, 10, false)
+				fent.RunSpeed = 0
+			end
+
+			if Inp.PressJump(idx, fent) and not fent.JumpActive and fent.JumpPressed < 15 then
+				--local runrot = spr.FlipX and -1 or 1
+				fent.IgnoreWallRot = sign0(fent.RunSpeed)
+				fent.IgnoreWallTime = 5
+				fent.Position.X = fent.Position.X - sign0(fent.RunSpeed)*10
+				fent.Velocity.X = -fent.RunSpeed
+				fent.Velocity.Y = -6
+				fent.RunSpeed =  -fent.RunSpeed
+				fent.JumpPressed = 0
+				fent.JumpActive = 15
+	
+				fent.InputWait = nil
+	
+				local puf = spawnSpeedEffect(fent.Position+Vector(spr.FlipX and 26 or -26, -16), 
+					Vector(-0, 0), spr.FlipX and 0 or 0,1) --fent.RunSpeed
+				puf.Color = Color(1,1,1,0.5)
+				puf.SpriteScale = Vector(math.min(1,fent.RunSpeed/20), math.min(1,fent.RunSpeed/20))
+			end
+		elseif not fent.CollideWall and fent.TempLoseY then
+			fent.TempLoseY = nil
+			spr:Play("pre_run")
 		end
 		local curanm = spr:GetAnimation()
 		if rot~=0 and fent.OnGround then

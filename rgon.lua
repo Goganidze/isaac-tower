@@ -242,6 +242,16 @@ return function(mod)
 		return Isaac.GetClipboard()
 	end
 
+	function Isaac_Tower.editor.TryOpenClipBroad(str, roomName)
+		local ImGui = Isaac.GetImGui()
+		local winID = "isaac tower room clipboard"
+		ImGui:RemoveWindow(winID)
+		ImGui:CreateWindow(winID, roomName .. " :Room Data")
+		ImGui:AddInputTextMultiline(winID, "isaac tower room", "", nil, str,30)
+		ImGui:SetVisible(winID, true)
+		ImGui:Show()
+	end
+
 	function Isaac_Tower.editor.GetEnviAutoSpriteFormat(spr)
 		if spr then
 			local size, pivot, ofset = Vector(10, 10), Vector(0, 0), Vector(0, 0)

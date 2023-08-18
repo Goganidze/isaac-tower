@@ -161,6 +161,33 @@ local function DrawStringScaledBreakline(Font, String, PositionX, PositionY, Sca
     end
 end
 
+local function NaitiMezdy(ar1,ar2,ar3,ar4)
+	ar1,ar2,ar3,ar4 = Vector(ar1[1],ar1[2]),Vector(ar2[1],ar2[2]),Vector(ar3[1],ar3[2]),Vector(ar4[1],ar4[2])
+	local minv,maxv = Vector(100000000,10000000), Vector(0,0)
+	--::retu::
+	for i,k in pairs({ar1,ar2,ar3,ar4}) do
+		if k.X<minv.X then
+			minv.X=k.X
+		end
+		if k.Y<minv.Y then
+			minv.Y=k.Y
+		end
+		if k.X>maxv.X then
+			maxv.X=k.X
+		end
+		if k.Y>maxv.Y then
+			maxv.Y=k.Y
+		end
+	end
+	local retu = {}
+	for i=minv.X,maxv.X do
+		for j=minv.Y,maxv.Y do
+			retu[#retu+1] = {i,j}
+		end
+	end
+	return retu
+end
+
 
 
 Isaac_Tower.editor = {}
@@ -336,8 +363,12 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 
 			local list = Isaac_Tower.editor.Memory.CurrentRoom.Envi --[grid.pos.Y][grid.pos.X]
 			local childs = {}
-			for i, k in pairs(grid.chl) do
-				local yi, xi = k[1], k[2]
+			local chl = grid.chl
+			if #chl==4 then
+				chl = NaitiMezdy(chl[1],chl[2],chl[3],chl[4])
+			end
+			for i, k in pairs(chl) do
+				local yi, xi = k[1]-1, k[2]-1
 				--list[yi] = list[yi] or {}
 				--list[yi][xi] = list[yi][xi] or {Parents = {}}
 				local ob = SafePlacingTable(list,yi,xi)
@@ -351,10 +382,10 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 			{
 				info = pGrid,
 				spr = pGrid.trueSpr,
-				pos = grid.pos/2+Vector(13,13),
+				pos = grid.pos/2, --+Vector(13,13)
 				childs = childs,
-				upleft = grid.pos/2+Vector(13,13) - pGrid.pivot / 2,
-				downright = grid.pos/2+Vector(13,13) - pGrid.pivot / 2 + pGrid.size / 2,
+				upleft = grid.pos/2 - pGrid.pivot / 2,
+				downright = grid.pos/2 - pGrid.pivot / 2 + pGrid.size / 2,
 				layer = grid.l or 0,
 			}
 		end
@@ -561,6 +592,7 @@ end
 
 function Isaac_Tower.editor.BackToVersion(num)
 	local tab = Isaac_Tower.editor.Memory.Ver[Isaac_Tower.editor.Memory.CurrentRoom.Name]
+	Isaac_Tower.editor.SpecialSelectedTile = nil
 	if tab and tab.pos and tab[tab.pos + num] then
 		tab.pos = tab.pos + num
 		local roomname = Isaac_Tower.editor.Memory.CurrentRoom.Name
@@ -747,7 +779,7 @@ UIs.OverlayBarR = GenSprite("gfx/editor/ui.anm2","оверлей_лпц",1)
 UIs.OverlayBarC = GenSprite("gfx/editor/ui.anm2","оверлей_лпц",2)
 --UIs.OverlayTab1 = GenSprite("gfx/editor/ui.anm2","оверлей_вкладка",0)
 --UIs.OverlayTab2 = GenSprite("gfx/editor/ui.anm2","оверлей_вкладка",1)
-UIs.PositionSbros = GenSprite("gfx/editor/ui.anm2","сброс поз")
+--UIs.PositionSbros = GenSprite("gfx/editor/ui.anm2","сброс поз")
 UIs.TextBoxPopupBack = GenSprite("gfx/editor/ui.anm2","всплывашка")
 UIs.MouseTextEd = GenSprite("gfx/editor/ui.anm2","mouse_textEd")
 UIs.TextEdPos = GenSprite("gfx/editor/ui.anm2","TextEd_pos")
@@ -794,6 +826,7 @@ function UIs.TextBox() return GenSprite("gfx/editor/ui.anm2","конт_текс�
 function UIs.BigPlus() return GenSprite("gfx/editor/ui.anm2","плюс") end
 function UIs.GridModeOn() return GenSprite("gfx/editor/ui.anm2","режим_сетки") end
 function UIs.GridModeOff() return GenSprite("gfx/editor/ui.anm2","режим_сетки_выкл") end
+function UIs.PositionSbros() return GenSprite("gfx/editor/ui.anm2","сброс поз") end
 
 
 
@@ -1466,10 +1499,15 @@ function Isaac_Tower.editor.OpenSpecialEditMenu(name, grid)
 	local function hasChanges()
 		for i,k in pairs(preParams) do
 			if type(k) == "table" then
+				local tr = 0
 				for j,h in pairs(k) do
+					tr = tr + 1
 					if h ~= grid.EditData[i][j] then
 						return true
 					end
+				end
+				if tr == 0 then
+					return true
 				end
 			end
 		end
@@ -1854,6 +1892,9 @@ Isaac_Tower.editor.AddButton("menuUp", "ToLog", Vector(296,12), 32, 32, UIs.ToLo
 	for i=1, math.ceil(string.len(str)/10000) do
 		Isaac.DebugString( string.sub(str,(i-1)*10000,i*10000) )
 	end
+	if Isaac_Tower.RG then
+		Isaac_Tower.editor.TryOpenClipBroad(str,Isaac_Tower.editor.Memory.CurrentRoom.Name)
+	end
 	--Isaac.DebugString( Isaac_Tower.editor.GetConvertedEditorRoomForDebug() )
 end, function(pos) 
 	font:DrawStringScaledUTF8(GetStr("ToLog1"),pos.X+20,pos.Y+2,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true) 
@@ -1985,7 +2026,8 @@ function Isaac_Tower.editor.RoomSelectMenu.GenRoomList()
 
 	local qnum = 1
 	local pos = Isaac_Tower.editor.RoomSelectMenu.StartPos + Vector(0, qnum*16-8)
-	Isaac_Tower.editor.AddButton(Isaac_Tower.editor.RoomSelectMenu.Name, qnum, pos, 96, 16, UIs.Var_Sel(), function(button)
+	local self 
+	self = Isaac_Tower.editor.AddButton(Isaac_Tower.editor.RoomSelectMenu.Name, qnum, pos, 96, 16, UIs.Var_Sel(), function(button)
 		if button ~= 0 or Input.IsButtonPressed(Keyboard.KEY_SPACE, 0) then return end
 
 		local bumun
@@ -2002,7 +2044,7 @@ function Isaac_Tower.editor.RoomSelectMenu.GenRoomList()
 		Isaac_Tower.editor.RoomSelectMenu.State = 2
 	end, function(pos)
 		font:DrawStringScaledUTF8(GetStr("newroom"),pos.X+12,pos.Y+4,0.5,0.5,KColor(0.2,0.2,0.4,1),0,false) 
-		Isaac_Tower.editor.GetButton(Isaac_Tower.editor.RoomSelectMenu.Name, qnum).pos = Isaac_Tower.editor.RoomSelectMenu.StartPos + Vector(0, qnum*16-8)
+		self.pos = Isaac_Tower.editor.RoomSelectMenu.StartPos + Vector(0, qnum*16-8)
 		--Isaac_Tower.editor.MenuButtons[Isaac_Tower.editor.RoomSelectMenu.Name][qnum].pos = Isaac_Tower.editor.RoomSelectMenu.StartPos + Vector(0, qnum*16)
 	end)
 	--Isaac_Tower.editor.RoomSelectMenu.Frame = Isaac_Tower.editor.RoomSelectMenu.Frame + 1
@@ -2030,81 +2072,67 @@ function Isaac_Tower.editor.RoomSelectMenu:onRender(menu)
 end
 mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_POST_MENUS_RENDER, Isaac_Tower.editor.RoomSelectMenu.onRender)
 
-
-Isaac_Tower.editor.AddButton("Overlays", "PosToZero", Vector(382,248), 16, 32, UIs.PositionSbros, function(button) 
+local PosToZeroPos = Vector(Isaac.GetScreenWidth()-130, Isaac.GetScreenHeight()-22)
+local self 
+self = Isaac_Tower.editor.AddButton("Overlays", "PosToZero", PosToZeroPos, 16, 32, UIs.PositionSbros(), function(button) 
 	if button ~= 0 then return end
 	
-	Isaac_Tower.editor.GridStartPos = Vector(0,60)
+	Isaac_Tower.editor.GridStartPos = Vector(10,60)
 end, function(pos) 
 	if Isaac.GetFrameCount()%30 == 0 then
-		Isaac_Tower.editor.GetButton("Overlays","PosToZero").pos = Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight()-22) - Vector(Isaac_Tower.editor.Overlay.DetectPosX-4, 0)
+		self.pos = Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight()-22) - Vector(Isaac_Tower.editor.Overlay.DetectPosX-20, 0)
 		--Isaac_Tower.editor.MenuButtons["Overlays"]["PosToZero"].pos = Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight()-22) - Vector(Isaac_Tower.editor.Overlay.DetectPosX-4, 0)
 	end
 	--Isaac_Tower.editor.Overlay.DetectPosX
 end)
+
+local PosToZeroPos = Vector(Isaac.GetScreenWidth()-130-18, Isaac.GetScreenHeight()-22)
+
+local self 
+self = Isaac_Tower.editor.AddButton("Overlays", "GridScaleUp", PosToZeroPos, 16, 8, UIs.CounterUpSmol(), function(button) 
+	if button ~= 0 then return end
+	local h = Isaac_Tower.editor.GridScale
+	Isaac_Tower.editor.GridScale = math.min(3, Isaac_Tower.editor.GridScale+1)
+	if h-Isaac_Tower.editor.GridScale ~= 0 then
+		local rev = (Isaac_Tower.editor.GridStartPos-Vector(Isaac.GetScreenWidth()/2,Isaac.GetScreenHeight()/2+20)) *(3-Isaac_Tower.editor.GridScale/2)
+		Isaac_Tower.editor.GridStartPos = Vector(Isaac.GetScreenWidth()/2,Isaac.GetScreenHeight()/2+20) + rev
+	end
+end, function(pos) 
+	if Isaac.GetFrameCount()%30 == 0 then
+		self.pos = Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight()-22) - Vector(Isaac_Tower.editor.Overlay.DetectPosX-2, 0)
+	end
+end)
+local self 
+self = Isaac_Tower.editor.AddButton("Overlays", "GridScaleDpwn", PosToZeroPos+Vector(0,8), 16, 8, UIs.CounterDownSmol(), function(button) 
+	if button ~= 0 then return end
+	local h = Isaac_Tower.editor.GridScale
+	Isaac_Tower.editor.GridScale = math.max(1, Isaac_Tower.editor.GridScale-1)
+	if h-Isaac_Tower.editor.GridScale ~= 0 then
+		local rev = (Isaac_Tower.editor.GridStartPos-Vector(Isaac.GetScreenWidth()/2,Isaac.GetScreenHeight()/2+20)) /(Isaac_Tower.editor.GridScale+1)
+		Isaac_Tower.editor.GridStartPos = Isaac_Tower.editor.GridStartPos - rev
+	end
+end, function(pos) 
+	if Isaac.GetFrameCount()%30 == 0 then
+		self.pos = Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight()-22+8) - Vector(Isaac_Tower.editor.Overlay.DetectPosX-2, 0)
+	end
+end)
+
+--local self 
+--self = Isaac_Tower.editor.AddButton("Overlays", "GridScale", PosToZeroPos, 16, 32, UIs.PositionSbros(), function(button) 
+--	if button ~= 0 then return end
+--end, function(pos) 
+--	if Isaac.GetFrameCount()%30 == 0 then
+--		self.pos = Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight()-22) - Vector(Isaac_Tower.editor.Overlay.DetectPosX-2, 0)
+--	end
+--	font:DrawStringScaledUTF8(Isaac_Tower.editor.GridScale,pos.X+12,pos.Y+4,0.5,0.5,KColor(0.2,0.2,0.4,1),0,false)
+--end)
+
 
 
 local greyColor = Color(1,1,1,1)
 greyColor:SetColorize(1,1,1,1)
 local greyColorObs = Color(0.8,0.8,0.8,0.8)
 greyColorObs:SetColorize(1,1,1,0.2)
-
---[[local sizecache = {}
-
-local function GetLinkedGrid(grid, pos, size, fill)
-	if size.X then
-		if sizecache[size.X .. "," .. size.Y] then
-			size = sizecache[size.X .. "," .. size.Y]
-		else
-			local tab = {}
-			for i=1, size.X do
-				for j=1, size.Y do
-					tab[#tab+1] = {i-1,j-1}
-				end
-			end
-			sizecache[size.X .. "," .. size.Y] = tab
-			size = tab
-		end
-	end
-	if size and pos then
-		local tab = {}
-		local Sx,Sy = pos.X,pos.Y
-		for i,k in pairs(size) do
-			local Hasgrid = grid[Sy+k[2] ] and grid[Sy+k[2] ][Sx+k[1] ]
-			if Hasgrid or fill then
-				tab[#tab+1] = {Sy+k[2], Sx+k[1]}
-			end
-		end
-		return tab
-	end
-end
-
-local function CheckEmpty(grid, pos, size)
-	if size.X then
-		if sizecache[size.X .. "," .. size.Y] then
-			size = sizecache[size.X .. "," .. size.Y]
-		else
-			local tab = {}
-			for i=1, size.X do
-				for j=1, size.Y do
-					tab[#tab+1] = {i-1,j-1}
-				end
-			end
-			sizecache[size.X .. "," .. size.Y] = tab
-			size = tab
-		end
-	end
-	if grid and size and pos then
-		local Sx,Sy = pos.X,pos.Y
-		for i,k in pairs(size) do
-			local Hasgrid = grid[Sy+k[2] ] and grid[Sy+k[2] ][Sx+k[1] ]
-			if Hasgrid then
-				return false
-			end
-		end
-	end
-	return true
-end]]
 
 Isaac_Tower.editor.AddOverlay("Collision", GenSprite("gfx/editor/ui.anm2","оверлей_иконки",0), function(IsSelected)
 	if IsSelected then
@@ -2547,10 +2575,12 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 	end
 
 	local Col0GridScale
+	local enemScaleOffset = Vector(0,0)
 	if Gridscale ~= 1 then
 		Col0GridScale = Isaac_Tower.sprites.Col0Grid.Scale/1
 		Isaac_Tower.sprites.Col0Grid.Scale = Isaac_Tower.sprites.Col0Grid.Scale*Gridscale
 		Isaac_Tower.sprites.chosenGrid.Scale = Isaac_Tower.sprites.Col0Grid.Scale
+		enemScaleOffset = Vector(13,13)/2*(Gridscale-1)
 	end
 
 	local list = Isaac_Tower.editor.Memory.CurrentRoom.Enemies
@@ -2573,7 +2603,7 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 				if grid.sprite then
 					local scale = grid.sprite.Scale/1
 					grid.sprite.Scale = Vector(0.5, 0.5)*Gridscale
-					grid.sprite:Render(renderpos)
+					grid.sprite:Render(renderpos+enemScaleOffset)
 					grid.sprite.Scale = scale
 				end
 			end
@@ -2804,7 +2834,9 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 										list[y][x].pos = Vector(xr*26/2, ypos)
 
 										local index = math.ceil(x) .. "." .. math.ceil(y)   --(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + x
-										local info = function() return Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y][x] end
+										local info = function() if not pcall(function() return Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y][x] end) then error("1",2) end
+												return Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y][x] 
+											end
 										Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
 										Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = {spr = pGrid.trueSpr, pos = Vector(xr*26/2, ypos), info = info}
 										if pGrid.size then
@@ -3184,19 +3216,20 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 		local pGrid = Isaac_Tower.editor.GridTypes.Environment[Isaac_Tower.editor.SelectedGridType or ""]
 
 		local algMousePos = Isaac_Tower.editor.MousePos - Isaac_Tower.editor.GridStartPos - mouseOffset
+		algMousePos = Vector(math.ceil(algMousePos.X),math.ceil(algMousePos.Y))
 		if Isaac_Tower.editor.EnvironmentGridMode == 0 then
-			Isaac_Tower.editor.SelectedGrid = algMousePos
+			Isaac_Tower.editor.SelectedGrid = algMousePos / Gridscale
 		end
-		local xs,ys = math.floor(algMousePos.Y/(26/2)), math.floor(algMousePos.X/(26/2))
+		local xs,ys = math.floor(algMousePos.Y/(26/2)/Gridscale), math.floor(algMousePos.X/(26/2)/Gridscale)
 		if xs>=0 and ys>=0 and Isaac_Tower.editor.Memory.CurrentRoom.Size.Y-1>=xs and Isaac_Tower.editor.Memory.CurrentRoom.Size.X-1>=ys then
 			selectedGrid = {xs, ys}
 			if Isaac_Tower.editor.EnvironmentGridMode == 1 then
-				Isaac_Tower.editor.SelectedGrid = Vector(ys*13+13/2,xs*13+13/2)
+				Isaac_Tower.editor.SelectedGrid = Vector(ys*13+13/2,xs*13+13/2) --* Gridscale
 			end
 		else
 			selectedGrid = nil
 			if Isaac_Tower.editor.EnvironmentGridMode == 1 then
-				Isaac_Tower.editor.SelectedGrid = algMousePos
+				Isaac_Tower.editor.SelectedGrid = algMousePos / Gridscale
 			end
 		end
 		
@@ -3237,12 +3270,15 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 					if selectedGrid then
 						k[1].spr.Color = Color(0.5,0.5,0.8,0.5)
 					end
-					k[1].spr:Render(k[1].pos+Isaac_Tower.editor.GridStartPos)
+					local oldScale = k[1].spr.Scale/1
+					k[1].spr.Scale = k[1].spr.Scale * Gridscale
+					k[1].spr:Render(k[1].pos*Gridscale+Isaac_Tower.editor.GridStartPos)
 					k[1].spr.Color = Color.Default
+					k[1].spr.Scale = oldScale
 					if Overindex and Overindex == k[2] then
 						evroBoxSpr.Color = Color(1.5,0.1,0.1,1)
-						evroBoxSpr.Scale = (k[1].downright-k[1].upleft)/23
-						evroBoxSpr:Render(k[1].upleft+Isaac_Tower.editor.GridStartPos)
+						evroBoxSpr.Scale = (k[1].downright-k[1].upleft)/23 * Gridscale
+						evroBoxSpr:Render(k[1].upleft*Gridscale+Isaac_Tower.editor.GridStartPos)
 						evroBoxSpr.Color = Color.Default
 					end
 				end
@@ -3252,11 +3288,14 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 	if RenderListSorted[Isaac_Tower.editor.EnvironmentSelectedLayer] then
 		for i,k in pairs(RenderListSorted[Isaac_Tower.editor.EnvironmentSelectedLayer]) do
 			if k[1].spr and k[1].pos then
-				k[1].spr:Render(k[1].pos+Isaac_Tower.editor.GridStartPos)
+				local oldScale = k[1].spr.Scale/1
+				k[1].spr.Scale = k[1].spr.Scale * Gridscale
+				k[1].spr:Render(k[1].pos*Gridscale+Isaac_Tower.editor.GridStartPos)
+				k[1].spr.Scale = oldScale
 				if Overindex and Overindex == k[2] then
 					evroBoxSpr.Color = Color(1.5,0.1,0.1,1)
-					evroBoxSpr.Scale = (k[1].downright-k[1].upleft)/23
-					evroBoxSpr:Render(k[1].upleft+Isaac_Tower.editor.GridStartPos)
+					evroBoxSpr.Scale = (k[1].downright-k[1].upleft)/23 * Gridscale
+					evroBoxSpr:Render(k[1].upleft*Gridscale+Isaac_Tower.editor.GridStartPos)
 					evroBoxSpr.Color = Color.Default
 				end
 			end
@@ -3276,16 +3315,17 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 
 	local list = Isaac_Tower.editor.Memory.CurrentRoom.Envi
 	for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y) do  --for y=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y do
-		local ypos = 26*y/2
-		for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.editor.Memory.CurrentRoom.Size.X) do  --for x=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.X do
-			local renderpos = IsSelected and Isaac_Tower.editor.GridStartPos + Vector(x*26/2, ypos) --, x*26/2)
+		local ypos = 26*(y-1)/2
+		for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.editor.Memory.CurrentRoom.Size.X) do
+			local xr = x-1
+			local renderpos = IsSelected and Isaac_Tower.editor.GridStartPos + Vector(xr*26/2, ypos) * Gridscale --, x*26/2)
 			--Col0Grid:Render(renderpos)
 			local grid = list[y] and list[y][x]
 			--local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
 			
 			if grid then
 				if not IsSelected then
-					renderpos =Isaac_Tower.editor.GridStartPos + Vector(x*26/2, ypos) 
+					renderpos =Isaac_Tower.editor.GridStartPos + Vector(xr*26/2, ypos) * Gridscale
 				else
 					if grid.Parent and not (list[grid.Parent.Y] and list[grid.Parent.Y][grid.Parent.X]) then
 						list[y][x] = nil
@@ -3294,7 +3334,7 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 				
 				if grid.sprite then
 					local scale = grid.sprite.Scale/1
-					grid.sprite.Scale = Vector(0.5, 0.5)
+					grid.sprite.Scale = Vector(0.5, 0.5) * Gridscale
 					grid.sprite:Render(renderpos)
 					grid.sprite.Scale = scale
 				end
@@ -3316,9 +3356,12 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 				--chosenGrid:Render(renderpos)
 
 				if pGrid and pGrid.size then
+					local oldScale = Isaac_Tower.sprites.chosenGrid.Scale
+					Isaac_Tower.sprites.chosenGrid.Scale = Isaac_Tower.sprites.chosenGrid.Scale * Gridscale
 					for i, k in pairs(FindCollidedGrid(list, Isaac_Tower.editor.SelectedGrid-pGrid.pivot/2, pGrid.size, true, 208)) do
-						Isaac_Tower.sprites.chosenGrid:Render(Isaac_Tower.editor.GridStartPos + Vector(k[2]*13, k[1]*13))
+						Isaac_Tower.sprites.chosenGrid:Render(Isaac_Tower.editor.GridStartPos + Vector(k[2]*13, k[1]*13)*Gridscale)
 					end
+					Isaac_Tower.sprites.chosenGrid.Scale = oldScale
 				end
 				
 				if pGrid then
@@ -3375,17 +3418,17 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 		local pGrid = Isaac_Tower.editor.GridTypes.Environment[Isaac_Tower.editor.SelectedGridType]
 		if pGrid then
 			--local y,x = Isaac_Tower.editor.SelectedGrid[1], Isaac_Tower.editor.SelectedGrid[2]
-			local renderpos = Isaac_Tower.editor.GridStartPos + Isaac_Tower.editor.SelectedGrid --+ Vector(x*26/2, 26*y/2)
+			local renderpos = Isaac_Tower.editor.GridStartPos + Isaac_Tower.editor.SelectedGrid*Gridscale --+ Vector(x*26/2, 26*y/2)
 			
 			if pGrid.size and not Overindex then
 				local off = pGrid.pivot/2 or Vector(0,0)
-				evroBoxSpr.Scale = pGrid.size/46
+				evroBoxSpr.Scale = pGrid.size/46 * Gridscale
 				evroBoxSpr.Color = Color(1,1,1,0.2)
 				evroBoxSpr:Render(renderpos-off)
 			end
 			
 			local trueScale = pGrid.trueSpr.Scale/1
-			pGrid.trueSpr.Scale = Vector(0.5, 0.5)
+			pGrid.trueSpr.Scale = Vector(0.5, 0.5) * Gridscale
 			pGrid.trueSpr:Render(renderpos)
 			pGrid.trueSpr.Color = Color.Default
 			pGrid.trueSpr.Scale = trueScale
@@ -3393,7 +3436,7 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","о�
 
 		local textPos = Vector(Isaac.GetScreenWidth()/2, 50)
 		font:DrawStringScaledUTF8(GetStr("layer") .. " " .. Isaac_Tower.editor.EnvironmentSelectedLayer,
-			textPos.X,textPos.Y,0.5,0.5,KColor(0.5,0.5,0.5,0.7),1,true)
+			textPos.X,textPos.Y,0.5,0.5,KColor(0.8,0.8,0.8,0.7),1,true)
 	end
 	if holdMouse and not Input.IsMouseBtnPressed(holdMouse) then
 		holdMouse = nil
@@ -3449,7 +3492,7 @@ end, nil, function(str)
 				if grid and grid.info then
 					--local pos = startPos + Vector(20+(x-1)*40, 20+(y-1)*40)
 					if grid.info.file then
-						local pos = Vector(math.ceil(grid.pos.X*2)/2, math.ceil(grid.pos.Y*2)/2)*2-Vector(26,26)
+						local pos = Vector(math.ceil(grid.pos.X*2)/2, math.ceil(grid.pos.Y*2)/2)*2 --Vector(26,26)
 						solidTab = solidTab .. "  {pos=Vector(" .. math.ceil(pos.X) .. "," .. math.ceil(pos.Y) .. "),"
 						solidTab = solidTab .. "ct=" .. customEnvi[grid.info.name] .. "," --layer
 						solidTab = solidTab .. "l=" .. grid.layer .. ","
@@ -3472,19 +3515,19 @@ end, nil, function(str)
 									max[2] = id[2]
 								end
 							end
-							solidTab = solidTab .. "{"..min[1]..","..min[2].."},"
-							solidTab = solidTab .. "{"..min[1]..","..max[2].."},"
-							solidTab = solidTab .. "{"..max[1]..","..min[2].."},"
-							solidTab = solidTab .. "{"..max[1]..","..max[2].."},"
+							solidTab = solidTab .. "{"..(min[1]+1)..","..(min[2]+1).."},"
+							solidTab = solidTab .. "{"..(min[1]+1)..","..(max[2]+1).."},"
+							solidTab = solidTab .. "{"..(max[1]+1)..","..(min[2]+1).."},"
+							solidTab = solidTab .. "{"..(max[1]+1)..","..(max[2]+1).."},"
 						else
 							for _, id in pairs(grid.childs) do
-								solidTab = solidTab .. "{"..id[1]..","..id[2].."},"
+								solidTab = solidTab .. "{"..(id[1]+1)..","..(id[2]+1).."},"
 							end
 						end
 
 						solidTab = solidTab .. "},},\n"
 					else
-						local pos = Vector(math.ceil(grid.pos.X*2)/2, math.ceil(grid.pos.Y*2)/2)*2-Vector(26,26)
+						local pos = Vector(math.ceil(grid.pos.X*2)/2, math.ceil(grid.pos.Y*2)/2)*2 --Vector(26,26)
 						solidTab = solidTab .. "  {pos=Vector(" .. math.ceil(pos.X) .. "," .. math.ceil(pos.Y) .. "),"
 						solidTab = solidTab .. "name='" .. grid.info.name .. "'," --layer
 						solidTab = solidTab .. "l=" .. grid.layer .. ","
@@ -3507,13 +3550,13 @@ end, nil, function(str)
 									max[2] = id[2]
 								end
 							end
-							solidTab = solidTab .. "{"..min[1]..","..min[2].."},"
-							solidTab = solidTab .. "{"..min[1]..","..max[2].."},"
-							solidTab = solidTab .. "{"..max[1]..","..min[2].."},"
-							solidTab = solidTab .. "{"..max[1]..","..max[2].."},"
+							solidTab = solidTab .. "{"..math.ceil(min[1]+2)..","..math.ceil(min[2]+2).."},"
+							solidTab = solidTab .. "{"..math.ceil(min[1]+2)..","..math.ceil(max[2]+2).."},"
+							solidTab = solidTab .. "{"..math.ceil(max[1]+2)..","..math.ceil(min[2]+2).."},"
+							solidTab = solidTab .. "{"..math.ceil(max[1]+2)..","..math.ceil(max[2]+2).."},"
 						else
 							for _, id in pairs(grid.childs) do
-								solidTab = solidTab .. "{"..id[1]..","..id[2].."},"
+								solidTab = solidTab .. "{"..math.ceil(id[1]+2)..","..math.ceil(id[2]+2).."},"
 							end
 						end
 						solidTab = solidTab .. "},},\n"
@@ -3528,7 +3571,7 @@ end, nil, function(str)
 end)
 
 ---@param Menuname string
----@param Pos Vector|function
+---@param Pos Vector|function --почему тут функция?
 ---@param XSize number
 ---@param params  table
 ---@param pressFunc function
@@ -4580,7 +4623,7 @@ function Isaac_Tower.editor.GenOverlayMenu()
 		end)
 		bum = bum + 1
 	end
-	Isaac_Tower.editor.Overlay.DetectPosX = Isaac_Tower.editor.Overlay.num*16 + 16 + 22
+	Isaac_Tower.editor.Overlay.DetectPosX = Isaac_Tower.editor.Overlay.num*16 + 16 + 22+16
 end
 
 
@@ -4997,7 +5040,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 					if button ~= 0 then return end
 					Isaac_Tower.editor.OpenSpecialEditMenu(Linfo.type, Linfo)
 				end, function(pos)
-					if not info or not info.info() or Isaac_Tower.editor.SpecialSelectedTile ~= info.info() or info.info().Parent then
+					if not Isaac_Tower.editor.SpecialSelectedTile or not info or not info.info() or Isaac_Tower.editor.SpecialSelectedTile ~= info.info() or info.info().Parent then
 						Isaac_Tower.editor.RemoveButton("grid", "_special_edit_button")
 					else
 						self.pos = (info.info().pos or Vector(0,0))*Gridscale + Isaac_Tower.editor.GridStartPos + Vector(-10,-10)
