@@ -173,6 +173,9 @@ end
 mod:AddCallback(ModCallbacks.MC_POST_RENDER, Isaac_Tower.Menus.Fading)
 
 function Isaac_Tower.GameExit()
+	TSJDNHC_PT.DeleteAllGridList()
+	Isaac_Tower.CurrentRoom = nil
+	Isaac_Tower.CloseEditor()
 	Isaac_Tower.InAction = false
 end
 mod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, Isaac_Tower.GameExit)
@@ -441,6 +444,10 @@ function Isaac_Tower.GetForFileCurrentRoom()
 	Isaac.DebugString(str)
 end
 
+function Isaac_Tower.PrintWarn(text, level)
+	level = level + 1
+	error(text, level)
+end
 
 local function TowerInit(bool)
     local IsTower = false

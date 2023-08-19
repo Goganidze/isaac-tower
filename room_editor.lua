@@ -368,7 +368,7 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 				chl = NaitiMezdy(chl[1],chl[2],chl[3],chl[4])
 			end
 			for i, k in pairs(chl) do
-				local yi, xi = k[1]-1, k[2]-1
+				local yi, xi = k[1], k[2]
 				--list[yi] = list[yi] or {}
 				--list[yi][xi] = list[yi][xi] or {Parents = {}}
 				local ob = SafePlacingTable(list,yi,xi)
@@ -644,6 +644,12 @@ function Isaac_Tower.editor.AddSpecialEditData(name, paramName, paramType, tab)
 		end
 	end
 end
+---@param name string
+---@param sprite Sprite
+---@param sprGenFunc function
+---@param ingridSpr Sprite
+---@param sizeTable Vector
+---@param pivot Vector
 function Isaac_Tower.editor.AddEnvironment(name, sprite, sprGenFunc, ingridSpr, sizeTable, pivot)
 	if name and sprite and sprGenFunc then
 		--local index = #Isaac_Tower.editor.GridTypes["Environment"]+1
@@ -653,8 +659,17 @@ function Isaac_Tower.editor.AddEnvironment(name, sprite, sprGenFunc, ingridSpr, 
 end
 
 
-
+local IsaacTower_Type = Isaac.GetPlayerTypeByName("Isaac Tower")
 function Isaac_Tower.OpenEditor()
+	local IsTower = false
+    for pid=0,Isaac_Tower.game:GetNumPlayers()-1 do
+		local player = Isaac.GetPlayer(pid)
+		if player:GetPlayerType() == IsaacTower_Type then
+			IsTower = true
+			break
+		end
+    end
+	if not IsTower then error("Func called outside the Isaac Tower mod",2) end
 	Isaac_Tower.InAction = false
 	Isaac_Tower.Pause = true
 	TSJDNHC_PT:EnableCamera(false, true)
@@ -3550,13 +3565,13 @@ end, nil, function(str)
 									max[2] = id[2]
 								end
 							end
-							solidTab = solidTab .. "{"..math.ceil(min[1]+2)..","..math.ceil(min[2]+2).."},"
-							solidTab = solidTab .. "{"..math.ceil(min[1]+2)..","..math.ceil(max[2]+2).."},"
-							solidTab = solidTab .. "{"..math.ceil(max[1]+2)..","..math.ceil(min[2]+2).."},"
-							solidTab = solidTab .. "{"..math.ceil(max[1]+2)..","..math.ceil(max[2]+2).."},"
+							solidTab = solidTab .. "{"..math.ceil(min[1]+0)..","..math.ceil(min[2]+0).."},"
+							solidTab = solidTab .. "{"..math.ceil(min[1]+0)..","..math.ceil(max[2]+0).."},"
+							solidTab = solidTab .. "{"..math.ceil(max[1]+0)..","..math.ceil(min[2]+0).."},"
+							solidTab = solidTab .. "{"..math.ceil(max[1]+0)..","..math.ceil(max[2]+0).."},"
 						else
 							for _, id in pairs(grid.childs) do
-								solidTab = solidTab .. "{"..math.ceil(id[1]+2)..","..math.ceil(id[2]+2).."},"
+								solidTab = solidTab .. "{"..math.ceil(id[1]+0)..","..math.ceil(id[2]+0).."},"
 							end
 						end
 						solidTab = solidTab .. "},},\n"

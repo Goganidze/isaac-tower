@@ -775,8 +775,27 @@ Isaac_Tower.editor.AddEnvironment("t_robebig_2",
 	GenSprite("gfx/evrom/tutorial.anm2","robebig_2", Vector(.5,.5)), 
 	Vector(10,284),
 	Vector(3,16))
-
-
+for i=1,5 do
+	local anm = "plank_back"..i
+	Isaac_Tower.editor.AddEnvironment("t_plank_back"..i, 
+		GenSprite("gfx/evrom/tutorial.anm2",anm,nil,nil,Vector(13,13)), 
+		function() return GenSprite("gfx/evrom/tutorial.anm2",anm) end, 
+		GenSprite("gfx/evrom/tutorial.anm2",anm, Vector(.5,.5)), 
+		Vector(28,28),
+		Vector(14,14))
+end
+Isaac_Tower.editor.AddEnvironment("t_hint5", 
+	GenSprite("gfx/evrom/tutorial.anm2","hint5",Vector(.4,.5),nil,Vector(11,10)), 
+	function() return GenSprite("gfx/evrom/tutorial.anm2","hint5") end, 
+	GenSprite("gfx/evrom/tutorial.anm2","hint5", Vector(.5,.5)), 
+	Vector(96,44),
+	Vector(48,22))
+Isaac_Tower.editor.AddEnvironment("t_hint6", 
+	GenSprite("gfx/evrom/tutorial.anm2","hint6",Vector(1.0,1.0),nil,Vector(11,10)), 
+	function() return GenSprite("gfx/evrom/tutorial.anm2","hint6") end, 
+	GenSprite("gfx/evrom/tutorial.anm2","hint6", Vector(.5,.5)), 
+	Vector(42,30),
+	Vector(21,15))
 
 --Isaac_Tower.editor.AddEnvironment("testpoop1", 
 --	GenSprite("gfx/fakegrid/poop.anm2","2x2",Vector(0.8,0.8),nil,Vector(9,0)), 

@@ -270,4 +270,8 @@ return function(mod)
 		end
 	end
 
+	function Isaac_Tower.PrintWarn(text, level)
+		Isaac_Tower.game:GetConsole():PrintWarning(text)
+	end
+
 end
