@@ -482,12 +482,13 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 					fent.InputWait = nil
 				end
 			end
-		elseif not Inp.PressDown(idx) and fent.CollideWall == sign0(-rot) then
+		elseif not Inp.PressDown(idx) and fent.CollideWall and fent.CollideWall ~= sign0(rot) then
 			spr:Play("lunge_down_wall")
 			fent.Velocity.Y = fent.Velocity.Y*0.9 - 0.0*0.1
 			fent.TempLoseY = fent.TempLoseY and math.min(1,fent.TempLoseY + 0.02) or 0
 			Isaac_Tower.FlayerHandlers.SetForsedVelocity(fent, Vector(fent.RunSpeed,0), fent.TempLoseY, 1, false)
-			if fent.Velocity.Y == 0 then
+			if fent.Velocity.Y == 0 
+			or (fent.CollideWall == sign0(-rot) and fent.TempLoseY > 0.6) then
 				SetState(fent, "Ходьба")
 				Isaac_Tower.FlayerHandlers.SetForsedVelocity(fent, Vector(spr.FlipX and 5 or -5,-1), 0.5, 10, false)
 				fent.RunSpeed = 0
@@ -1001,6 +1002,7 @@ function Isaac_Tower.FlayerHandlers.EnemyGrabCollision(fent, target)
 	if fent.State == "Захват" and not target:GetData().Isaac_Tower_Data.NoGrabbing and target.EntityCollisionClass ~= EntityCollisionClass.ENTCOLL_NONE then
 		fent.GrabTarget = target
 		SetState(fent, "Захватил")
+		fent.GrabDelay = 20
 		target:GetData().Isaac_Tower_Data.State  = Isaac_Tower.EnemyHandlers.EnemyState.GRABBED
 		target:GetData().Isaac_Tower_Data.GrabbedBy = fent
 		target:GetSprite():Play("stun")

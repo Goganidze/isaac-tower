@@ -796,6 +796,46 @@ Isaac_Tower.editor.AddEnvironment("t_hint6",
 	GenSprite("gfx/evrom/tutorial.anm2","hint6", Vector(.5,.5)), 
 	Vector(42,30),
 	Vector(21,15))
+--Isaac_Tower.editor.AddEnvironment("t_hint7", 
+--	GenSprite("gfx/evrom/tutorial.anm2","hint7",Vector(1.0,1.0),nil,Vector(11,10)), 
+--	function() return GenSprite("gfx/evrom/tutorial.anm2","hint7") end, 
+--	GenSprite("gfx/evrom/tutorial.anm2","hint7", Vector(.5,.5)), 
+--	Vector(21,31),
+--	Vector(10,15))
+Isaac_Tower.editor.AddEnvironment("t_backs1", 
+	GenSprite("gfx/evrom/tutorial.anm2","backs1",Vector(1.0,1.0),nil,Vector(11,10)), 
+	function() return GenSprite("gfx/evrom/tutorial.anm2","backs1") end, 
+	GenSprite("gfx/evrom/tutorial.anm2","backs1", Vector(.5,.5)), 
+	Vector(26,26),
+	Vector(13,13))
+for i=2,3 do
+	local anm = "backs"..i
+	Isaac_Tower.editor.AddEnvironment("t_backs"..i, 
+		GenSprite("gfx/evrom/tutorial.anm2",anm,nil,nil,Vector(13,13)), 
+		function() return GenSprite("gfx/evrom/tutorial.anm2",anm) end, 
+		GenSprite("gfx/evrom/tutorial.anm2",anm, Vector(.5,.5)), 
+		Vector(26,30),
+		Vector(13,17))
+end
+
+do
+	local EnviList = {
+		{"t_","hint7",Vector(21,31),Vector(10,15),Vector(1.0,1.0),Vector(11,10)},
+	}
+
+	for i, tab in ipairs(EnviList) do
+		local name = tab[1] .. tab[2]
+		local scale = tab[5] or Vector(1,1)
+		local off = tab[6] or Vector(10,10)
+		Isaac_Tower.editor.AddEnvironment(name, 
+			GenSprite("gfx/evrom/tutorial.anm2",tab[2],scale,nil,off), 
+			function() return GenSprite("gfx/evrom/tutorial.anm2",tab[2]) end, 
+			GenSprite("gfx/evrom/tutorial.anm2",tab[2], Vector(.5,.5)), 
+			tab[3],
+			tab[4])
+	end
+end
+
 
 --Isaac_Tower.editor.AddEnvironment("testpoop1", 
 --	GenSprite("gfx/fakegrid/poop.anm2","2x2",Vector(0.8,0.8),nil,Vector(9,0)), 
@@ -939,7 +979,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.E
 
 ---------------------------------------СРЕДНЕРОСТНЫЙ ПОРТАЛ--------------------------------------------
 
-Isaac_Tower.RegisterEnemy("mid portal", "gfx/enemies/mid_portal.anm2", Vector(5,5), {EntityCollision = 0})
+Isaac_Tower.RegisterEnemy("mid portal", "gfx/enemies/mid_portal.anm2", Vector(15,15), {EntityCollision = 0})
 Isaac_Tower.editor.AddEnemies("mid portal", 
 	GenSprite("gfx/enemies/mid_portal.anm2","editor",nil,nil,Vector(13,13)), 
 	"mid portal",0,  
@@ -956,7 +996,8 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 		--end
 		local xs,ys = k:GetData().Isaac_Tower_Data.SpawnXY.X,k:GetData().Isaac_Tower_Data.SpawnXY.Y
 		if x==xs and y-1==ys then
-			d.SpawnTarget = {Name = k:GetData().Isaac_Tower_Data.Type, ST = k.SubType}
+			local off = Isaac_Tower.Enemies[k:GetData().Isaac_Tower_Data.Type]
+			d.SpawnTarget = {Name = k:GetData().Isaac_Tower_Data.Type, ST = k.SubType, Off = off.spawnOffset-5}
 			ent.Target = k
 		end
 	end
@@ -979,7 +1020,7 @@ function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
 		elseif spr:IsFinished("spawn") then
 			spr:Play("spawn_loop")
 		elseif spr:IsEventTriggered("spawn") then
-			ent.Target = Isaac_Tower.Spawn(data.SpawnTarget.Name,data.SpawnTarget.ST,ent.Position,Vector(0,0),ent)
+			ent.Target = Isaac_Tower.Spawn(data.SpawnTarget.Name,data.SpawnTarget.ST,ent.Position+Vector(0,data.SpawnTarget.Off),Vector(0,0),ent)
 			ent:Update()
 			ent.Target:SetColor(Color(118/255,71/255,173/255,1,117/255,71/255,173/255),20,-1,true,true)
 			data.deley = 60

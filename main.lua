@@ -293,9 +293,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 	if newRoom.Enemy then
 		for i, k in pairs(newRoom.Enemy) do
 			local data = Isaac_Tower.Enemies[k.name]
-			print(data, k.name)
 			if data then
-				Isaac_Tower.Spawn(k.name, k.st, k.pos*40 + Vector(-60,80), Vector(0,0))
+				Isaac_Tower.Spawn(k.name, k.st, k.pos*40 + Vector(-60,80-data.spawnOffset), Vector(0,0))
 			end
 		end
 	end
@@ -653,7 +652,7 @@ function Isaac_Tower.RegisterEnemy(name, gfx, size, flags)
 	if name then
 		if size and type(size) ~= "userdata" then error("[3] is not a vector") end
 		if flags and type(flags) ~= "table" then error("[4] is not a table",2) end
-		Isaac_Tower.Enemies[name] = {Name = name, gfx = gfx, Size = size, Flags = flags or {}}
+		Isaac_Tower.Enemies[name] = {Name = name, gfx = gfx, Size = size, Flags = flags or {}, spawnOffset = size.Y-20}
 	end
 end
 

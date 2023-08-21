@@ -409,14 +409,19 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 	Isaac.RunCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, Isaac_Tower.editor.Memory, roomdata, Isaac_Tower.CurrentRoom.Name) -- Isaac_Tower.GridLists)
 end
 
+local roomGridStartPoses = {}
+
 function Isaac_Tower.editor.ChangeRoom(roomName)
 	if Isaac_Tower.editor.Memory.CurrentRoom and Isaac_Tower.editor.Memory.CurrentRoom.Name then
+		roomGridStartPoses[Isaac_Tower.editor.Memory.CurrentRoom.Name] = Isaac_Tower.editor.GridStartPos or Vector(50,50)
 		Isaac_Tower.editor.Memory.Changes[Isaac_Tower.editor.Memory.CurrentRoom.Name] = TabDeepCopy(Isaac_Tower.editor.Memory.CurrentRoom)
 	end
 	if Isaac_Tower.Rooms[roomName] then
 		if Isaac_Tower.editor.Memory.Changes[roomName] then
 			Isaac_Tower.editor.Memory.CurrentRoom = TabDeepCopy(Isaac_Tower.editor.Memory.Changes[roomName])
+			Isaac_Tower.editor.GridStartPos = roomGridStartPoses[roomName] or Vector(50,50)
 		else
+			Isaac_Tower.editor.GridStartPos = Vector(50,50)
 			Isaac_Tower.SetRoom(roomName)
 			Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 		end
@@ -1902,7 +1907,7 @@ Isaac_Tower.editor.AddButton("menuUp", "SelectedGrid", Vector(240,0), 48, 48, UI
 end, true) --Isaac_Tower.editor.GetConvertedEditorRoomForDebug() UIs.ToLog
 Isaac_Tower.editor.AddButton("menuUp", "ToLog", Vector(296,12), 32, 32, UIs.ToLog, function(button) 
 	if button ~= 0 then return end
-	local str = Isaac_Tower.editor.GetConvertedEditorRoomForDebug()
+	local str = Isaac_Tower.editor.GetConvertedEditorRoomForDebug() .. " Isaac_Tower.AddRoom(roomdata)"
 	Isaac_Tower.editor.Memory.CurrentRoom.HasChanges = nil
 	for i=1, math.ceil(string.len(str)/10000) do
 		Isaac.DebugString( string.sub(str,(i-1)*10000,i*10000) )
@@ -3530,13 +3535,13 @@ end, nil, function(str)
 									max[2] = id[2]
 								end
 							end
-							solidTab = solidTab .. "{"..(min[1]+1)..","..(min[2]+1).."},"
-							solidTab = solidTab .. "{"..(min[1]+1)..","..(max[2]+1).."},"
-							solidTab = solidTab .. "{"..(max[1]+1)..","..(min[2]+1).."},"
-							solidTab = solidTab .. "{"..(max[1]+1)..","..(max[2]+1).."},"
+							solidTab = solidTab .. "{"..(min[1]+0)..","..(min[2]+0).."},"
+							solidTab = solidTab .. "{"..(min[1]+0)..","..(max[2]+0).."},"
+							solidTab = solidTab .. "{"..(max[1]+0)..","..(min[2]+0).."},"
+							solidTab = solidTab .. "{"..(max[1]+0)..","..(max[2]+0).."},"
 						else
 							for _, id in pairs(grid.childs) do
-								solidTab = solidTab .. "{"..(id[1]+1)..","..(id[2]+1).."},"
+								solidTab = solidTab .. "{"..(id[1]+0)..","..(id[2]+0).."},"
 							end
 						end
 
@@ -5101,6 +5106,42 @@ mod:AddCallback(Isaac_Tower.Callbacks.PRE_EDITOR_CONVERTING_EDITOR_ROOM, functio
 	end
 end)
 
+function Isaac_Tower.editor.PlaceSpecial(Gtype,x,y,data)
+	local pGrid = Isaac_Tower.editor.GridTypes.Special[Gtype]
+	Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype] or {}
+	local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype]
+
+	SafePlacingTable(list,y,x)
+	
+	local size = data.Size
+
+	list[y][x] = TabDeepCopy(data)
+	local grid = list[y][x]
+	grid.info = pGrid.info
+	grid.type = Gtype --Isaac_Tower.editor.SelectedGridType
+	grid.XY = Vector(x,y)
+	grid.pos = Vector((x-1)*26/2, (y-1)*26/2)
+	--grid.Size = size*1
+	grid.ThitRenderOffset = nil
+	
+	local index = tostring(x) .. "." .. tostring(y)
+	local info = function() --if not Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype] then error("",2)  end
+		--if not Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y] then return end -- error(Gtype.." "..x.." "..y,2)  end
+		return Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y][x] end
+	Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
+	Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = {spr = pGrid.trueSpr, pos = Vector((x-1)*26/2, (y-1)*26/2), info = info}
+	
+	if size then
+		grid.Size = size*1
+		for i,k in pairs(GetLinkedGrid(list, Vector(x,y), size, true)) do
+			if k[1] ~= y or k[2] ~= x then
+				SafePlacingTable(list,k[1],k[2])
+				list[k[1] ][k[2] ].Parent = Vector(x,y)
+			end
+		end
+	end
+end
+
 --Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, Isaac_Tower.editor.Memory, Isaac_Tower.GridLists
 mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, function(_,Memory, roomdata) --GridLists)
 
@@ -5111,19 +5152,20 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, 
 			--for idx, grid in pairs(GridLists.Special["Room_Transition"]) do
 			for idx, grid in ipairs(roomdata.Special["Room_Transition"]) do
 				--if not grid.Parent then
+					--[[local Gtype = "Room_Transition"
+					local pGrid = Isaac_Tower.editor.GridTypes.Special[Gtype]
+					Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype] or {}
+					local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype]
 					
-					local pGrid = Isaac_Tower.editor.GridTypes.Special["Room_Transition"]
-					Isaac_Tower.editor.Memory.CurrentRoom.Special["Room_Transition"] = Isaac_Tower.editor.Memory.CurrentRoom.Special["Room_Transition"] or {}
-					local list = Isaac_Tower.editor.Memory.CurrentRoom.Special["Room_Transition"]
-					local Gtype = "Room_Transition"
 
 					------------------
 					local size = grid.Size
 					local x,y = math.ceil(grid.XY.X), math.ceil(grid.XY.Y)
-					if not list[y] then
-						list[y] = {}
-					end
-					list[y][x] = {}
+					--if not list[y] then
+					--	list[y] = {}
+					--end
+					--list[y][x] = {}
+					SafePlacingTable(list,y,x)
 					
 					list[y][x] = TabDeepCopy(grid)
 					list[y][x].info = pGrid.info
@@ -5144,20 +5186,39 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, 
 					Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = {spr = pGrid.trueSpr, pos = Vector((x-1)*26/2, (y-1)*26/2), info = info}
 					for i,k in pairs(GetLinkedGrid(list, Vector(x,y), size, true)) do
 						if k[1] ~= y or k[2] ~= x then
-							if not list[k[1] ] then
-								list[k[1] ] = {}
-							end
-							--if not list[k[1] ][k[2] ] then
-								list[k[1] ][k[2] ] = {}
+							--if not list[k[1] ] then
+							--	list[k[1] ] = {}
 							--end
+							--if not list[k[1] ][k[2] ] then
+							--	list[k[1] ][k[2] ] = {}
+							--end
+							SafePlacingTable(list,k[1],k[2])
 							list[k[1] ][k[2] ].Parent = Vector(x,y)
 						end
-					end
+					end]]
 
-
+					local Gtype = "Room_Transition"
+					local x,y = math.ceil(grid.XY.X), math.ceil(grid.XY.Y)
+					Isaac_Tower.editor.PlaceSpecial(Gtype,x,y,grid)
+					local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype]
+					list[y][x].EditData = {Test = {Text = grid.Name},
+						Test2 = {Text = grid.TargetRoom},
+						Test3 = {Text = grid.TargetName}, }
 
 				--end
 			end
+		end
+		if roomdata.Special["spawnpoint"] then
+			for idx, grid in pairs(roomdata.Special["spawnpoint"]) do
+				local Gtype = "spawnpoint"
+				local x,y = math.ceil(grid.XY.X), math.ceil(grid.XY.Y)
+				Isaac_Tower.editor.PlaceSpecial(Gtype,x,y,grid)
+				local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype]
+				list[y][x].EditData = {
+						Name = {Text = grid.Name}
+					}
+			end
+
 		end
 	end
 end)
