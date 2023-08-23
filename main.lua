@@ -1454,6 +1454,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 							fent.Velocity.X = 0
 						end
 					end
+					fent.UnStuck.CounterForce = fent.UnStuck.CounterForce + math.abs(hit.delta.X)
 				end
 			end
 			
@@ -1461,7 +1462,6 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 			for ia, k in pairs(collidedGrid) do
 				local hitY = intersectAABB_Y(fent, ia)
 
-				--print(hitY, fent.SmoothUp)
 				if hitY and hitY.delta.Y ~= 0 then
 					d.DebugGridRen[#d.DebugGridRen + 1] = hitY.pos
 					if fent.SmoothUp then
@@ -1475,6 +1475,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 					else
 						fent.Position.Y = fent.Position.Y - hitY.delta.Y --Vector(0, hitY.delta.Y)
 					end
+					fent.UnStuck.CounterForce = fent.UnStuck.CounterForce + math.abs(hitY.delta.Y)
 					if hitY.SlopeAngle then
 						fent.slopeAngle = hitY.SlopeAngle
 					end
@@ -1482,7 +1483,27 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 					fent.SmoothUp = nil
 				end
 			end
-			local prePosition = fent.Position / 1
+
+			---- Анти застрязин
+			if fent.UnStuck.CounterForce > 50 then
+				if fent.UnStuck.LastPoses[fent.UnStuck.Nem+1] then
+					fent.Position = fent.UnStuck.LastPoses[fent.UnStuck.Nem+1] --Nem
+					fent.UnStuck.Nem = fent.UnStuck.Nem + 1
+				else
+				--	fent.UnStuck.Nem = 0
+				end
+			end
+			fent.UnStuck.CounterForce = math.min(500, math.max(0, fent.UnStuck.CounterForce - 20))
+			if fent.UnStuck.CounterForce <= 10 then
+				--fent.UnStuck.LastPoses[#fent.UnStuck.LastPoses+1] = fent.Position
+				if fent.FrameCount%2 == 0 then
+					table.insert(fent.UnStuck.LastPoses,1,fent.Position)
+				end
+				fent.UnStuck.Nem = 0
+			end
+			if #fent.UnStuck.LastPoses>25 then
+				fent.UnStuck.LastPoses[26] = nil
+			end
 
 			fent.Position = fent.Position + fent.Velocity -- * Isaac_Tower.UpdateSpeed
 			ent.Position = Vector(-200, fent.Position.Y + 50)
@@ -1492,9 +1513,9 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 				local collGrid = {}
 				for i = -1, 1 do
 					local grid = Isaac_Tower.rayCast((fent.Position - fent.Velocity + Vector(fent.Half.X * i, -10)),
-						Vector(0, 1), 10, 6)                                                                               -- Vector(fent.Half.X*i,-10)
+						Vector(0, 1), 10, 6)    -- Vector(fent.Half.X*i,-10)
 
-					if grid and Isaac_Tower.ShouldCollide(ent, grid) then                                                  --and grid.slope
+					if grid and Isaac_Tower.ShouldCollide(ent, grid) then  --and grid.slope
 						collGrid[grid] = collGrid[grid] or true
 					end
 				end
@@ -1633,8 +1654,8 @@ function Isaac_Tower.INIT_FLAYER(player)
 		Position = Isaac.GetPlayer(pid).Position,
 		Velocity = Vector(0,0),
 		TrueVelocity = Vector(0,0),
-		Half = Vector(15,19), --Vector(ent.Size, ent.Size),
-		DefaultHalf = Vector(15,19),
+		Half = Vector(12,19), --15 Vector(ent.Size, ent.Size),
+		DefaultHalf = Vector(12,19),
 		CollisionOffset = Vector(0,0),
 		CroachDefaultCollisionOffset = Vector(0,9),
 		jumpDelay = 0,
@@ -1650,6 +1671,11 @@ function Isaac_Tower.INIT_FLAYER(player)
 			RightHandSprite = Sprite(),
 		},
 		PosRecord = {},
+		UnStuck = {
+			CounterForce = 0,
+			Nem = 0,
+			LastPoses = {}
+		}
 	}
 	d.Isaac_Tower_Data.Flayer.Sprite:Load("gfx/fakePlayer/flayer.anm2", true)
 	d.Isaac_Tower_Data.Flayer.Sprite:Play("idle")

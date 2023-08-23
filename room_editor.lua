@@ -2025,18 +2025,23 @@ Isaac_Tower.editor.ButtonSetHintText("menuUp", "RoomSelect",GetStr("roomlist_hin
 --UIs.RoomSelectBack
 function Isaac_Tower.editor.RoomSelectMenu.GenRoomList()
 	local num = 2
+	local rooms = {}
 	for i,k in pairs(Isaac_Tower.Rooms) do
-		if i ~= Isaac_Tower.editor._EditorTestRoom then
+		rooms[#rooms+1] = k.Name
+	end
+	table.sort(rooms)
+	for i,k in pairs(rooms) do
+		if k ~= Isaac_Tower.editor._EditorTestRoom then
 			local qnum = num+0
 			local pos = Isaac_Tower.editor.RoomSelectMenu.StartPos + Vector(0, qnum*16)
 			local self
 			self = Isaac_Tower.editor.AddButton(Isaac_Tower.editor.RoomSelectMenu.Name, qnum, pos, 96, 16, UIs.Var_Sel(), function(button)
 				if button ~= 0 or Input.IsButtonPressed(Keyboard.KEY_SPACE, 0) then return end
 
-				Isaac_Tower.editor.ChangeRoom(k.Name)
+				Isaac_Tower.editor.ChangeRoom(k) --.Name
 				Isaac_Tower.editor.RoomSelectMenu.State = 2
 			end, function(pos)
-				font:DrawStringScaledUTF8(k.Name,pos.X+12,pos.Y+4,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false) 
+				font:DrawStringScaledUTF8(k,pos.X+12,pos.Y+4,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false) 
 				--Isaac_Tower.editor.GetButton(Isaac_Tower.editor.RoomSelectMenu.Name, qnum).pos = Isaac_Tower.editor.RoomSelectMenu.StartPos + Vector(0, qnum*16)
 				self.pos = Isaac_Tower.editor.RoomSelectMenu.StartPos + Vector(0, qnum*16)
 			end)
@@ -2203,6 +2208,7 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 		Isaac_Tower.sprites.chosenGrid.Scale = Isaac_Tower.sprites.Col0Grid.Scale
 	end
 
+	local RG = Isaac_Tower.RG
 	local list = Isaac_Tower.editor.Memory.CurrentRoom.Solid
 	for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y) do  --for y=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y do
 		local ypos = 26*y/2
@@ -2233,7 +2239,9 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 
 			if IsSelected then
 				local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
-				Isaac_Tower.sprites.Col0Grid:Render(renderpos)
+				if not RG then
+					Isaac_Tower.sprites.Col0Grid:Render(renderpos)
+				end
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
 				and selGrid and not Isaac_Tower.game:IsPaused() then
@@ -2282,6 +2290,15 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 					end
 				end
 			end
+		end
+	end
+	if IsSelected and RG then
+		local endPos = (Isaac_Tower.editor.GridStartPos)+Isaac_Tower.editor.Memory.CurrentRoom.Size*(26/2)*Gridscale
+		Isaac_Tower.editor.RenderGrid(Isaac_Tower.editor.GridStartPos,26/2*Gridscale,26/2*Gridscale,endPos.X,endPos.Y,Gridscale)
+		if Isaac_Tower.editor.SelectedGrid then
+			local xr,yr = Isaac_Tower.editor.SelectedGrid[2]-1, Isaac_Tower.editor.SelectedGrid[1]-1
+			local RenderPos = Isaac_Tower.editor.GridStartPos + Vector(xr*26/2, yr*26/2)*Gridscale
+			Isaac_Tower.sprites.chosenGrid:Render(RenderPos)
 		end
 	end
 	if Col0GridScale then
@@ -2397,6 +2414,11 @@ Isaac_Tower.editor.AddOverlay("Obstacle", GenSprite("gfx/editor/ui.anm2","ове
 		Isaac_Tower.sprites.chosenGridHalf.Scale = Isaac_Tower.sprites.Col0GridHalf.Scale
 	end
 
+	local RG = Isaac_Tower.RG
+	--if IsSelected and RG then
+	--	local endPos = (Isaac_Tower.editor.GridStartPos)+Isaac_Tower.editor.Memory.CurrentRoom.Size*(26/2)*Gridscale
+	--	Isaac_Tower.editor.RenderGrid(Isaac_Tower.editor.GridStartPos,26/4*Gridscale,26/4*Gridscale,endPos.X,endPos.Y,Gridscale)
+	--end
 	local list = Isaac_Tower.editor.Memory.CurrentRoom.Obs
 	for y= math.max(2,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y+1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2+1) do   --Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2+1 do
 		local yposr = 26*(y-2)/4
@@ -2433,12 +2455,15 @@ Isaac_Tower.editor.AddOverlay("Obstacle", GenSprite("gfx/editor/ui.anm2","ове
 				local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
 				--if ScreenWidth > renderpos.X and ScreenHeight > renderpos.Y
 				--and 0 < renderpos.X and 0 < renderpos.Y then
+				if not RG then
 					Isaac_Tower.sprites.Col0GridHalf:Render(renderpos)
-				--end
+				end
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
 				and selGrid and not Isaac_Tower.game:IsPaused() then
-					Isaac_Tower.sprites.chosenGridHalf:Render(renderpos)
+					--if not RG then
+						Isaac_Tower.sprites.chosenGridHalf:Render(renderpos)
+					--end
 
 					local pGrid = Isaac_Tower.editor.GridTypes.Obstacle[Isaac_Tower.editor.SelectedGridType or ""]
 					if pGrid then
@@ -2485,6 +2510,15 @@ Isaac_Tower.editor.AddOverlay("Obstacle", GenSprite("gfx/editor/ui.anm2","ове
 					end
 				end
 			end
+		end
+	end
+	if IsSelected and RG then
+		local endPos = (Isaac_Tower.editor.GridStartPos)+Isaac_Tower.editor.Memory.CurrentRoom.Size*(26/2)*Gridscale
+		Isaac_Tower.editor.RenderGrid(Isaac_Tower.editor.GridStartPos,26/4*Gridscale,26/4*Gridscale,endPos.X,endPos.Y,Gridscale)
+		if Isaac_Tower.editor.SelectedGrid then
+			local xr,yr = Isaac_Tower.editor.SelectedGrid[2]-2, Isaac_Tower.editor.SelectedGrid[1]-2
+			local RenderPos = Isaac_Tower.editor.GridStartPos + Vector(xr*26/4, yr*26/4)*Gridscale
+			Isaac_Tower.sprites.chosenGridHalf:Render(RenderPos)
 		end
 	end
 	if Col0GridScale then

@@ -274,4 +274,22 @@ return function(mod)
 		Isaac_Tower.game:GetConsole():PrintWarning(text)
 	end
 
+	--Color(2,0,2,0.5)
+	local LineColor = KColor(0.25/1.2,0.38/1.2,0.46/1.2,0.8)
+	function Isaac_Tower.editor.RenderGrid(start,xsize,ysize,endX,endY,scale)
+		local a = .25*scale
+		for y=0, math.ceil(Isaac_Tower.editor.Memory.CurrentRoom.Size.X*(26/2)*scale/xsize) do
+			local ypos = y*ysize
+			local startpos = start + Vector(ypos+a,0)
+			local endpos = Vector(startpos.X,endY)
+			Isaac.DrawLine(startpos,endpos,LineColor,LineColor,.5*scale)
+		end
+		for x=0, math.ceil(Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*(26/2)*scale/ysize) do
+			local xpos = x*xsize
+			local startpos = start + Vector(0,xpos+a)
+			local endpos = Vector(endX,startpos.Y)
+			Isaac.DrawLine(startpos,endpos,LineColor,LineColor,.5*scale)
+		end
+	end
+
 end

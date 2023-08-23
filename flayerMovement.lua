@@ -283,7 +283,7 @@ function Isaac_Tower.FlayerHandlers.GrabHandler(fent)
 				end
 			end
 		else
-			if Inp.PressDown(idx) then
+			if Inp.PressDown(idx) and not fent.OnGround then
 				SetState(fent, "Стомп")
 				spr:Play("grab_down_appear",true)
 				Flayer.Queue = "grab_down_idle"
@@ -521,7 +521,12 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 			if math.abs(fent.RunSpeed) < 4 then
 				fent.RunSpeed = 4*sign(rot)
 			end
-			nextVel = 0.028*sign(rot)
+			local accel = 0.035  --0.028
+			if fent.slopeAngle and sign0(-fent.slopeAngle) == rot then
+				accel = accel * (1+math.abs(fent.slopeAngle)/45)
+			end
+			
+			nextVel = accel*sign(rot)
 			if math.abs(fent.RunSpeed) > 6.4 then
 				SetState(fent, "Бег") --fent.State = 3
 				spr:Play("run", true)
@@ -666,7 +671,11 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 				spr.Rotation = 0
 				spr.Offset = Vector(0,12)
 			elseif fent.OnGround then
-				fent.RunSpeed = (fent.RunSpeed + 0.075/math.abs(fent.RunSpeed+1)*sign(rot)) 
+				local accel = 0.075
+				if fent.slopeAngle and sign0(-fent.slopeAngle) == rot then
+					accel = accel * (1+math.abs(fent.slopeAngle)/45)
+				end
+				fent.RunSpeed = (fent.RunSpeed + accel/math.abs(fent.RunSpeed+1)*sign(rot)) 
 				if player.FrameCount%5 == 0 then
 					spawnDust(fent.Position+Vector(0,5), Vector(sign(rot)*-5,-1))
 				end
@@ -1661,7 +1670,8 @@ Isaac_Tower.FlayerMovementState["Стомп_импакт_пол"] = function(pla
 	toReturn.donttransformRunSpeedtoX = true
 	fent.RunSpeed = 0
 	fent.Velocity = Vector(0,0)
-	if spr:IsFinished(spr:GetAnimation()) and Flayer.Queue == -1 then
+
+	if spr:IsFinished(spr:GetAnimation()) and Flayer.Queue == -1 or fent.StateFrame > 360 then
 		if fent.NextState then
 			SetState(fent, fent.NextState)
 		else
