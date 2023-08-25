@@ -289,6 +289,7 @@ function Isaac_Tower.FlayerHandlers.GrabHandler(fent)
 				Flayer.Queue = "grab_down_idle"
 				spr.Rotation = 0
 				spr.Offset = Vector(0,12)
+				fent.Velocity.Y = math.min(-1, fent.Velocity.Y)
 				return true
 			elseif Inp.PressUp(idx) and not fent.UseApperkot then
 				SetState(fent, "Аперкот-не-кот")
@@ -939,7 +940,7 @@ Isaac_Tower.FlayerMovementState["Захват"] = function(player, fent, spr, id
 	end
 	local result = {}
 
-	fent.RunSpeed = math.max(5,math.abs(fent.RunSpeed)) * sign0(fent.RunSpeed)
+	fent.RunSpeed = math.max(6,math.abs(fent.RunSpeed)) * sign0(fent.RunSpeed)
 	
 	if player.ControlsEnabled then
 		local rot = -Inp.PressLeft(idx)+Inp.PressRight(idx)
@@ -971,10 +972,15 @@ Isaac_Tower.FlayerMovementState["Захват"] = function(player, fent, spr, id
 				SetState(fent, "Скольжение_Захват")--fent.State = 16
 				fent.SlideTime = 40
 				fent.RunSpeed = math.max(5.4, math.abs(fent.RunSpeed)) * sign0(fent.RunSpeed)
+				Isaac_Tower.HandleMoving(player)
+				return
 			elseif fent.StateFrame < 6 then
 				SetState(fent, "Стомп")
 				spr:Play("grab_down_appear",true)
 				Flayer.Queue = "grab_down_idle"
+				fent.Velocity.Y = math.min(-1, fent.Velocity.Y)
+				Isaac_Tower.HandleMoving(player)
+				return
 			end
 		end
 		if spr:IsFinished(spr:GetAnimation()) and fent.OnGround then
@@ -1011,7 +1017,7 @@ function Isaac_Tower.FlayerHandlers.EnemyGrabCollision(fent, target)
 	if fent.State == "Захват" and not target:GetData().Isaac_Tower_Data.NoGrabbing and target.EntityCollisionClass ~= EntityCollisionClass.ENTCOLL_NONE then
 		fent.GrabTarget = target
 		SetState(fent, "Захватил")
-		fent.GrabDelay = 20
+		fent.GrabDelay = 10
 		target:GetData().Isaac_Tower_Data.State  = Isaac_Tower.EnemyHandlers.EnemyState.GRABBED
 		target:GetData().Isaac_Tower_Data.GrabbedBy = fent
 		target:GetSprite():Play("stun")
@@ -1037,6 +1043,10 @@ Isaac_Tower.FlayerHandlers.CrashState = { --true or function(fent, target)
 			return true
 		end
 	end,
+}
+Isaac_Tower.FlayerHandlers.UnGrabState = {
+	["Ходьба"] = true, ["НачалоБега"]=true,["Бег"]=true,
+	["Урон"] = true,
 }
 function Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, target)
 	local stateCheck = Isaac_Tower.FlayerHandlers.CrashState[fent.State]
@@ -1323,16 +1333,27 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 	local Flayer = fent.Flayer
 
 	if fent.StateFrame <= 1 then
-		fent.Velocity.Y = 0
+		--fent.Velocity.Y = 0
 	end
 
 	if player.ControlsEnabled then
+		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
 		fent.CanJump = false
 		fent.RunSpeed = fent.RunSpeed * 0.9
-		fent.Velocity.X = fent.Velocity.X * 0.6
+		if math.abs(fent.RunSpeed)>3 then
+			fent.Velocity.X = fent.Velocity.X * 0.8
+		end
 
-		if spr:IsPlaying("grab_down_appear") then
+		if fent.RunSpeed>-3 and fent.RunSpeed<3 then
+			fent.RunSpeed = fent.RunSpeed + sign0(rot)*2*0.2
+		end
+		
+		--if spr:IsPlaying("grab_down_appear") then
+		if fent.Velocity.Y < 0 then
 			fent.Velocity.Y = fent.Velocity.Y * 0.9 + -1.5 * 0.1
+			if spr:GetFrame()>7 then
+				spr:SetFrame(7)
+			end
 		elseif spr:IsPlaying("grab_down_idle") then
 			if fent.Velocity.Y<8 then
 				fent.Velocity.Y = fent.Velocity.Y * 0.92 + 8.2 * 0.08 --8

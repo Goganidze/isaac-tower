@@ -71,7 +71,13 @@ Isaac_Tower.GridLists = {
 	Obs = false
 }
 
-Isaac_Tower.Callbacks = {
+Isaac_Tower.Callbacks = {}
+local function addCallbackID(name)
+	Isaac_Tower.Callbacks[name] = setmetatable({},{__tostring = function(t) return "[Isaac Tower] "..name end})
+end 
+
+--Isaac_Tower.Callbacks = {
+local Isaac_TowerCallbacks = {
 	FLAYER_GRID_SCANING = {},
 	GRID_SHOULD_COLLIDE = {},
 	ROOM_LOADING = {},
@@ -94,6 +100,10 @@ Isaac_Tower.Callbacks = {
 	ENEMY_POST_UPDATE = {},
 	ENEMY_POST_RENDER = {},
 }
+
+for i,k in pairs(Isaac_TowerCallbacks) do
+	addCallbackID(i)
+end
 
 Isaac_Tower.ENT = {}
 Isaac_Tower.ENT.GIB = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_GibVariant}
@@ -1713,6 +1723,8 @@ RunSpeedColors[false]:SetColorize(0.5,0.65,0.95, 1)
 Isaac_Tower.FlayerExtraInfo = {
 
 }
+local font = Font()
+font:Load("font/upheaval.fnt")
 local nilFunc = function() end
 
 function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
@@ -1849,6 +1861,7 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 		end
 		speedSpr.Color = Color(1,1,1,1)
 	end
+	font:DrawStringScaledUTF8(fent.PreviousState or "",RenderPos.X,RenderPos.Y+10,.5,.5,KColor(1,1,1,1),1,true)
 	Isaac.RunCallback(Isaac_Tower.Callbacks.FLAYER_POST_RENDER, player, RenderPos, Offset, Scale)
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.ENTITY_POSTRENDER, Isaac_Tower.FlayerRender, 1)
@@ -1923,6 +1936,20 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 			data.State = Isaac_Tower.EnemyHandlers.EnemyState.IDLE
 			data.StateFrame=0
 		end
+	end,
+	[Isaac_Tower.EnemyHandlers.EnemyState.GRABBED] = function(ent)
+		local data = ent:GetData().Isaac_Tower_Data
+		if data.GrabbedBy and Isaac_Tower.FlayerHandlers.UnGrabState[data.GrabbedBy.State] then
+			local rot = sign(data.GrabbedBy.Velocity.X)
+			ent.Velocity = Vector(rot*-4,-7)
+			data.GrabbedBy.GrabTarget = nil
+			data.GrabbedBy = nil
+			data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
+			data.StateFrame = 0
+			ent:GetData().TSJDNHC_GridColl = 1
+			ent.DepthOffset = 0
+		end
+		--Isaac_Tower.FlayerHandlers.UnGrabState
 	end,
 	[Isaac_Tower.EnemyHandlers.EnemyState.PUNCHED] = function(ent)
 		local data = ent:GetData().Isaac_Tower_Data
