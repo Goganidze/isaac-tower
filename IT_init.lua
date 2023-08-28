@@ -175,6 +175,7 @@ local function stonePoopObsLogic(ent, grid)
 	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
 	if fent and fent.CanBreakMetal then
 		local gridType = grid.EditorType
+		if grid.IngoreDown and ent.Position.Y>(grid.CenterPos.Y+grid.Half.Y+40) then return false end
 		if fent.AttackAngle then
 			local fentPos = fent.Position + Vector(10,0):Rotated(fent.AttackAngle)
 			local TarAngle = math.floor((grid.CenterPos-fentPos):GetAngleDegrees())
@@ -289,7 +290,7 @@ Isaac_Tower.editor.AddObstacle("poop_1x1", "poop1x1",
 	GenSprite("gfx/fakegrid/grid2.anm2","poop1x1"))
 
 ----------------------------------------------------------------
-TSJDNHC_PT.AddGridType("stone_poop_2x2", function(self, gridList)
+local stone_poop_2x2Init = function(self, gridList)
 	--self.Sprite = GenSprite("gfx/fakegrid/grid2.anm2","stone2x2")
 	self.Sprite = GenSprite("gfx/fakegrid/grid2.anm2","stone2x2")
 	if gridList.SpriteSheep then
@@ -299,9 +300,8 @@ TSJDNHC_PT.AddGridType("stone_poop_2x2", function(self, gridList)
 	end
 	self.OnCollisionFunc = stonePoopObsLogic
 	gridList:MakeMegaGrid(self.Index, 2, 2)
-end,
-nil,
-function(self, gridList)
+end
+local stone_poop_2x2Destroy = function(self, gridList)
 	local poof = Isaac.Spawn(1000,16,4,self.CenterPos,Vector.FromAngle(self.HitAngle or 0),nil)
 	poof.Color = poopColor 
 	poof:GetSprite().Scale = Vector(0.5,0.5)
@@ -324,11 +324,21 @@ function(self, gridList)
 		grid:ToEffect().Rotation = rng:RandomInt(101)-50
 		grid.SpriteRotation = rng:RandomInt(360)+1
 	end
-end)
+end
+TSJDNHC_PT.AddGridType("stone_poop_2x2", stone_poop_2x2Init,nil,stone_poop_2x2Destroy)
 Isaac_Tower.editor.AddObstacle("stone_poop_2x2", "2x2", 
 	GenSprite("gfx/fakegrid/poop_stone.anm2","2x2", Vector(1,1)), 
 	{Collision = 1, Type = "stone_poop_2x2" }, 
 	GenSprite("gfx/fakegrid/poop_stone.anm2","2x2"), Vector(2,2))
+
+TSJDNHC_PT.AddGridType("stone_poop_2x2_downW", function(self, gridList)
+	stone_poop_2x2Init(self, gridList)
+	self.IngoreDown = true
+end,nil,stone_poop_2x2Destroy)
+Isaac_Tower.editor.AddObstacle("stone_poop_2x2_downW", "2x2", 
+	GenSprite("gfx/editor/special_tiles.anm2","stone_poop_низ", Vector(1,1)), 
+	{Collision = 1, Type = "stone_poop_2x2_downW" }, 
+	GenSprite("gfx/editor/special_tiles.anm2","stone_poop_низ"), Vector(2,2))
 
 ----------------------------------------------------------------
 TSJDNHC_PT.AddGridType("stone_poop_1x1", function(self, gridList)

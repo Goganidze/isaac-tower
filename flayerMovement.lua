@@ -1017,7 +1017,7 @@ function Isaac_Tower.FlayerHandlers.EnemyGrabCollision(fent, target)
 	if fent.State == "Захват" and not target:GetData().Isaac_Tower_Data.NoGrabbing and target.EntityCollisionClass ~= EntityCollisionClass.ENTCOLL_NONE then
 		fent.GrabTarget = target
 		SetState(fent, "Захватил")
-		fent.GrabDelay = 10
+		fent.GrabDelay = 7
 		target:GetData().Isaac_Tower_Data.State  = Isaac_Tower.EnemyHandlers.EnemyState.GRABBED
 		target:GetData().Isaac_Tower_Data.GrabbedBy = fent
 		target:GetSprite():Play("stun")
@@ -1045,9 +1045,12 @@ Isaac_Tower.FlayerHandlers.CrashState = { --true or function(fent, target)
 	end,
 }
 Isaac_Tower.FlayerHandlers.UnGrabState = {
-	["Ходьба"] = true, ["НачалоБега"]=true,["Бег"]=true,
-	["Урон"] = true,
+	["Ходьба"]=true,["НачалоБега"]=true,["Бег"]=true,["Урон"] = true,
 }
+Isaac_Tower.FlayerHandlers.BounceIgnoreState = {
+	["Стомп"]=true,
+}
+
 function Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, target)
 	local stateCheck = Isaac_Tower.FlayerHandlers.CrashState[fent.State]
 	if type(stateCheck) == "function" then
@@ -1069,7 +1072,8 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 			else
 				ent.Velocity = Vector(ent.Velocity.X*0.8 + sign(ent.Position.X-fent.Position.X)*(dist/20), ent.Velocity.Y )
 			end
-		elseif fent.Position.Y< ent.Position.Y and data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
+		elseif not Isaac_Tower.FlayerHandlers.BounceIgnoreState[fent.State] and not fent.OnGround 
+		and fent.Position.Y<ent.Position.Y and fent.Velocity.Y>0 and data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
 			if not data.Flags.NoStun then
 				data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
 				data.StateFrame = 0
@@ -1116,7 +1120,7 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 		--Flayer.Queue = "holding_idle"
 	end
 	
-	if player.ControlsEnabled and not spr:IsPlaying("holding_appear") then
+	if player.ControlsEnabled then --and not spr:IsPlaying("holding_appear") then
 		
 		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
 		if rot<0 then --Inp.PressLeft(idx)>0 then

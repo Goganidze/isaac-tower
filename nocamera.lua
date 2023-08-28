@@ -16,8 +16,13 @@ BlackNotCube:Play("ПрямоугольникМалевича",true)
 
 --TSJDNHC_PT = {}
 local TSJDNHC = {} --TSJDNHC_PT  
---TSJDNHC.Callbacks.GRID_BACKDROP_RENDER
-TSJDNHC.Callbacks = {
+
+TSJDNHC.Callbacks = {}
+local function addCallbackID(name)
+	TSJDNHC.Callbacks[name] = setmetatable({},{__concat = function(_,b) return "[TSJDNHC] "..name..b end})
+end 
+
+local Callbacks = {
 	PRE_BACKDROP_RENDER = {},
 	FLOOR_BACKDROP_RENDER = {},
 	WALL_BACKDROP_RENDER = {},
@@ -27,6 +32,9 @@ TSJDNHC.Callbacks = {
 	GRID_POINTS_GEN = {},
 	ENTITY_POSTRENDER = {},
 }
+for i,k in pairs(Callbacks) do
+	addCallbackID(i)
+end
 
 local Filepath = {
 	FloorBackdrop = mainfilepath .. 'FloorBackdrop_cam.anm2',
@@ -37,13 +45,13 @@ local Filepath = {
 local CameraEntity
 local callbackOn
 
+local Wtr = 20/13 -- 1.54
 local DefaultPos = Vector(0,0)
 local CameraPos = Vector(0,0)
-local CameraOffset = Vector(52,52)*1.54 --Vector(221,143)
+local CameraOffset = Vector(52,52)*Wtr --Vector(221,143)
 local TopLeftPos = Vector(60,140)
-local BDCenter = Vector(320,280)/1.54  --Vector(221,143)*1.54
-local bg_RenderPos = Vector(240,135)  
-local Wtr = 20/13 -- 1.54
+local BDCenter = Vector(320,280)/Wtr  --Vector(221,143)*1.54
+local bg_RenderPos = Vector(240,135)
 local entitiesShadowOffset = Vector(0,1) --Vector(19,-7)
 local fixpos = -Vector(221,143)+Vector(52,52)-TopLeftPos/Wtr
 
@@ -1184,7 +1192,7 @@ TSJDNHC.FGrid = {}
 ---@field Y integer
 ---@field Grid table
 ---@field GridSprites table
----@field SpriteSheep table
+---@field SpriteSheep string|nil
 ---@field Anm2File string
 ---@field RenderGridList table
 ---@field StartPos Vector
@@ -1194,6 +1202,8 @@ TSJDNHC.FGrid = {}
 ---@field Xsize number
 ---@field Ysize number
 ---@field RenderMethod integer
+---@field ManualRender boolean
+---@field ListID integer
 TSJDNHC.Grid = {}
 local MaxIndex = 0
 
@@ -1266,11 +1276,16 @@ function TSJDNHC:MakeGridList(pos,y,x,xs,ys) --y = столбцы, x = ячей�
 			tab.ListID = #TSJDNHC.GridsList
 			tab.RenderMethod = 0
 
-			return tab
+			return TSJDNHC.GridsList[tab.ListID] --tab
 		end
 end
 
-function TSJDNHC.Grid.Delete(self)
+function TSJDNHC.Grid.Delete(self) --оно не удаляет, только обрывает связи
+	--self = nil
+	TSJDNHC.GridsList[self.ListID] = nil
+	for i,k in pairs(self) do
+		self[i] = nil
+	end
 	self = nil
 end
 
@@ -1355,7 +1370,6 @@ end
 function TSJDNHC.Grid.UpdateRenderTab(self)
 	self.RenderGridList = {}
 	--local startPos = Isaac.WorldToRenderPosition(self.StartPos)
-	
 	for i=self.Y, 1,-1 do
 		for j=self.X, 1,-1 do
 			if self.Grid[i][j].SpriteAnim then
@@ -1485,6 +1499,9 @@ function TSJDNHC.Grid.SetRenderMethod(self, num)
 	self.RenderMethod = num
 end
 
+function TSJDNHC.Grid.SetManualRender(self, num)
+	self.ManualRender = num and true or false
+end
 
 local function findIndex(index, tab, loc)
 	if loc and tab then
@@ -1785,10 +1802,10 @@ function TSJDNHC.GridCollHandler(_, ent)
 	end
 end
 mod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, TSJDNHC.GridCollHandler)
-mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
+--mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
 	--if not Game():IsPaused() then
 	--print(Isaac.GetFrameCount()) end
-end)
+--end)
 
 local IsOddRenderFrame = false
 function TSJDNHC.GridRender(_, Pos, Offset, Scale)
@@ -1801,8 +1818,12 @@ function TSJDNHC.GridRender(_, Pos, Offset, Scale)
 	--local d = CameraEntity.Ref:GetData()
 		-- d.CurrentCameraPosition
 	ScreenWidth, ScreenHeight = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
-	for i,k in pairs(TSJDNHC.GridsList) do
-		k:Render(Offset, Scale)
+	--for i,k in pairs(TSJDNHC.GridsList) do
+	for i=1, #TSJDNHC.GridsList do
+		local k = TSJDNHC.GridsList[i]
+		if not k.ManualRender then
+			k:Render(Offset, Scale)
+		end
 	end
 end
 mod:AddCallback(TSJDNHC.Callbacks.GRID_BACKDROP_RENDER, TSJDNHC.GridRender)
