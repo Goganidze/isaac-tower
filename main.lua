@@ -1007,13 +1007,13 @@ function Isaac_Tower.CheckintersectAABB(this, box)
     if (px < py) and not (dy>0 and py<20 and (not upbox or upbox.Collision == 0 or upbox.slope) )  then --and (py>5)
       local sx = sign(dx)
       hit.delta.X = px * sx
-      --hit.normal.X = sx
+      hit.normal.X = sx
       hit.pos.X = this.Position.X + (this.Half.X * sx)
       hit.pos.Y = boxHalfY
     else 
       local sy = sign(dy);
       hit.delta.Y = py * sy;
-      --hit.normal.Y = sy;
+      hit.normal.Y = sy;
       hit.pos.X = box.CenterPos.X;
       hit.pos.Y = this.Position.Y + (this.Half.Y * sy);
     end
@@ -1023,16 +1023,16 @@ end
 
 ---@param box1 table
 ---@param box2 table
---box = { pos = Vector, half = Vector }
+--box = { [1] = Vector position, [2] = Vector half }
 function Isaac_Tower.NoType_intersectAABB(box1,box2)
-	local dx = box1.pos.X - box2.pos.x
-    local px = (box1.half.X + box2.half.X) - math.abs(dx)
+	local dx = box2[1].X - box1[1].X
+    local px = (box2[2].X + box1[2].X) - math.abs(dx)
     if px <= 0 then
       return
     end
 
-    local dy = box1.pos.Y - box2.pos.Y
-    local py = (box1.half.Y + box2.half.Y) - math.abs(dy)
+    local dy = box2[1].Y - box1[1].Y
+    local py = (box2[2].Y + box1[2].Y) - math.abs(dy)
     if py <= 0 then
       return
     end
@@ -1042,14 +1042,14 @@ function Isaac_Tower.NoType_intersectAABB(box1,box2)
       local sx = sign(dx)
       hit.delta.X = px * sx
       hit.normal.X = sx
-      hit.pos.X = box2.pos.X + (box2.half.X * sx)
-      hit.pos.Y = box1.pos.Y
+      hit.pos.X = box1[1].X + (box1[2].X * sx)
+      hit.pos.Y = box2[1].Y
     else 
       local sy = sign(dy);
       hit.delta.Y = py * sy;
       hit.normal.Y = sy;
-      hit.pos.X = box1.pos.X;
-      hit.pos.Y = box2.pos.Y + (box2.half.Y * sy);
+      hit.pos.X = box2[1].X;
+      hit.pos.Y = box1[1].Y + (box1[2].Y * sy);
     end
     return hit
 end
@@ -1163,7 +1163,9 @@ local function intersectAABB_X(this, box)
 
     local upbox = Isaac_Tower.rayCast( box.CenterPos+Vector(0,-box.Half.Y), Vector(0,-1), 15, 2)
 
-    local smoothup = this.DontHelpCollisionUpping or not (this.Position.Y>=0 and dy>0 and py<20 and (not upbox or upbox.Collision == 0 or upbox.slope) )
+    local smoothup = this.DontHelpCollisionUpping or --this.HelpCollisionHori or
+		not (this.Position.Y>=0 and dy>0 and py<20 and (not upbox or upbox.Collision == 0 or upbox.slope) )
+	--print(px , py)
     if (px < py) and smoothup then 
       local sx = sign(dx)
       hit.delta.X = px * sx

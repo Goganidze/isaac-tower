@@ -1404,6 +1404,7 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 			end
 		end
 	end
+	return {DontHelpCollisionUpping = true, HelpCollisionHori = true}
 end
 Isaac_Tower.FlayerMovementState["Супер_прыжок_подготовка"] = function(player, fent, spr, idx)
 	local Flayer = fent.Flayer
@@ -1822,6 +1823,7 @@ function Isaac_Tower.HandleMoving(player)
 	fent.CanJump = true
 	fent.AttackAngle = nil
 	fent.DontHelpCollisionUpping = nil
+	fent.HelpCollisionHori = nil
 	fent.ShowSpeedEffect = nil
 	
 
@@ -1845,6 +1847,7 @@ function Isaac_Tower.HandleMoving(player)
 			newVel = result.newVel or newVel
 			donttransformRunSpeedtoX = result.donttransformRunSpeedtoX
 			dontLoseY = result.dontLoseY
+			fent.HelpCollisionHori = result.HelpCollisionHori
 		end
 		--newVel.X = newVel.X + fent.RunSpeed
 		

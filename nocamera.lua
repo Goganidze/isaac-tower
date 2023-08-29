@@ -8,7 +8,7 @@ local game = Game()
 local mainfilepath = 'gfx/doubleRender/'
 local entCam = {ID = Isaac.GetEntityTypeByName('PIZTOW CamEnt'),VARIANT = Isaac.GetEntityVariantByName('PIZTOW CamEnt')}
 
-local fastUpdate = true
+local fastUpdate = not true
 
 local BlackNotCube = Sprite()
 BlackNotCube:Load(mainfilepath .. "black.anm2",true)
@@ -240,15 +240,26 @@ local function RenTrack(_,ent)
 		end
 	end
 end
+local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
 local function ERenTrack(_,ent)
 	if (fastUpdate or Isaac.GetFrameCount()%2 == 0) and CameraEntity and CameraEntity.Ref then 
 		local d = CameraEntity.Ref:GetData()
 
-		if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
-			if ent and ent.Type and ent.Type == 1000 and CreepEffectVariant[ent.Variant] then
-				d.renderlist.creep[#d.renderlist.creep+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
-			elseif ent and ent.Type and (ent.Type ~= 1000 or (ent.Type == 1000 and ent.Variant ~= entCam.VARIANT)) then
-				d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
+		if Isaac_Tower.InAction then
+			if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
+				if ent and ent.Type and ent.Type == 1000 and ent.Variant == IsaacTower_GibVariant then
+					d.renderlist.entityAbove[#d.renderlist.entityAbove+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
+				elseif ent and ent.Type and (ent.Type ~= 1000 or (ent.Type == 1000 and ent.Variant ~= entCam.VARIANT)) then
+					d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
+				end
+			end
+		else
+			if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
+				if ent and ent.Type and ent.Type == 1000 and CreepEffectVariant[ent.Variant] then
+					d.renderlist.creep[#d.renderlist.creep+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
+				elseif ent and ent.Type and (ent.Type ~= 1000 or (ent.Type == 1000 and ent.Variant ~= entCam.VARIANT)) then
+					d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
+				end
 			end
 		end
 	end
@@ -795,7 +806,8 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		creep = {}, 
 		rock = d.renderlist.rock, 
 		underrock = d.renderlist.underrock, 
-		entity = {} } 
+		entity = {},
+		entityAbove = {}, } 
 	end
 	d.IsCamRender = false
   elseif e.SubType == 2 and e:Exists() and d.renderlist and d.WallSprite and not d.IsEnable then

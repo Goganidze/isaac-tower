@@ -117,6 +117,12 @@ TSJDNHC_PT.AddGridType("3_3x1", function(self, gridList)
 end)
 Isaac_Tower.editor.AddGrid("3_3x1", "3_3x1", GenSprite("gfx/fakegrid/grid2.anm2","3_3x1", Vector(0.33,0.33)), {Collision = 1, Type = "3_3x1" }, GenSprite("gfx/fakegrid/grid2.anm2","3_3x1"), Vector(3,1))
 
+TSJDNHC_PT.AddGridType("1_5x5", function(self, gridList)
+	self.SpriteAnim = "1_5x5"
+	gridList:MakeMegaGrid(self.Index, 5, 5)
+end)
+Isaac_Tower.editor.AddGrid("1_5x5", "1_5x5", GenSprite("gfx/fakegrid/grid2.anm2","1_5x5", Vector(0.31,0.31),nil,Vector(-7,-7)), {Collision = 1, Type = "1_5x5" }, GenSprite("gfx/fakegrid/grid2.anm2","1_5x5"), Vector(5,5))
+
 TSJDNHC_PT.AddGridType("platform", function(self, gridList)
 	--self.SpriteAnim = ""
 	self.OnlyUp = true
@@ -177,10 +183,10 @@ local function stonePoopObsLogic(ent, grid)
 		local gridType = grid.EditorType
 		if grid.IngoreDown and ent.Position.Y>(grid.CenterPos.Y+grid.Half.Y+40) then return false end
 		if fent.AttackAngle then
-			local fentPos = fent.Position + Vector(10,0):Rotated(fent.AttackAngle)
+			--[[local fentPos = fent.Position + Vector(10,0):Rotated(fent.AttackAngle)
 			local TarAngle = math.floor((grid.CenterPos-fentPos):GetAngleDegrees())
 			local GJG = math.floor(((fent.AttackAngle%360-TarAngle%360))-180)%360
-			if math.abs(GJG-180) <= 40 then
+			if math.abs(GJG-180) <= 40 then --40
 				grid.HitAngle = TarAngle
 				grid.HitPower = math.abs(fent.Velocity:Length())
 				if not ent:ToPlayer() then
@@ -190,6 +196,31 @@ local function stonePoopObsLogic(ent, grid)
 				grid.GridList:DestroyGrid(grid.XY)
 				---grid.EditorType = gridType
 				return true
+			end]]
+			local ang = math.ceil(fent.AttackAngle/90)*90
+			local fentPos = fent.Position + Vector(10,0):Rotated(fent.AttackAngle)
+			local box1,box2 = {fentPos, fent.Half}, {grid.CenterPos, grid.Half}
+			local hit = Isaac_Tower.NoType_intersectAABB(box1,box2)
+
+			if hit then
+				local result =  ang == 0 and hit.normal.X == 1
+					or ang == 180 and hit.normal.X == -1
+					or ang == 90 and hit.normal.Y == 1
+					or ang == 270 and hit.normal.Y == -1
+				--print(ang, hit.normal)
+				if result then
+					local fentPos = fent.Position + Vector(10,0):Rotated(fent.AttackAngle)
+					local TarAngle = math.floor((grid.CenterPos-fentPos):GetAngleDegrees())
+					grid.HitAngle = TarAngle
+					grid.HitPower = math.abs(fent.Velocity:Length())
+					if not ent:ToPlayer() then
+						grid.HitPower = grid.HitPower / 4
+					end
+
+					grid.GridList:DestroyGrid(grid.XY)
+					---grid.EditorType = gridType
+					return true
+				end
 			end
 		else
 			local fentPos = fent.Position

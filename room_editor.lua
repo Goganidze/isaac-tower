@@ -1022,7 +1022,7 @@ function Isaac_Tower.editor.ButtonSetHintText(menuName, buttonName, text, NoErro
 	end
 end
 
----@return EditorButton
+---@return EditorButton|nil
 function Isaac_Tower.editor.AddButton(menuName, buttonName, pos, sizeX, sizeY, sprite, pressFunc, renderFunc, notpressed, priority)
     if menuName and buttonName then
 		Isaac_Tower.editor.MenuData[menuName] = Isaac_Tower.editor.MenuData[menuName] or {sortList = {}, Buttons = {}}
@@ -1047,13 +1047,20 @@ function Isaac_Tower.editor.AddButton(menuName, buttonName, pos, sizeX, sizeY, s
 		return menu.Buttons[buttonName]
     end
 end
+
+---@class EditorOverlay
+---@field spr Sprite
+---@field selectedTile string
+---@field render function
+---@field saveConvert function
+
 function Isaac_Tower.editor.AddOverlay(menuName, sprite, renderFunc, converterFunc, saveConverterFunc)
     Isaac_Tower.editor.GridTypes[menuName] = {}
     Isaac_Tower.editor.Overlay.menus[menuName] = {spr = sprite, selectedTile = "", render = renderFunc, convert = converterFunc, saveConvert = saveConverterFunc}
     Isaac_Tower.editor.Overlay.num =  Isaac_Tower.editor.Overlay.num + 1
     Isaac_Tower.editor.Overlay.order[#Isaac_Tower.editor.Overlay.order+1] = menuName
 end
-
+---@return EditorOverlay
 function Isaac_Tower.editor.GetOverlay(menuName)
 	return Isaac_Tower.editor.Overlay.menus[menuName]
 end
@@ -2197,9 +2204,14 @@ Isaac_Tower.editor.AddOverlay("Collision", GenSprite("gfx/editor/ui.anm2","ов�
 		Isaac_Tower.sprites.Col0Grid.Scale = prescale
 	end
 end)
+
 local holdMouse
 Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверлей_иконки",1), function(IsSelected, self)
 	local Gridscale = Isaac_Tower.editor.GridScale
+	local overlayData = Isaac_Tower.editor.GetOverlay("Grid")
+	if not overlayData.lists then
+		overlayData.lists = {"Solid","SolidFake"}
+	end
 
 	local startPosRender = -Isaac_Tower.editor.GridStartPos/Gridscale - Vector(26*2,26*2)
 	local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(26/2)), math.ceil(startPosRender.Y/(26/2)))
@@ -2233,10 +2245,10 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 	end
 
 	local RG = Isaac_Tower.RG
-	local list = Isaac_Tower.editor.Memory.CurrentRoom.Solid
-	if self.Layer == 1 then
-		list = Isaac_Tower.editor.Memory.CurrentRoom.SolidFake
-	end
+	local lists = Isaac_Tower.editor.Memory.CurrentRoom --.Solid
+	local Flist = overlayData.lists
+	local main = Flist[self.Layer+1]
+	local list = lists[main]
 	for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y) do  --for y=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y do
 		local ypos = 26*y/2
 		local yposr = 26*(y-1)/2
@@ -2244,9 +2256,34 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 			local xr,yr = x-1,y-1
 			local renderpos = IsSelected and Isaac_Tower.editor.GridStartPos + Vector(xr*26/2, yposr)*Gridscale --, x*26/2)
 			--Col0Grid:Render(renderpos)
+			--local list = lists[main]
 			local grid = list[y] and list[y][x]
 			--local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
 			
+			for l=1,#Flist do
+				if main ~= Flist[l] then
+					local list = lists[Flist[l]]
+					local grid = list[y] and list[y][x]
+					if grid then
+						if not IsSelected then
+							renderpos = Isaac_Tower.editor.GridStartPos + Vector(xr*26/2, yposr)*Gridscale
+						else
+							if grid.Parent and not (list[grid.Parent.Y] and list[grid.Parent.Y][grid.Parent.X]) then
+								list[y][x] = nil
+							end
+						end
+						
+						if grid.sprite then
+							grid.sprite.Color = Color(.7,.7,1,0.7)
+							local scale = grid.sprite.Scale/1
+							grid.sprite.Scale = Vector(0.5, 0.5)*Gridscale
+							grid.sprite:Render(renderpos)
+							grid.sprite.Scale = scale
+							grid.sprite.Color = Color.Default
+						end
+					end
+				end
+			end
 			if grid then
 				if not IsSelected then
 					renderpos = Isaac_Tower.editor.GridStartPos + Vector(xr*26/2, yposr)*Gridscale
@@ -2446,6 +2483,7 @@ end, function(str)
 				else
 					group = group + 1
 				end
+				grid.group = group
 				neigh(x,y, group)
 			end
 		end
