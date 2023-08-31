@@ -1727,7 +1727,7 @@ function Isaac_Tower.editor.Render()
 	--	Isaac_Tower.editor.MouseSprite:Render(Isaac_Tower.editor.MousePos)
 	--end
 	
-	--верхние меню
+	--верхнее меню
 	local MenuUpPos = Vector(Isaac.GetScreenWidth()/2, -50)
 	UIs.MenuUp:Render(MenuUpPos)
 

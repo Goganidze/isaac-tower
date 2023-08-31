@@ -540,8 +540,14 @@ function TSJDNHC.ChangeCamSpriteOffsets()
 	end
 end
 
+local font = Font()
+font:Load("font/upheaval.fnt")
+
+local maxTime = 0
+local t = 0
 function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
   local d = e:GetData()
+  t = Isaac.GetTime()
   if e.SubType == 2 and e:Exists() and d.renderlist and d.WallSprite and d.IsEnable then
 	local s = e:GetSprite()
 	local d = e:GetData()
@@ -864,6 +870,15 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		entityAbove = {}, } 
 	end
 	d.IsCamRender = false
+
+	--local time = Isaac.GetTime()-t
+	--font:DrawStringUTF8(time,100,20,KColor(1,1,1,1),1,true)
+	--maxTime = maxTime*0.8+time*0.2   --math.max(maxTime, time)
+	--font:DrawStringUTF8(math.ceil(maxTime),70,20,KColor(1,1,1,1),1,true)
+	--if Isaac.GetFrameCount()%200 == 0 then
+	--	maxTime = 0
+	--end
+	--t = Isaac.GetTime()
   elseif e.SubType == 2 and e:Exists() and d.renderlist and d.WallSprite and not d.IsEnable then
 	if d.State then
 		if d.State == 1 then
@@ -893,6 +908,17 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 	end
   end
 end
+
+--mod:AddPriorityCallback(ModCallbacks.MC_POST_RENDER, -1000, function ()
+	--local time = Isaac.GetTime()-t
+	--font:DrawStringUTF8(time,130,20,KColor(1,1,1,1),1,true)
+	--maxTime = (maxTime + time)/2   --math.max(maxTime, time)
+	--font:DrawStringUTF8("render",50,20,KColor(1,1,1,1),1,true)
+	--font:DrawStringUTF8(math.ceil(maxTime),100,20,KColor(1,1,1,1),1,true)
+	--if Isaac.GetFrameCount()%60 == 0 then
+	--	maxTime = 0
+	--end
+--end)
 
 local function FakeCamstein(_,e)
 	if e:HasEntityFlags(EntityFlag.FLAG_RENDER_WALL) or e:HasEntityFlags(EntityFlag.FLAG_RENDER_FLOOR) and e.Variant ~= entCam.VARIANT then
@@ -1876,6 +1902,7 @@ mod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, TSJDNHC.GridCollHandler)
 local IsOddRenderFrame = false
 function TSJDNHC.GridRender(_, Pos, Offset, Scale)
 	IsOddRenderFrame = not IsOddRenderFrame
+	--local t = Isaac.GetTime()
 	if IsOddRenderFrame then
 		--for i,k in pairs(TSJDNHC.GridsList) do
 		--	k:UpdateGridSprites()
@@ -1891,6 +1918,7 @@ function TSJDNHC.GridRender(_, Pos, Offset, Scale)
 			k:Render(Offset, Scale)
 		end
 	end
+	--Isaac_Tower.font:DrawStringUTF8(Isaac.GetTime()-t,130,60,KColor(1,1,1,1),1,true)
 end
 mod:AddCallback(TSJDNHC.Callbacks.GRID_BACKDROP_RENDER, TSJDNHC.GridRender)
 

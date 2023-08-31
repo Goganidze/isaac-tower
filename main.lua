@@ -71,6 +71,9 @@ Isaac_Tower.GridLists = {
 	Obs = false
 }
 
+Isaac_Tower.font = Font()
+Isaac_Tower.font:Load("font/upheaval.fnt")
+
 Isaac_Tower.Callbacks = {}
 local function addCallbackID(name)
 	Isaac_Tower.Callbacks[name] = setmetatable({},{__concat = function(t,b) return "[Isaac Tower] "..name..b end})
@@ -104,6 +107,8 @@ local Isaac_TowerCallbacks = {
 for i,k in pairs(Isaac_TowerCallbacks) do
 	addCallbackID(i)
 end
+
+function Isaac_Tower.SetScale(num, noLerp) TSJDNHC_PT:SetScale(num, noLerp) end
 
 Isaac_Tower.ENT = {}
 Isaac_Tower.ENT.GIB = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_GibVariant}
@@ -590,7 +595,7 @@ mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.LATE
 local function Init_Player(_,player)
 	if player:GetPlayerType() == IsaacTower_Type and not player:GetData().Isaac_Tower_Data then
 		Isaac_Tower.INIT_FLAYER(player)
-	elseif player:GetPlayerType() == IsaacTower_Type then
+	elseif player:GetPlayerType() == IsaacTower_Type and Isaac_Tower.game:GetFrameCount()<2 then
 		player.GridCollisionClass = 0
 	end
 end
@@ -654,6 +659,7 @@ local UpdatesInThatFrame30 = 0
 
 local ScrenX,ScrenY = 0, 0
 local ScrenXX,ScrenYY = 0, 0
+--local ta,rta = 0,0
 mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
 	if not Isaac_Tower.InAction or (Isaac_Tower.Pause and Isaac_Tower.game:IsPaused()) then return end
 	ScrenXX,ScrenYY = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
@@ -671,6 +677,9 @@ mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
 		end
 	end
 	Isaac_Tower.GameRenderUpdate()
+
+	--Isaac_Tower.font:DrawStringUTF8(rta,130,40,KColor(1,1,1,1),1,true)
+	--Isaac_Tower.font:DrawStringUTF8("update",50,40,KColor(1,1,1,1),1,true)
 end)
 
 function Isaac_Tower.GetScreenCenter()
@@ -689,6 +698,8 @@ mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
 			UpdatesInThatFrame30 = UpdatesInThatFrame30 + 1
 		end
 	end
+	--rta = Isaac.GetFrameCount()-ta
+	--ta = Isaac.GetFrameCount()
 	Isaac_Tower.GameUpdate()
 end)
 
@@ -1454,7 +1465,6 @@ end
 function Isaac_Tower.PlatformerCollHandler(_, ent)
 	if ent:GetPlayerType() ~= IsaacTower_Type then return end
 	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
-
 	local d = ent:GetData()
 	local fent = d.Isaac_Tower_Data
 
@@ -1754,6 +1764,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		Isaac_Tower.SmoothPlayerPos = Vector( math.floor(Isaac_Tower.SmoothPlayerPos.X*20)/20, math.floor(Isaac_Tower.SmoothPlayerPos.Y*20)/20 )
 
 	TSJDNHC_PT:SetFocusPosition(Isaac_Tower.SmoothPlayerPos, 1) --0.98
+
 end
 mod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, Isaac_Tower.PlatformerCollHandler)
 
@@ -2569,12 +2580,12 @@ Isaac_Tower.sprites.GridCollPoint:Play("point")
 
 local IsOddRenderFrame = false
 Isaac_Tower.Renders = {}
-local t = 0
+local tg = 0
 local v26 = Vector(26,26)
 local v0 = Vector(0,0)
 local v40100 = Vector(-40,100)
 function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
-	t = Isaac.GetTime()
+	tg = Isaac.GetTime()
 	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
 	IsOddRenderFrame = not IsOddRenderFrame
 	if IsOddRenderFrame and Isaac_Tower.GridLists.Evri and Isaac_Tower.GridLists.Evri.List then
@@ -2850,7 +2861,8 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 			end
 		end
 	end
-	--print(Isaac.GetTime()-t)
+	--print(Isaac.GetTime()-tg)
+	--Isaac_Tower.font:DrawStringUTF8(Isaac.GetTime()-tg,130,80,KColor(1,1,1,1),1,true)
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, Isaac_Tower.Renders.PostAllEntityRender)
 
