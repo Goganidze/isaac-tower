@@ -290,27 +290,41 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		for i=list.Y, 1,-1 do
 			for j=list.X, 1,-1 do
 				local grid = list.Grid[i][j]
+				local setGrids
 				if grid.SpriteAnim then
-					Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
-					Isaac_Tower.GridLists.Fake[i][j] = grid.gr
+					--Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
+					--Isaac_Tower.GridLists.Fake[i][j] = grid.gr
 					local nextindex = #fakelist+1
 					fakelist[nextindex] = {
 						pos = grid.RenderPos,
 						spr = makeSprite(nil,grid.SpriteAnim),  --self.GridSprites[grid.SpriteAnim] or self.GridSprites[tostring(grid.SpriteAnim)],
 						chl = grid.chl,}
+					setGrids = true
 					Isaac_Tower.GridLists.Fake.Sorted[grid.gr] = Isaac_Tower.GridLists.Fake.Sorted[grid.gr] or {}
 					Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr]+1] = fakelist[nextindex].spr
 					--print(Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr]], fakelist[nextindex].spr)
 				end
 				if grid.Sprite then
-					Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
-					Isaac_Tower.GridLists.Fake[i][j] = grid.gr
+					--Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
+					--Isaac_Tower.GridLists.Fake[i][j] = grid.gr
 					fakelist[#fakelist+1] = {
 						pos = grid.RenderPos,
 						spr = grid.Sprite,
 						chl = grid.chl,}
+					setGrids = true
 					Isaac_Tower.GridLists.Fake.Sorted[grid.gr] = Isaac_Tower.GridLists.Fake.Sorted[grid.gr] or {}
 					Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr]+1] = fakelist[#fakelist].spr
+				end
+				if setGrids then
+					Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
+					Isaac_Tower.GridLists.Fake[i][j] = grid.gr
+					if grid.Childs then
+						for id=1,#grid.Childs do
+							local chl = grid.Childs[id]
+							Isaac_Tower.GridLists.Fake[chl.XY.Y] = Isaac_Tower.GridLists.Fake[chl.XY.Y] or {}
+							Isaac_Tower.GridLists.Fake[chl.XY.Y][chl.XY.X] = grid.gr
+						end
+					end
 				end
 			end
 		end
@@ -363,7 +377,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		end
 		for i, k in pairs(fakelist) do
 			list.List[i] = {pos = k.pos, spr = k.spr, l = 0}
-			local layer = 1
+			local layer = "fake"
 
 			list[layer] = list[layer] or {}
 			for _, index in pairs(k.chl) do 
@@ -1163,15 +1177,28 @@ local function intersectAABB_X(this, box)
 
     local upbox = Isaac_Tower.rayCast( box.CenterPos+Vector(0,-box.Half.Y), Vector(0,-1), 15, 2)
 
-    local smoothup = this.DontHelpCollisionUpping or --this.HelpCollisionHori or
+    local smoothup = this.DontHelpCollisionUpping or this.HelpCollisionHori or
 		not (this.Position.Y>=0 and dy>0 and py<20 and (not upbox or upbox.Collision == 0 or upbox.slope) )
-	--print(px , py)
-    if (px < py) and smoothup then 
-      local sx = sign(dx)
+	local sx = sign(dx)
+	local XHelp = this.HelpCollisionHori and ((px - py) < 6) 
+		and not Isaac_Tower.rayCast( box.CenterPos+Vector((box.Half.X+1)*-sx,box.Half.Y-5), Vector(-sx,0), 5, 1) 
+
+    if XHelp or (px < py) and smoothup then 
+      --local sx = sign(dx)
       hit.delta.X = px * sx
       hit.pos.X = this.Position.X + (this.Half.X * sx)
       hit.pos.Y = boxHalfY
-      this.CollideWall = sx
+	  local nextgrid = this.HelpCollisionHori and XHelp or
+	  	Isaac_Tower.rayCast( box.CenterPos+Vector((box.Half.X+1)*-sx,box.Half.Y-5), Vector(-sx,0), 5, 1)
+
+	  --local renderPos = ( box.CenterPos+Vector((box.Half.X)*-sx,box.Half.Y-5) + Vector(-sx*5,0))/Wtr +ZeroPoint--TSJDNHC_PT.WorldToScreen --+Vector(box.Half.X*-sx,box.Half.Y-5)
+	  --Isaac_Tower.DebugRenderThis(Isaac_Tower.sprites.GridCollPoint, renderPos, 5)
+	  if not nextgrid then
+        this.CollideWall = sx
+	  else
+		--local renderPos =  nextgrid.RenderPos --+ZeroPoint--TSJDNHC_PT.WorldToScreen --+Vector(box.Half.X*-sx,box.Half.Y-5)
+	    --Isaac_Tower.DebugRenderThis(Isaac_Tower.sprites.GridCollPoint, renderPos, 5)
+	  end
     else
       return
     end
@@ -1825,6 +1852,8 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 	local fent = player:GetData().Isaac_Tower_Data
 	local spr = player:GetData().Isaac_Tower_Data.Flayer.Sprite
 	
+	--print(Isaac.GetFrameCount())
+
 	if fent.Shadowposes then
 		for i,k in pairs(fent.Shadowposes) do
 			local rpos = k[1]/Wtr
@@ -1977,15 +2006,18 @@ function Isaac_Tower.GameUpdate()
 			end
 		end
 	end
+
 	if Isaac_Tower.GridLists.Fake then
+		local blocked = {}
 		for i=1, #fakegroup do
+			blocked[fakegroup[i] ] = true
 			local tab = Isaac_Tower.GridLists.Fake.Sorted[fakegroup[i]]
 			for j,spr in pairs(tab) do
 				spr.Color = Color(spr.Color.R, spr.Color.G, spr.Color.B, math.max(0, spr.Color.A-0.1))
 			end
 		end
 		for i,k in pairs(Isaac_Tower.GridLists.Fake.Sorted) do
-			if not fakegroup[i] then
+			if not blocked[i] then
 				for j,spr in pairs(k) do
 					--print(spr, spr.Color.A)
 					if spr.Color.A < 1 then
@@ -2344,9 +2376,12 @@ mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, Isaac_Tower.EnemyUpdate, Isa
 
 function Isaac_Tower.EnemyPostRender(_, ent, Pos, Offset, Scale)
 	if ent.Variant ~= IsaacTower_Enemy then return end
-	local typ = ent:GetData().Isaac_Tower_Data and ent:GetData().Isaac_Tower_Data.Type
+	local data = ent:GetData().Isaac_Tower_Data
+	local typ = data and data.Type
 	if typ then
-		Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, typ, ent, Pos, Offset, Scale)
+		--if data.GrabbedBy then
+			Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, typ, ent, Pos, Offset, Scale)
+		--end
 	end
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.ENTITY_POSTRENDER, Isaac_Tower.EnemyPostRender, 1000)
@@ -2593,7 +2628,7 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 	local list = Isaac_Tower.GridLists.Evri 
 	for layer, gridlist in pairs(list) do  --Спрайты с эффектом параллакса не оптимизируются, мне лень
 		if layer ~= "List" then
-			if layer>-2 and layer<2 then
+			if type(layer) == "string" or layer>-2 and layer<2 then
 				for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y), math.max(1,StartPosRenderGrid.Y),-1 do
 					for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X) do
 						local tab = gridlist[y] and gridlist[y][x]
@@ -2628,8 +2663,10 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 			tab[layer][#tab[layer]+1] = k
 		end
 		table.sort(tab[layer])
-		minindex = math.min(minindex, layer)
-		maxindex = math.max(maxindex, layer)
+		if type(layer) == "number" then
+			minindex = math.min(minindex, layer)
+			maxindex = math.max(maxindex, layer)
+		end
 	end
 	--table.sort(tab)
 	Isaac_Tower.Renders.EnviRender = tab
@@ -2738,13 +2775,45 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.GRID_BACKDROP_RENDER, Isaac_Tower.Renders.PostGridRender)
 
-function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
+function Isaac_Tower.Renders.FakeLayerRender(_, Pos, Offset, Scale)
 	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
 
-	if Isaac_Tower.GridLists.Fake then
-		--Isaac_Tower.GridLists.Fake:Render(Offset, Scale)
+	local zero = Isaac.WorldToRenderPosition(v40100)
+	local startPos = (Offset + zero)
+	local zeroOffset
+	if Scale ~= 1 then
+		zeroOffset = BDCenter*(Scale-1) +GridListStartPos*(1-Scale) ---BDCenter
 	end
+	--if Isaac_Tower.Renders.EnviMaxLayer>0 then
+		--for layer=1,Isaac_Tower.Renders.EnviMaxLayer do
+			local gridlist = Isaac_Tower.Renders.EnviRender["fake"]
+			if gridlist then
+				for i,k in pairs(gridlist) do
+					local obj = Isaac_Tower.GridLists.Evri.List[k]
+					if obj then
+						local pos = obj.pos*Scale + startPos
+						if Scale ~= 1 then
+							--local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
+							pos = pos -zeroOffset --+ vec
+						end
+						if Scale ~= 1 then
+							local preScale = obj.spr.Scale/1
+							obj.spr.Scale = obj.spr.Scale*Scale
+							obj.spr:Render(pos)
+							obj.spr.Scale = preScale
+						else
+							obj.spr:Render(pos)
+						end
+					end
+				end
+			end
+		--end
+	--end
+end
+mod:AddCallback(TSJDNHC_PT.Callbacks.ISAAC_TOWER_POST_ALL_ENEMY_RENDER, Isaac_Tower.Renders.FakeLayerRender)
 
+function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
+	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
 
 	local zero = Isaac.WorldToRenderPosition(v40100)
 	local startPos = (Offset + zero)

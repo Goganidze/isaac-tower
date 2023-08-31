@@ -1,6 +1,7 @@
 return function(mod)
 
 local L54 = _G._VERSION == "Lua 5.4"
+local Isaac_Tower = Isaac_Tower
 
 local Isaac = Isaac
 local game = Game()
@@ -31,6 +32,7 @@ local Callbacks = {
 	OVERLAY_BACKDROP_RENDER = {},
 	GRID_POINTS_GEN = {},
 	ENTITY_POSTRENDER = {},
+	ISAAC_TOWER_POST_ALL_ENEMY_RENDER = {},
 }
 for i,k in pairs(Callbacks) do
 	addCallbackID(i)
@@ -231,33 +233,55 @@ local function LoadBackdropSprite(sprite, backdrop, mode) -- modes are 1 (walls 
     return renderPos, needsExtra, sprite
 end
 
-local function RenTrack(_,ent)
+local DoubleRenderCondition = false
+function TSJDNHC.ConditionUpdate()
+	DoubleRenderCondition = false
 	if (fastUpdate or Isaac.GetFrameCount()%2 == 0) and CameraEntity and CameraEntity.Ref then 
 		local d = CameraEntity.Ref:GetData()
+		if d.IsEnable and d.renderlist then --and not d.IsCamRender then
+			DoubleRenderCondition = true
+		end
+	end
+	--print(DoubleRenderCondition)
+end
+mod:AddCallback(ModCallbacks.MC_POST_RENDER, TSJDNHC.ConditionUpdate)
 
-		if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender then
-			d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr,(ent.Size == 0 and 0 or (12+ent.Size/4)/25)} -- -Vector(320,280))/Wtr} 
+local function RenTrack(_,ent)
+	--if (fastUpdate or Isaac.GetFrameCount()%2 == 0) and CameraEntity and CameraEntity.Ref then 
+	if DoubleRenderCondition then
+		local d = CameraEntity.Ref:GetData()
+
+		--if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender then
+		if not d.IsCamRender and not d.SpecialRender.igronelist[ent.Index] then
+			if Isaac_Tower.InAction then
+				d.renderlist.entityAbove[#d.renderlist.entityAbove+1] = {ent,(ent.Position)/Wtr} 
+			else
+				d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr,(ent.Size == 0 and 0 or (12+ent.Size/4)/25)} -- -Vector(320,280))/Wtr} 
+			end
 		end
 	end
 end
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
 local function ERenTrack(_,ent)
-	if (fastUpdate or Isaac.GetFrameCount()%2 == 0) and CameraEntity and CameraEntity.Ref then 
+	--if (fastUpdate or Isaac.GetFrameCount()%2 == 0) and CameraEntity and CameraEntity.Ref then 
+	if DoubleRenderCondition and ent and ent:Exists() then
 		local d = CameraEntity.Ref:GetData()
 
 		if Isaac_Tower.InAction then
-			if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
-				if ent and ent.Type and ent.Type == 1000 and ent.Variant == IsaacTower_GibVariant then
+			--if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
+			if not d.IsCamRender and not d.SpecialRender.igronelist[ent.Index] then
+				if ent:GetData().Isaac_Tower_Data and ent:GetData().Isaac_Tower_Data.GrabbedBy or ent.Variant == IsaacTower_GibVariant then
 					d.renderlist.entityAbove[#d.renderlist.entityAbove+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
-				elseif ent and ent.Type and (ent.Type ~= 1000 or (ent.Type == 1000 and ent.Variant ~= entCam.VARIANT)) then
+				elseif ent.Type and (ent.Variant ~= entCam.VARIANT) then
 					d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
 				end
 			end
 		else
-			if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
-				if ent and ent.Type and ent.Type == 1000 and CreepEffectVariant[ent.Variant] then
+			--if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
+			if not d.IsCamRender and not d.SpecialRender.igronelist[ent.Index] then
+				if ent.Type  and CreepEffectVariant[ent.Variant] then --and ent.Type == 1000
 					d.renderlist.creep[#d.renderlist.creep+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
-				elseif ent and ent.Type and (ent.Type ~= 1000 or (ent.Type == 1000 and ent.Variant ~= entCam.VARIANT)) then
+				elseif ent.Type and (ent.Type ~= 1000 or (ent.Type == 1000 and ent.Variant ~= entCam.VARIANT)) then
 					d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
 				end
 			end
@@ -342,7 +366,7 @@ function TSJDNHC.CamEntUpdat(_,e)
 		end 
 
 		if not d.renderlist then
-			d.renderlist = {stein = {}, creep = {}, rock = {}, entity = {} }
+			d.renderlist = {stein = {}, creep = {}, rock = {}, entity = {}, entityAbove = {} }
 		end
 
 		d.CameraOffset = Vector(-20,60) - e.Position
@@ -415,7 +439,7 @@ function TSJDNHC.CamEntUpdat(_,e)
 		d.RoomShading:Play(tostring(game:GetRoom():GetRoomShape()))
 
 		d.SpecialRender = {igronelist = {}, room = {}, stein = {}, creep = {}, rock = {}, underrock = {}, entity = {} }
-		d.renderlist = {stein = {}, creep = {}, rock = {}, underrock = {}, entity = {} }
+		d.renderlist = {stein = {}, creep = {}, rock = {}, underrock = {}, entity = {}, entityAbove = {} }
 		--e:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
 
 		local roomDescriptor = game:GetLevel():GetCurrentRoomDesc()
@@ -765,6 +789,36 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		end
 	end 
 
+	Isaac.RunCallback(TSJDNHC.Callbacks.ISAAC_TOWER_POST_ALL_ENEMY_RENDER, Pos, CameraOffset, scale)
+
+	for i,k in pairs(d.renderlist.entityAbove) do
+		
+		if k and k[1] and k[1]:Exists() then
+			if d.CurrentCameraScale~=1 then
+				local scaledOffset = k[2]*(scale-1)-zeroOffset
+				local trueScale = k[1]:GetSprite().Scale/1
+				local TruePositionOfset = k[1].PositionOffset/1
+			
+				if k[1].Type == 1 then
+					k[1].PositionOffset = k[1].PositionOffset*scale
+					k[1]:Render(scaledOffset+CameraOffset)
+					k[1].PositionOffset = TruePositionOfset
+				else
+					k[1].PositionOffset = k[1].PositionOffset*scale
+					k[1]:GetSprite().Scale = k[1]:GetSprite().Scale*scale
+					k[1]:Render(scaledOffset+CameraOffset)
+					k[1]:GetSprite().Scale = trueScale
+					k[1].PositionOffset = TruePositionOfset
+				end
+			else
+				k[1]:Render(CameraOffset)
+			end
+			
+			Isaac.RunCallbackWithParam(TSJDNHC.Callbacks.ENTITY_POSTRENDER, k[1].Type, k[1], Pos-d.CenterPos, CameraOffset, d.CurrentCameraScale)
+		end
+	end 
+
+
 	if d.State then
 		if d.State == 2 then
 			d.BlackAlpha = d.BlackAlpha and (d.BlackAlpha-0.1) or 1 
@@ -801,7 +855,7 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 	end
 	Isaac.RunCallback(TSJDNHC.Callbacks.OVERLAY_BACKDROP_RENDER, Pos, CameraOffset, scale)
 
-	if fastUpdate or Isaac.GetFrameCount()%2 == 1 then
+	if fastUpdate or Isaac.GetFrameCount()%2 == 0 then
 	d.renderlist = {stein = d.renderlist.stein or {}, 
 		creep = {}, 
 		rock = d.renderlist.rock, 

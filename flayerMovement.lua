@@ -1549,6 +1549,7 @@ Isaac_Tower.FlayerMovementState["Бег_по_стене"] = function(player, fen
 		--fent.Position.X = fent.Position.X + sign0(fent.RunSpeed) --*1
 			
 		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
+		
 		if (sign0(rot) == sign0(fent.RunSpeed) and Inp.PressRun(idx) or fent.InputWait)  and fent.CollideWall then
 			--dontLoseY = true
 			--fent.Velocity.X = 0
@@ -1585,13 +1586,22 @@ Isaac_Tower.FlayerMovementState["Бег_по_стене"] = function(player, fen
 			end
 				
 		elseif sign0(rot) == sign0(fent.RunSpeed) and Inp.PressRun(idx) or fent.InputWait then
-			fent.Velocity.Y = 0
-			fent.Velocity.X = -fent.RunSpeed
-			SetState(fent, "НачалоБега")--fent.State = 3
-			fent.CanJump = true
-			fent.InputWait = nil
-			Isaac_Tower.HandleMoving(player) --player:Update()
-			return
+			if fent.CollideCeiling then
+				SetState(fent, "Удар_об_потолок")
+				fent.RunSpeed = 0
+				fent.Velocity = Vector(0,0)
+				spr:Play("super_jump_collide")
+				fent.Flayer.Queue = "super_jump_fall"
+				return
+			else
+				fent.Velocity.Y = 0
+				fent.Velocity.X = -fent.RunSpeed
+				SetState(fent, "НачалоБега")--fent.State = 3
+				fent.CanJump = true
+				fent.InputWait = nil
+				Isaac_Tower.HandleMoving(player) --player:Update()
+				return
+			end
 		else
 			if not fent.InputWait then
 				fent.InputWait = 10
@@ -1607,6 +1617,14 @@ Isaac_Tower.FlayerMovementState["Бег_по_стене"] = function(player, fen
 				SetState(fent, "Ходьба")--fent.State = 1
 			end
 		end
+		--if fent.CollideCeiling then
+		--	SetState(fent, "Удар_об_потолок")
+		--	fent.RunSpeed = 0
+		--	fent.Velocity = Vector(0,0)
+		--	spr:Play("super_jump_collide")
+		--	fent.Flayer.Queue = "super_jump_fall"
+		--	return
+		--end
 
 		if math.abs(fent.RunSpeed) > 5.4 then
 			fent.OnAttack = true

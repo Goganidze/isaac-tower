@@ -71,7 +71,7 @@ local function GetLinkedGrid(grid, pos, size, fill)
 		local tab = {}
 		local Sx,Sy = pos.X,pos.Y
 		for i,k in pairs(size) do
-			local Hasgrid = grid[Sy+k[2]] and grid[Sy+k[2]][Sx+k[1]]
+			local Hasgrid = grid[Sy+k[2] ] and grid[Sy+k[2] ][Sx+k[1] ]
 			if Hasgrid or fill then
 				tab[#tab+1] = {Sy+k[2], Sx+k[1]}
 			end
