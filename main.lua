@@ -2801,7 +2801,7 @@ function Isaac_Tower.Renders.FakeLayerRender(_, Pos, Offset, Scale)
 			if gridlist then
 				for i,k in pairs(gridlist) do
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
-					if obj then
+					if obj and obj.spr.Color.A>0 then
 						local pos = obj.pos*Scale + startPos
 						if Scale ~= 1 then
 							--local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)

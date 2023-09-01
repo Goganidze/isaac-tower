@@ -2506,13 +2506,15 @@ end, function(str)
 					end
 				end
 				--EditorType
+				local pGrid = Isaac_Tower.editor.GridTypes.Grid[grid.type]
+				local Addsize = pGrid.size and (pGrid.size-Vector(1,1)) or Vector(0,0)
 				solidTab = solidTab .. "EditorType='" .. grid.type .. "',"
 
 				solidTab = solidTab .. "gr=" .. grid.group .. ","
 				solidTab = solidTab .. "chl={"
-				solidTab = solidTab .. "{"..(y+1)..","..(x+1).."},"
-				solidTab = solidTab .. "{"..(y+1)..","..(x-1).."},"
-				solidTab = solidTab .. "{"..(y-1)..","..(x+1).."},"
+				solidTab = solidTab .. "{"..(y+1+Addsize.Y)..","..(x+1+Addsize.X).."},"
+				solidTab = solidTab .. "{"..(y+1+Addsize.Y)..","..(x-1).."},"
+				solidTab = solidTab .. "{"..(y-1)..","..(x+1+Addsize.Y).."},"
 				solidTab = solidTab .. "{"..(y-1)..","..(x-1).."},},"
 
 				solidTab = solidTab .. "},\n"
