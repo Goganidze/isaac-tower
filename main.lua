@@ -2780,9 +2780,6 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 			end
 		--end
 	end
-	--if Isaac_Tower.GridLists.Fake then
-	--	Isaac_Tower.GridLists.Fake:Render(Offset, Scale)
-	--end
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.GRID_BACKDROP_RENDER, Isaac_Tower.Renders.PostGridRender)
 

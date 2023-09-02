@@ -3348,7 +3348,7 @@ local function FindCollidedGrid(list, pos, size, onlyfind, sizer)
 	end
 end
 
-local function DetectColEnvi(list, pos, index) --Isaac_Tower.editor.EnvironmentSelectedLayer
+local function DetectColEnvi(list, pos, index)
 	if list and pos and index then
 		pos = pos+Vector(26,26)
 		--for y, ycol in pairs(list) do
@@ -3362,9 +3362,9 @@ local function DetectColEnvi(list, pos, index) --Isaac_Tower.editor.EnvironmentS
 			for i,k in pairs(grid.Parents) do
 				local box = Isaac_Tower.editor.Memory.CurrentRoom.EnviList[i]
 				
-				for j,g in pairs(box) do
+				--for j,g in pairs(box) do
 				--	print(j,g)
-				end
+				--end
 				--print(pos, box.upleft, box.downright)
 				if pos.X>box.upleft.X and pos.Y>box.upleft.Y and
 				pos.X<=box.downright.X and pos.Y<=box.downright.Y then
