@@ -135,6 +135,9 @@ local ZeroPoint = Vector(0,0)
 local function UpdateZeroPoint()
 	ZeroPoint = Isaac.WorldToRenderPosition(Vector(0,0))
 end
+function Isaac_Tower.WorldToScreen(pos)
+	return pos/Wtr+ZeroPoint
+end
 --mod:AddCallback(ModCallbacks.MC_POST_UPDATE, UpdateZeroPoint) --MC_POST_UPDATE
 function Isaac_Tower.GetRenderZeroPoint()
 	return ZeroPoint
@@ -990,6 +993,38 @@ function Isaac_Tower.rayCast( startPos, rot, step, stepLimit)
 			return obs
 		end
 	end
+end
+
+--mode: 0 = standard, 1 = ignore slopes and platforms
+---@param startPos Vector
+---@param endPos Vector
+---@param step integer
+---@param mode integer
+function Isaac_Tower.lineOnlyCheck(startPos, endPos, step, mode)
+	step = step or 40; mode = mode or 0
+	local rot = endPos - startPos
+	local stepLimit = startPos:Distance(endPos)/step - 1
+	--print(stepLimit,rot)
+	for i = 0, math.ceil(stepLimit) do
+		local pos = startPos + rot*(i/stepLimit)
+		--print(pos, endPos)
+		Isaac_Tower.DebugRenderThis(Isaac_Tower.sprites.GridCollPoint, Isaac_Tower.WorldToScreen(pos), 1)
+		local grid = Isaac_Tower.GridLists.Solid:GetGrid(pos)
+		if grid and RayCastShouldCollide(startPos, grid) then
+			if mode == 0 
+			or mode == 1 and not grid.OnlyUp and not grid.slope then
+				return false
+			end
+		end
+		local obs = Isaac_Tower.GridLists.Obs:GetGrid(pos)
+		if obs and RayCastShouldCollide(startPos, obs) then
+			if mode == 0 
+			or mode == 1 and not grid.OnlyUp and not grid.slope then
+				return false
+			end
+		end
+	end
+	return true
 end
 
 local function GetDeepSlope(this, box)
@@ -2092,7 +2127,7 @@ mod:AddPriorityCallback(TSJDNHC_PT.Callbacks.GRID_BACKDROP_RENDER, 100, Isaac_To
 local function spawnSpeedEffect(pos, vec, angle, var)
 	local eff = Isaac.Spawn(1000,16,0,pos,vec,nil):ToEffect()
 	eff:Update()
-	eff:GetSprite():Load("gfx/effects/spedd_effects.anm2", true)
+	eff:GetSprite():Load("gfx/effects/it_spedd_effects.anm2", true)
 	eff:GetSprite():Play(var == 1 and "кругляшка" or "полоска")
 	eff:GetSprite().Rotation = angle or eff.SpriteRotation
 	eff.Rotation = angle
@@ -2187,7 +2222,7 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 			for i=1, 8 do
 				local vec = Vector.FromAngle(-rng:RandomInt(181) or 0):Resized((rng:RandomInt(105)+11)/10)
 				local grid = Isaac.Spawn(1000,IsaacTower_GibVariant,Isaac_Tower.ENT.GibSubType.GIB,ent.Position,vec ,nil)
-				grid:GetSprite():Load("gfx/effects/guts.anm2",true)
+				grid:GetSprite():Load("gfx/effects/it_guts.anm2",true)
 				grid:GetSprite():Play((rng:RandomInt(12)+1), true)
 				grid:ToEffect().Rotation = rng:RandomInt(101)-50
 				grid.SpriteRotation = rng:RandomInt(360)+1
@@ -2404,8 +2439,13 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.ENTITY_POSTRENDER, Isaac_Tower.EnemyPostRen
 --100 Остаточное изображение
 --101 Пот
 --110 Звуковой хлопок
-
-local GibsLogic = {
+local GibsLogic
+GibsLogic = {
+	Init = {
+		[102] = function(e)
+			e:GetSprite():Play("blood_drop")
+		end
+	},
 	Update = {
 		[0] = function(e)
 			e.Velocity = e.Velocity.Y < 15 and Vector(e.Velocity.X,e.Velocity.Y + 0.6) or e.Velocity
@@ -2481,6 +2521,9 @@ local GibsLogic = {
 					e:Remove()
 				end
 			end
+		end,
+		[102] = function (e)
+			GibsLogic[101](e)
 		end,
 		[110] = function (e)
 			if e:GetSprite():IsFinished(e:GetSprite():GetAnimation()) then

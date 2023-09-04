@@ -36,6 +36,12 @@ local function GetStr(str)
 	end
 end
 
+local function SetState(data, state)
+	data.PreviousState = data.State
+	data.State = state
+	data.StateFrame = 0
+end
+
 
 for i=1,9 do
 	Isaac_Tower.editor.AddGrid(tostring(i), tostring(i), GenSprite("gfx/fakegrid/grid2.anm2",tostring(i)), {Collision = 1, SpriteAnim = i })
@@ -895,8 +901,10 @@ end
 
 -------------------------------------------------------------------ВРАГИ------------------------------------------------
 
-			--ЗНАК
+
 Isaac_Tower.ENT.LOGIC = {}
+
+								--ЗНАК
 function Isaac_Tower.ENT.LOGIC.EnemySignLogic(_,ent)
 	local data = ent:GetData().Isaac_Tower_Data
 	if data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
@@ -996,7 +1004,7 @@ function Isaac_Tower.ENT.LOGIC.EnemyClottigLogic(_,ent)
 			end
 			data.Delay = data.Delay and (data.Delay-1) or ent:GetDropRNG():RandomInt(60)
 			if data.Delay<0 then
-				data.State = 2
+				SetState(data,2) --data.State = 2
 			end
 		elseif data.State == 2 then
 			if spr:IsFinished("move") then
@@ -1051,12 +1059,12 @@ function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
 	if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE and
 		(not ent.Target or ent.Target.Variant ~= Isaac_Tower.ENT.Enemy.VAR) then
 		if not spr:IsPlaying("spawn") then
-			data.State = 2
+			SetState(data,2) --data.State = 2
 			spr:Play("spawn")
 		end
 	elseif data.State == 2 then
 		if spr:IsFinished("stopping") then
-			data.State = Isaac_Tower.EnemyHandlers.EnemyState.IDLE
+			SetState(data,Isaac_Tower.EnemyHandlers.EnemyState.IDLE) --data.State = Isaac_Tower.EnemyHandlers.EnemyState.IDLE
 			spr:Play("idle")
 		elseif spr:IsFinished("spawn") then
 			spr:Play("spawn_loop")
@@ -1108,7 +1116,7 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 
 		if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
 			if data.State ~= 4 and data.InRage then
-				data.State = 4
+				SetState(data,4) --data.State = 4
 				return
 			end
 			if not spr:IsPlaying("idle") then
@@ -1116,19 +1124,19 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 			end
 			data.Delay = data.Delay and (data.Delay-1) or ent:GetDropRNG():RandomInt(60)+50
 			if data.Delay<0 then
-				data.State = 2
+				SetState(data,2) --data.State = 2
 			end
 
 			for i=0, Isaac_Tower.game:GetNumPlayers() do
 				local flayer = Isaac_Tower.GetFlayer(i)
 				if flayer.Position:Distance(ent.Position) < 200 then
 					spr:Play("pre_attack")
-					data.State = 4
+					SetState(data,4) --data.State = 4
 				end
 			end
 		elseif data.State == 2 then
 			if data.State ~= 4 and data.InRage then
-				data.State = 4
+				SetState(data,4) --data.State = 4
 				return
 			end
 			if spr:IsFinished(spr:GetAnimation()) then
@@ -1143,7 +1151,7 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 				local flayer = Isaac_Tower.GetFlayer(i)
 				if flayer.Position:Distance(ent.Position) < 200 then
 					spr:Play("pre_attack")
-					data.State = 4
+					SetState(data,4) --data.State = 4
 				end
 			end
 		elseif data.State == 4 then
@@ -1193,5 +1201,77 @@ Isaac_Tower.EnemyHandlers.FlayerCollision["gaper"] = function(fent, ent, EntData
 		end
 	end
 end
+
+---------------------------------------ХОРХ--------------------------------------------
+
+Isaac_Tower.RegisterEnemy("horh", "gfx/enemies/horh.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
+Isaac_Tower.editor.AddEnemies("horh",
+	GenSprite("gfx/enemies/horh.anm2","чего",nil,2,Vector(13,13)),
+	"horh",0,
+	GenSprite("gfx/enemies/horh.anm2","чего",nil,2,Vector(13/2,13/2)))
+
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
+	ent.PositionOffset = Vector(0,5)
+end, "horh")
+
+function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
+	local data = ent:GetData().Isaac_Tower_Data
+	local spr = ent:GetSprite()
+	if data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
+		local target = Isaac_Tower.GerNearestFlayer(ent.Position)
+		if data.State == Isaac_Tower.EnemyHandlers.EnemyState.STUN then
+			if data.OnGround then
+				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(0,ent.Velocity.Y))
+			else
+				ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+0.8))) or ent.Velocity
+				if data.StateFrame == 0 then
+					ent.Velocity = ent.Velocity * Vector(.1,1)
+				end
+			end
+		elseif data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
+			if spr:GetAnimation() ~= "idle" and not spr:IsPlaying("ничего") then
+				spr:Play("idle", true)
+			end
+			--local tarVel = Vector(0,0)
+			--local grid = Isaac_Tower.rayCast(ent.Position,Vector(0,1),20,3)
+			--if grid then
+			--	tarVel.Y = (((grid.Position+Vector(0,-45))-ent.Position)/20).Y
+			--end
+			--ent.Velocity = ent.Velocity * 0.9 + tarVel * 0.1
+
+			--local rayCheck = Isaac_Tower.rayCast(ent.Position,)
+			if target.Position:Distance(ent.Position) < 300 
+			and Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1) then
+				SetState(data,2)
+			end
+		elseif data.State == 2 then
+			if spr:GetAnimation() == "idle" then
+				spr:Play("а, чего кого", true)
+			elseif spr:IsFinished("а, чего кого") then
+				spr:Play("чего кого", true)
+			end
+
+			local dist = target.Position:Distance(ent.Position)
+			if dist > 300 and data.StateFrame > 30 then
+				SetState(data,1)
+				spr:Play("ничего", true)
+			elseif dist < 250 
+			and Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1)  then
+				SetState(data,3)
+			end
+		end
+		local tarVel = Vector(0,0)
+		local grid = Isaac_Tower.rayCast(ent.Position,Vector(0,1),20,3)
+		if grid then
+			tarVel.Y = (((grid.Position+Vector(0,-45))-ent.Position)/20).Y
+		end
+		ent.Velocity = ent.Velocity * 0.9 + tarVel * 0.1
+		if ent.FrameCount%4==0 then
+			Isaac.Spawn(Isaac_Tower.ENT.GIB.ID,Isaac_Tower.ENT.GIB.VAR,Isaac_Tower.ENT.GibSubType.SWEET)
+		end
+	end
+end
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyHorhLogic, "horh")
+
 
 end

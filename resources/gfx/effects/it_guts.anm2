@@ -2,7 +2,7 @@
 	<Info CreatedBy="Unknown" CreatedOn="20.06.2023 20:20:58" Version="1" Fps="30"/>
 	<Content>
 		<Spritesheets>
-			<Spritesheet Path="guts.png" Id="0"/>
+			<Spritesheet Path="it_guts.png" Id="0"/>
 		</Spritesheets>
 		<Layers>
 			<Layer Name="body" Id="0" SpritesheetId="0"/>

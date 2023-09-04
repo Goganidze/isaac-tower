@@ -4969,9 +4969,6 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 			ShowErrorMes = Linfo.ErrorMes
 		end
 	end
-	--for i,k in pairs(Linfo.info) do
-	--	print(i,k)
-	--end
 	if OverleySelected and Linfo then
 		if Isaac_Tower.editor.SpecialSelectedTile == Linfo and Linfo.type == "Room_Transition" then --стена коооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооода
 			local size = info.info().Size

@@ -22,7 +22,7 @@ end
 local function spawnSpeedEffect(pos, vec, angle, var)
 	local eff = Isaac.Spawn(1000,16,0,pos,vec,nil):ToEffect()
 	eff:Update()
-	eff:GetSprite():Load("gfx/effects/spedd_effects.anm2", true)
+	eff:GetSprite():Load("gfx/effects/it_spedd_effects.anm2", true)
 	eff:GetSprite():Play(var == 1 and "кругляшка" or "полоска")
 	eff:GetSprite().Rotation = angle or eff.SpriteRotation
 	eff.Rotation = angle
@@ -1196,7 +1196,7 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 			vec = Vector(vec.X*rot,vec.Y)
 			grid.Velocity = vec + fent.TrueVelocity*2
 			
-			grid:GetSprite():Load("gfx/effects/sweet.anm2",true)
+			grid:GetSprite():Load("gfx/effects/it_sweet.anm2",true)
 			grid:GetSprite():Play("drop", true)
 			grid:Update()
 		end

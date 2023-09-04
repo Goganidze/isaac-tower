@@ -2,7 +2,7 @@
 	<Info CreatedBy="Unknown" CreatedOn="22.06.2023 23:52:15" Version="9" Fps="45"/>
 	<Content>
 		<Spritesheets>
-			<Spritesheet Path="speed_effects.png" Id="0"/>
+			<Spritesheet Path="it_speed_effects.png" Id="0"/>
 		</Spritesheets>
 		<Layers>
 			<Layer Name="тело" Id="0" SpritesheetId="0"/>
