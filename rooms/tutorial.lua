@@ -963,13 +963,11 @@ Special={
 Isaac_Tower.AddRoom(roomdata)
 
 local roomdata = {Name='tutorial_3',Size=Vector(67.0,41.0),DefSpawnPoint=Vector(100.0,800.0),
-Enemy={
-},
 EnviList={
 },
 SolidList={
   gfx='gfx/fakegrid/tutorial.png',
-  extraAnim={'1','platform2','4','5','2','3','platform1','infis','30l','45r','half_up','45l','3_3x1','1_5x5','1_2x2','8','9','6','7','platform','1_3x3','platform3','30r',},
+  extraAnim={'30l','infis','45l','1','platform2','45r','3_3x1','1_2x2','platform3','platform1','1_3x3','1_5x5','platform','30r','8','2','3','4','5','6','7','half_up','9',},
   {pos=Vector(26,1),Type='1_5x5',Collision=1,EditorType='1_5x5',},
   {pos=Vector(31,1),Type='1_5x5',Collision=1,EditorType='1_5x5',},
   {pos=Vector(36,1),Type='1_5x5',Collision=1,EditorType='1_5x5',},
@@ -1099,7 +1097,7 @@ SolidList={
   {pos=Vector(28,13),SpriteAnim=6,Collision=1,EditorType='6',},
   {pos=Vector(56,13),SpriteAnim=5,Collision=1,EditorType='5',},
   {pos=Vector(8,14),SpriteAnim=9,Collision=1,EditorType='9',},
-  {pos=Vector(13,14),Collision=1,Type='platform',SpriteAnim='platform',EditorType='platform',},
+  {pos=Vector(13,14),SpriteAnim='platform',Type='platform',Collision=1,EditorType='platform',},
   {pos=Vector(16,14),SpriteAnim=5,Collision=1,EditorType='5',},
   {pos=Vector(27,14),SpriteAnim=1,Collision=1,EditorType='1',},
   {pos=Vector(28,14),SpriteAnim=6,Collision=1,EditorType='6',},
@@ -1111,8 +1109,8 @@ SolidList={
   {pos=Vector(5,15),SpriteAnim=8,Collision=1,EditorType='8',},
   {pos=Vector(6,15),SpriteAnim=8,Collision=1,EditorType='8',},
   {pos=Vector(7,15),SpriteAnim=9,Collision=1,EditorType='9',},
-  {pos=Vector(12,15),Collision=1,Type='platform',SpriteAnim='platform2',EditorType='platform2',},
-  {pos=Vector(13,15),Collision=1,Type='platform',SpriteAnim='platform2',EditorType='platform2',},
+  {pos=Vector(12,15),SpriteAnim='platform2',Type='platform',Collision=1,EditorType='platform2',},
+  {pos=Vector(13,15),SpriteAnim='platform2',Type='platform',Collision=1,EditorType='platform2',},
   {pos=Vector(16,15),SpriteAnim=5,Collision=1,EditorType='5',},
   {pos=Vector(27,15),SpriteAnim=1,Collision=1,EditorType='1',},
   {pos=Vector(28,15),SpriteAnim=6,Collision=1,EditorType='6',},
@@ -1205,9 +1203,9 @@ SolidList={
   {pos=Vector(27,21),SpriteAnim=8,Collision=1,EditorType='8',},
   {pos=Vector(28,21),SpriteAnim=8,Collision=1,EditorType='8',},
   {pos=Vector(30,21),SpriteAnim=9,Collision=1,EditorType='9',},
-  {pos=Vector(50,21),Collision=1,Type='platform',SpriteAnim='platform1',EditorType='platform1',},
-  {pos=Vector(51,21),Collision=1,Type='platform',SpriteAnim='platform2',EditorType='platform2',},
-  {pos=Vector(52,21),Collision=1,Type='platform',SpriteAnim='platform3',EditorType='platform3',},
+  {pos=Vector(50,21),SpriteAnim='platform1',Type='platform',Collision=1,EditorType='platform1',},
+  {pos=Vector(51,21),SpriteAnim='platform2',Type='platform',Collision=1,EditorType='platform2',},
+  {pos=Vector(52,21),SpriteAnim='platform3',Type='platform',Collision=1,EditorType='platform3',},
   {pos=Vector(56,21),SpriteAnim=5,Collision=1,EditorType='5',},
   {pos=Vector(12,22),SpriteAnim=6,Collision=1,EditorType='6',},
   {pos=Vector(18,22),SpriteAnim=5,Collision=1,EditorType='5',},
@@ -1417,7 +1415,7 @@ SolidList={
 },
 SolidFakeList={
   gfx='gfx/fakegrid/tutorial.png',
-  extraAnim={'5','4','7','6','9','8','45l','1_5x5','1_3x3','1_2x2','30l','infis','platform2','3_3x1','1','platform1','30r','platform','45r','half_up','platform3','3','2',},
+  extraAnim={'30l','infis','45l','1','platform2','45r','3_3x1','1_2x2','platform3','platform1','1_3x3','1_5x5','platform','30r','8','2','3','4','5','6','7','half_up','9',},
   {pos=Vector(29,20),SpriteAnim=3,Collision=1,EditorType='3',gr=1,chl={{21.0,30.0},{21.0,28},{19,30.0},{19,28},},},
   {pos=Vector(29,21),SpriteAnim=8,Collision=1,EditorType='8',gr=1,chl={{22.0,30.0},{22.0,28},{20,30.0},{20,28},},},
   {pos=Vector(27,24),SpriteAnim=3,Collision=1,EditorType='3',gr=2,chl={{25.0,28.0},{25.0,26},{23,28.0},{23,26},},},
@@ -1500,6 +1498,11 @@ Special={
     {XY=Vector(1,16),TargetRoom='tutorial_2',Name='22',TargetName='22',Size=Vector(1,3),},
  },
 },
+Enemy={
+  {pos=Vector(14,22),name='clottig',st=0,EditorType='clottig',},
+  {pos=Vector(40,25),name='gaper',st=0,EditorType='gaper',},
+  {pos=Vector(50,31),name='horh',st=0,EditorType='horh',},
+},
 ObsList={
   gfx='gfx/fakegrid/tutorial.png',
   {pos=Vector(29,35),Type='stone_poop_2x2',Collision=1,EditorType='stone_poop_2x2',},
@@ -1510,6 +1513,9 @@ ObsList={
   {pos=Vector(54,46),Type='stone_poop_1x1',Collision=1,EditorType='stone_poop_1x1',},
   {pos=Vector(55,47),Type='stone_poop_2x2',Collision=1,EditorType='stone_poop_2x2',},
   {pos=Vector(57,47),Type='stone_poop_2x2',Collision=1,EditorType='stone_poop_2x2',},
+  {pos=Vector(109,61),Type='poop_2x2',Collision=1,EditorType='poop_2x2',},
+  {pos=Vector(108,63),Type='poop_2x2',Collision=1,EditorType='poop_2x2',},
+  {pos=Vector(110,63),Type='poop_2x2',Collision=1,EditorType='poop_2x2',},
 },
 } Isaac_Tower.AddRoom(roomdata)
 

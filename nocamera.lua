@@ -270,7 +270,8 @@ local function ERenTrack(_,ent)
 		if Isaac_Tower.InAction then
 			--if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
 			if not d.IsCamRender and not d.SpecialRender.igronelist[ent.Index] then
-				if ent:GetData().Isaac_Tower_Data and ent:GetData().Isaac_Tower_Data.GrabbedBy or ent.Variant == IsaacTower_GibVariant then
+				local data = ent:GetData()
+				if data and (data.RA or not data.ml and (data.Isaac_Tower_Data and data.Isaac_Tower_Data.GrabbedBy or ent.Variant == IsaacTower_GibVariant)) then
 					d.renderlist.entityAbove[#d.renderlist.entityAbove+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
 				elseif ent.Type and (ent.Variant ~= entCam.VARIANT) then
 					d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
@@ -1978,13 +1979,13 @@ local function EntityfrigPoint(_, Pos, Offset, Scale)
 			end
 		end
 		if TSJDNHC.Isdebug(3) then
-			if d.TSJDNHC_FakePlayer then
-				GridCollPoint.Scale = (d.TSJDNHC_FakePlayer.Half/1.5) --Vector(1,1)*
-				GridCollPoint:Render(Isaac.WorldToRenderPosition(d.TSJDNHC_FakePlayer.Position+d.TSJDNHC_FakePlayer.CollisionOffset) + Offset)
+			if d.Isaac_Tower_Data then
+				GridCollPoint.Scale = (d.Isaac_Tower_Data.Half/1.5) --Vector(1,1)*
+				GridCollPoint:Render(Isaac.WorldToRenderPosition(d.Isaac_Tower_Data.Position+d.Isaac_Tower_Data.CollisionOffset) + Offset)
 				GridCollPoint.Scale = Vector(0.5,0.5)
 				
 				local pos = Isaac.WorldToRenderPosition(ent.Position) + Offset
-				Isaac.RenderText(d.TSJDNHC_FakePlayer.Velocity.X, pos.X, pos.Y, 2,1,0,1)
+				Isaac.RenderText(d.Isaac_Tower_Data.Velocity.X, pos.X, pos.Y, 2,1,0,1)
 			end
 		end
 	end

@@ -1185,8 +1185,8 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 		if fent.StateFrame%8 == 0 then
 			local rot = spr.FlipX and -1 or 1
 			local grid = Isaac.Spawn(1000,IsaacTower_GibVariant,Isaac_Tower.ENT.GibSubType.SWEET,fent.Position+Vector(10*rot,-20), Vector(0,0), nil)
-			grid.DepthOffset = 310
-			grid:GetData().Color = Color(1,1,1,1)
+			--grid.DepthOffset = 310
+			--grid:GetData().Color = Color(1,1,1,1)
 
 			local rng = RNG()
 			rng:SetSeed(grid.InitSeed,35)
@@ -1196,9 +1196,9 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 			vec = Vector(vec.X*rot,vec.Y)
 			grid.Velocity = vec + fent.TrueVelocity*2
 			
-			grid:GetSprite():Load("gfx/effects/it_sweet.anm2",true)
-			grid:GetSprite():Play("drop", true)
-			grid:Update()
+			--grid:GetSprite():Load("gfx/effects/it_sweet.anm2",true)
+			--grid:GetSprite():Play("drop", true)
+			--grid:Update()
 		end
 	else
 		SetState(fent, "Ходьба")
@@ -1577,7 +1577,7 @@ Isaac_Tower.FlayerMovementState["Бег_по_стене"] = function(player, fen
 					SetState(fent, "Ходьба")--fent.State = 1
 				end
 			end
-			if fent.CollideCeiling then
+			if fent.CollideCeiling and fent.StateFrame > 2 then
 				SetState(fent, "Удар_об_потолок")
 				fent.RunSpeed = 0
 				fent.Velocity = Vector(0,0)
@@ -1586,7 +1586,7 @@ Isaac_Tower.FlayerMovementState["Бег_по_стене"] = function(player, fen
 			end
 				
 		elseif sign0(rot) == sign0(fent.RunSpeed) and Inp.PressRun(idx) or fent.InputWait then
-			if fent.CollideCeiling then
+			if fent.CollideCeiling and fent.StateFrame > 2 then
 				SetState(fent, "Удар_об_потолок")
 				fent.RunSpeed = 0
 				fent.Velocity = Vector(0,0)

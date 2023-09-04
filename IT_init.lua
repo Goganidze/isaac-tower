@@ -1045,7 +1045,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 		--end
 		local xs,ys = k:GetData().Isaac_Tower_Data.SpawnXY.X,k:GetData().Isaac_Tower_Data.SpawnXY.Y
 		if x==xs and y-1==ys then
-			local off = Isaac_Tower.Enemies[k:GetData().Isaac_Tower_Data.Type]
+			local off = Isaac_Tower.EnemyHandlers.Enemies[k:GetData().Isaac_Tower_Data.Type]
 			d.SpawnTarget = {Name = k:GetData().Isaac_Tower_Data.Type, ST = k.SubType, Off = off.spawnOffset-5}
 			ent.Target = k
 		end
@@ -1223,28 +1223,30 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 			if data.OnGround then
 				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(0,ent.Velocity.Y))
 			else
-				ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+0.8))) or ent.Velocity
+				ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+1.8))) or ent.Velocity
 				if data.StateFrame == 0 then
 					ent.Velocity = ent.Velocity * Vector(.1,1)
 				end
 			end
 		elseif data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
+			if data.rage then
+				SetState(data,3)
+				Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(nil,ent)
+				return
+			end
 			if spr:GetAnimation() ~= "idle" and not spr:IsPlaying("ничего") then
 				spr:Play("idle", true)
 			end
-			--local tarVel = Vector(0,0)
-			--local grid = Isaac_Tower.rayCast(ent.Position,Vector(0,1),20,3)
-			--if grid then
-			--	tarVel.Y = (((grid.Position+Vector(0,-45))-ent.Position)/20).Y
-			--end
-			--ent.Velocity = ent.Velocity * 0.9 + tarVel * 0.1
-
-			--local rayCheck = Isaac_Tower.rayCast(ent.Position,)
-			if target.Position:Distance(ent.Position) < 300 
-			and Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1) then
+			if target.Position:Distance(ent.Position) < 300 and (target.Position:Distance(ent.Position) < 200
+			or Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1)) then
 				SetState(data,2)
 			end
 		elseif data.State == 2 then
+			if data.rage then
+				SetState(data,3)
+				Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(nil,ent)
+				return
+			end
 			if spr:GetAnimation() == "idle" then
 				spr:Play("а, чего кого", true)
 			elseif spr:IsFinished("а, чего кого") then
@@ -1252,13 +1254,29 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 			end
 
 			local dist = target.Position:Distance(ent.Position)
-			if dist > 300 and data.StateFrame > 30 then
+			if (dist > 300 )--or not Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1)) 
+			and data.StateFrame > 30 then
 				SetState(data,1)
 				spr:Play("ничего", true)
 			elseif dist < 250 
 			and Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1)  then
 				SetState(data,3)
 			end
+		elseif data.State == 3 then
+			if not data.rage then
+				data.rage = true
+				spr:Play("shoot")
+				data.delay = ent:GetDropRNG():RandomInt(41)+40
+			end
+			if spr:IsFinished("shoot") then
+				spr:Play("чего")
+			end
+			local dist = target.Position:Distance(ent.Position)
+			if data.delay <= 0 and dist < 400 and Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1) then
+				data.delay = ent:GetDropRNG():RandomInt(41)+40
+				spr:Play("shoot")
+			end
+			data.delay = data.delay - 1
 		end
 		local tarVel = Vector(0,0)
 		local grid = Isaac_Tower.rayCast(ent.Position,Vector(0,1),20,3)
@@ -1266,12 +1284,51 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 			tarVel.Y = (((grid.Position+Vector(0,-45))-ent.Position)/20).Y
 		end
 		ent.Velocity = ent.Velocity * 0.9 + tarVel * 0.1
-		if ent.FrameCount%4==0 then
-			Isaac.Spawn(Isaac_Tower.ENT.GIB.ID,Isaac_Tower.ENT.GIB.VAR,Isaac_Tower.ENT.GibSubType.SWEET)
+
+		if ent.FrameCount%10==0 then
+			local sw = Isaac.Spawn(Isaac_Tower.ENT.GIB.ID,Isaac_Tower.ENT.GIB.VAR,Isaac_Tower.ENT.GibSubType.BLOOD,
+				ent.Position+Vector(0,10),Vector((ent:GetDropRNG():RandomInt(21)-10)/10,0), ent)
+			sw:Update()
+			sw.DepthOffset = -40
+			sw:GetData().ml = true
+			sw:GetData().Color = nil
+		end
+		if spr:IsEventTriggered("shoot") then
+			local tarvec = (target.Position-ent.Position):Resized(7)
+			local e = Isaac_Tower.EnemyHandlers.FireProjectile(0,0, ent.Position, tarvec, ent)
+			e:GetData().TSJDNHC_GridColl = 1
 		end
 	end
 end
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyHorhLogic, "horh")
 
+
+---------------------------------------ПУЛЬКИ------------------------------------
+
+--blood
+Isaac_Tower.RegisterProj(0, "gfx/009.000_projectile.anm2", 10, {})
+function Isaac_Tower.ENT.LOGIC.BloodProjUpdate(_, ent)
+	local data = ent:GetData().Isaac_Tower_Data
+	local spr = ent:GetSprite()
+	if data.Gravity then
+		local grav = data.Gravity == true and 0.8 or data.Gravity
+		ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+grav))) or ent.Velocity
+	end
+	if ent:GetData().TSJDNHC_GridColl == 1 then
+		if data.OnGround or data.CollideWall or data.CollideCeiling then
+			Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.PROJECTILE_PRE_REMOVE, data.Type, ent)
+			ent:Remove()
+		end
+	end
+end
+mod:AddCallback(Isaac_Tower.Callbacks.PROJECTILE_POST_UPDATE, Isaac_Tower.ENT.LOGIC.BloodProjUpdate, 0)
+function Isaac_Tower.ENT.LOGIC.BloodProjInit(_, ent) --Зачем?
+	local spr = ent:GetSprite()
+	spr:Play("RegularTear6")
+end
+function Isaac_Tower.ENT.LOGIC.BloodProjRemove(_, ent)
+	Isaac.Spawn(1000,11,0,ent.Position,Vector.Zero,ent)
+end
+mod:AddCallback(Isaac_Tower.Callbacks.PROJECTILE_PRE_REMOVE, Isaac_Tower.ENT.LOGIC.BloodProjRemove, 0)
 
 end
