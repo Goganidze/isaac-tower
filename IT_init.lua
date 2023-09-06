@@ -1036,7 +1036,7 @@ Isaac_Tower.editor.AddEnemies("mid portal",
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,25)
-	ent.DepthOffset = -13
+	ent.DepthOffset = -70  -- -13
 	local d = ent:GetData().Isaac_Tower_Data
 	local x,y = d.SpawnXY.X, d.SpawnXY.Y
 	for i,k in pairs(Isaac_Tower.EnemyHandlers.GetRoomEnemies(true)) do
@@ -1294,7 +1294,7 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 			sw:GetData().Color = nil
 		end
 		if spr:IsEventTriggered("shoot") then
-			local tarvec = (target.Position-ent.Position):Resized(7)
+			local tarvec = (target.Position-ent.Position):Resized(11)
 			local e = Isaac_Tower.EnemyHandlers.FireProjectile(0,0, ent.Position, tarvec, ent)
 			e:GetData().TSJDNHC_GridColl = 1
 		end
@@ -1306,11 +1306,20 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.E
 ---------------------------------------ПУЛЬКИ------------------------------------
 
 --blood
-Isaac_Tower.RegisterProj(0, "gfx/009.000_projectile.anm2", 10, {})
+Isaac_Tower.RegisterProj(0, "gfx/009.000_projectile.anm2", 10, {HasTrailEffect = true})
 function Isaac_Tower.ENT.LOGIC.BloodProjUpdate(_, ent)
 	local data = ent:GetData().Isaac_Tower_Data
 	local spr = ent:GetSprite()
-	if data.Gravity then
+	if not ent.Child and data.Flags.HasTrailEffect then
+		ent.Child = Isaac.Spawn(1000,EffectVariant.SPRITE_TRAIL,0,ent.Position,Vector.Zero,ent)
+		ent.Child:ToEffect():FollowParent(ent)
+		ent.Child:ToEffect().MinRadius = 0.19
+
+		local Fcolor = Color(1,1,1,2) --Color(0.26*2,0.18*2,0.25*2,1)
+		Fcolor:SetColorize(0.56/2,0.18/2,0.25/2,1)
+		ent.Child.Color = Fcolor -- Color(0.26,0.18,0.25,1)
+	end
+	if data.Flags.Gravity then
 		local grav = data.Gravity == true and 0.8 or data.Gravity
 		ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+grav))) or ent.Velocity
 	end
@@ -1328,6 +1337,7 @@ function Isaac_Tower.ENT.LOGIC.BloodProjInit(_, ent) --Зачем?
 end
 function Isaac_Tower.ENT.LOGIC.BloodProjRemove(_, ent)
 	Isaac.Spawn(1000,11,0,ent.Position,Vector.Zero,ent)
+	if ent.Child then ent.Child:Die() end
 end
 mod:AddCallback(Isaac_Tower.Callbacks.PROJECTILE_PRE_REMOVE, Isaac_Tower.ENT.LOGIC.BloodProjRemove, 0)
 

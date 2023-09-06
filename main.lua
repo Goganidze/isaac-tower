@@ -2550,7 +2550,7 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 				local grid = Isaac_Tower.GridLists.Solid:GetGrid(ent.Position + Vector(0, 10) + ent.Velocity + k[1])
 
 				if grid then
-					if Isaac_Tower.ShouldCollide(ent, grid) then
+					if Isaac_Tower.ShouldCollide(ent, grid) and not grid.OnlyUp then
 						collidedGrid[grid] = collidedGrid[grid] or {}
 					end
 				end
@@ -2570,11 +2570,11 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 						or ((ent.Position.Y > hit.pos.Y or not data.slopeRot == sign(hit.delta.X))
 							and data.slopeRot == sign(hit.delta.X)) then
 						
-						ent.Position = Vector(ent.Position.X - hit.delta.X + ent.Velocity.X, ent.Position.Y)
+						--ent.Position = Vector(ent.Position.X - hit.delta.X + ent.Velocity.X, ent.Position.Y)
 					
-						if sign(ent.Velocity.X) == sign(hit.delta.X) then
-							ent.Velocity = Vector(0, ent.Velocity.Y)
-						end
+						--if sign(ent.Velocity.X) == sign(hit.delta.X) then
+						--	ent.Velocity = Vector(0, ent.Velocity.Y)
+						--end
 					end
 				end
 			end
@@ -2583,17 +2583,17 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 				local hitY = EnemyintersectAABB_Y(ent, ia)
 
 				if hitY and hitY.delta.Y ~= 0 then
-					if hitY.SmoothUp then
-						ent.Position = Vector(ent.Position.X, ent.Position.Y - hitY.delta.Y / math.max(1, (30 / math.abs(ent.Velocity.X)))) --10
-					else
-						if hitY.delta.Y > 0.0 then
-							hitY.delta.Y = math.max(0, hitY.delta.Y - 0.1 - ent.Velocity.Y)
-						end
-						ent.Position = ent.Position - Vector(0, hitY.delta.Y)
-					end
-					if hitY.SlopeAngle then
-						data.slopeAngle = hitY.SlopeAngle
-					end
+					--if hitY.SmoothUp then
+					--	ent.Position = Vector(ent.Position.X, ent.Position.Y - hitY.delta.Y / math.max(1, (30 / math.abs(ent.Velocity.X)))) --10
+					--else
+					--	if hitY.delta.Y > 0.0 then
+					--		hitY.delta.Y = math.max(0, hitY.delta.Y - 0.1 - ent.Velocity.Y)
+					--	end
+					--	ent.Position = ent.Position - Vector(0, hitY.delta.Y)
+					--end
+					--if hitY.SlopeAngle then
+					--	data.slopeAngle = hitY.SlopeAngle
+					--end
 				end
 			end
 			--local prePosition = ent.Position / 1
