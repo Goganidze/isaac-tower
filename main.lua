@@ -43,10 +43,14 @@ local function TabDeepCopy(tbl)
 end
 
 local function GenSprite(gfx, anim, frame)
-	if gfx and anim then
+	if gfx then
 		local spr = Sprite()
 		spr:Load(gfx, true)
-		spr:Play(anim)
+		if anim then
+			spr:Play(anim)
+		else
+			spr:Play(spr:GetDefaultAnimation())
+		end
 		if frame then
 			spr:SetFrame(frame)
 		end
@@ -113,6 +117,8 @@ for i,k in pairs(Isaac_TowerCallbacks) do
 end
 
 function Isaac_Tower.SetScale(num, noLerp) TSJDNHC_PT:SetScale(num, noLerp) end
+
+Isaac_Tower.FlayerHandlers = {}
 
 Isaac_Tower.ENT = {}
 Isaac_Tower.ENT.GIB = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_GibVariant}
@@ -265,6 +271,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		Obs = false,
 		Special = {},
 		Evri = {},
+		Bonus = {},
 		--Fake = {},
 	}
 	Isaac_Tower.GridLists.Solid = TSJDNHC_PT:MakeGridList(Vector(-40,100),newRoom.Size.Y,newRoom.Size.X, 40,40)
@@ -413,7 +420,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		for i, k in pairs(newRoom.Enemy) do
 			local data = Isaac_Tower.EnemyHandlers.Enemies[k.name]
 			if data then
-				Isaac_Tower.Spawn(k.name, k.st, k.pos*40 + Vector(-60,80-data.spawnOffset), Vector(0,0))
+				Isaac_Tower.Spawn(k.name, k.st, k.pos*20 + Vector(-60,80-data.spawnOffset), Vector(0,0))
 			end
 		end
 	end
@@ -955,6 +962,22 @@ function Isaac_Tower.GerNearestFlayer(pos)
 		end
 	end
 	return pls
+end
+
+do 
+	local num = 1
+	function Isaac_Tower.RegisterBonusPickup(name, gfx, anim, size, flags)
+		if name then
+			if size and type(size) ~= "number" then error("[3] is not a integer") end
+			if flags and type(flags) ~= "table" then error("[4] is not a table",2) end
+			Isaac_Tower.FlayerHandlers.BonusPickup[name] = {Name = name, gfx = gfx, anim = anim, Size = size, Flags = flags or {}}
+			local sprite = Sprite() sprite:Load(gfx,true) sprite:Play(anim)
+			local ingridSpr = GenSprite(gfx, anim)
+			ingridSpr.Scale = Vector(0.5,0.5)
+			Isaac_Tower.editor.AddBonusPickup("auto_"..name.."_"..num, sprite, name, ingridSpr, size)
+			num = num + 1
+		end
+	end
 end
 
 --.....................................................................................................

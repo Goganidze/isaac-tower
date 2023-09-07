@@ -1303,6 +1303,12 @@ end
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyHorhLogic, "horh")
 
 
+--------------------------------------ПИКАПЫ-БОНУСЫ----------------------------------------------
+
+Isaac_Tower.RegisterBonusPickup("ScoreUp1", "gfx/it_picks/scoreUps.anm2", "2", Vector(1,1), {})
+--Isaac_Tower.editor.AddBonusPickup("scoreUp1", GenSprite("gfx/it_picks/scoreUps.anm2"), "ScoreUp", ingridSpr, sizeTable)
+
+
 ---------------------------------------ПУЛЬКИ------------------------------------
 
 --blood

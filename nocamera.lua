@@ -1373,7 +1373,7 @@ function TSJDNHC:MakeGridList(pos,y,x,xs,ys) --y = столбцы, x = ячей�
 		end
 end
 
-function TSJDNHC.Grid.Delete(self) --оно не удаляет, только обрывает связи
+function TSJDNHC.Grid.Delete(self) --оно не удаляет, только обрывает ссылки
 	--self = nil
 	TSJDNHC.GridsList[self.ListID] = nil
 	for i,k in pairs(self) do

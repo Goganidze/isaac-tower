@@ -177,7 +177,7 @@ local function JumpButtonPressed(idx, fent)
 	return press
 end
 
-Isaac_Tower.FlayerHandlers = {}
+--Isaac_Tower.FlayerHandlers = {}
 
 function Isaac_Tower.FlayerHandlers.AnimWalk(spr, Walkanim, idleAnim, vel)
 	if math.abs(vel) < 0.1 then
