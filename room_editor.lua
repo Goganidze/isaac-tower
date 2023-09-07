@@ -682,6 +682,16 @@ function Isaac_Tower.editor.AddEnvironment(name, sprite, sprGenFunc, ingridSpr, 
 	end
 	--Isaac_Tower.editor.SpecialAnimNames[animName] = true
 end
+---@param name string
+---@param sprite Sprite
+---@param BonusName string
+---@param ingridSpr Sprite
+---@param sizeTable Vector
+function Isaac_Tower.editor.AddBonusObject(name, sprite, BonusName, ingridSpr, sizeTable)
+	if name and sprite then
+		Isaac_Tower.editor.GridTypes["Environment"][name] = {name = name, spr = sprite, info = BonusName, trueSpr = ingridSpr or sprite, size = sizeTable}
+	end
+end
 
 
 local IsaacTower_Type = Isaac.GetPlayerTypeByName("Isaac Tower")
@@ -2749,9 +2759,9 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 	local Gridscale = Isaac_Tower.editor.GridScale
 
 	local startPosRender = -Isaac_Tower.editor.GridStartPos/Gridscale - Vector(26*2,26*2)
-	local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(26/2)), math.ceil(startPosRender.Y/(26/2)))
+	local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(26/4)), math.ceil(startPosRender.Y/(26/4)))
 	local EndPosRender = -Isaac_Tower.editor.GridStartPos/Gridscale + Vector(26*2,26*2) + Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())/Gridscale
-	local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(26/2)), math.ceil(EndPosRender.Y/(26/2)))
+	local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(26/4)), math.ceil(EndPosRender.Y/(26/4)))
 
 	--local startPosRender = -Isaac_Tower.editor.GridStartPos - Vector(26*2,26*2)
 	--local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(26/2)), math.ceil(startPosRender.Y/(26/2)))
@@ -2766,9 +2776,9 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 		end
 
 		local algMousePos = Isaac_Tower.editor.MousePos - Isaac_Tower.editor.GridStartPos - mouseOffset
-		local xs,ys = math.floor(algMousePos.Y/(26/2)/Gridscale), math.floor(algMousePos.X/(26/2)/Gridscale)
-		if xs>=0 and ys>=0 and Isaac_Tower.editor.Memory.CurrentRoom.Size.Y-1>=xs and Isaac_Tower.editor.Memory.CurrentRoom.Size.X-1>=ys then
-			Isaac_Tower.editor.SelectedGrid = {xs+1, ys+1}
+		local xs,ys = math.floor(algMousePos.Y/(26/4)/Gridscale), math.floor(algMousePos.X/(26/4)/Gridscale)
+		if xs>=0 and ys>=0 and Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2-1>=xs and Isaac_Tower.editor.Memory.CurrentRoom.Size.X*2-1>=ys then
+			Isaac_Tower.editor.SelectedGrid = {xs+1+1, ys+1+1}
 		else
 			Isaac_Tower.editor.SelectedGrid = nil
 		end
@@ -2777,23 +2787,26 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 	local Col0GridScale
 	local enemScaleOffset = Vector(0,0)
 	if Gridscale ~= 1 then
-		Col0GridScale = Isaac_Tower.sprites.Col0Grid.Scale/1
-		Isaac_Tower.sprites.Col0Grid.Scale = Isaac_Tower.sprites.Col0Grid.Scale*Gridscale
-		Isaac_Tower.sprites.chosenGrid.Scale = Isaac_Tower.sprites.Col0Grid.Scale
+		Col0GridScale = Isaac_Tower.sprites.Col0GridHalf.Scale/1
+		Isaac_Tower.sprites.Col0GridHalf.Scale = Isaac_Tower.sprites.Col0GridHalf.Scale*Gridscale
+		Isaac_Tower.sprites.chosenGridHalf.Scale = Isaac_Tower.sprites.Col0GridHalf.Scale
 		enemScaleOffset = Vector(13,13)/2*(Gridscale-1)
 	end
 
 	local list = Isaac_Tower.editor.Memory.CurrentRoom.Enemies
-	for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y) do  --for y=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y do
-		local ypos = 26*(y-1)/2
-		for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.editor.Memory.CurrentRoom.Size.X) do  --for x=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.X do
-			local xr = x-1
-			local renderpos = IsSelected and Isaac_Tower.editor.GridStartPos + Vector(xr*26/2, ypos)*Gridscale
+	--for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y) do  --for y=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y do
+	--	local ypos = 26*(y-1)/2
+	--	for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.editor.Memory.CurrentRoom.Size.X) do  --for x=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.X do
+	for y=math.max(2,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2) do
+		local ypos = 26*(y-2)/4
+		for x=math.max(2,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.editor.Memory.CurrentRoom.Size.X*2) do
+			local xr = x-1-1
+			local renderpos = IsSelected and Isaac_Tower.editor.GridStartPos + Vector(xr*26/4, ypos)*Gridscale
 			local grid = list[y] and list[y][x]
 
 			if grid then
 				if not IsSelected then
-					renderpos =Isaac_Tower.editor.GridStartPos + Vector(xr*26/2, ypos)*Gridscale 
+					renderpos =Isaac_Tower.editor.GridStartPos + Vector(xr*26/4, ypos)*Gridscale 
 				else
 					if grid.Parent and not (list[grid.Parent.Y] and list[grid.Parent.Y][grid.Parent.X]) then
 						list[y][x] = nil
@@ -2810,11 +2823,11 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 
 			if IsSelected then
 				local selGrid = Isaac_Tower.editor.SelectedGrid and Isaac_Tower.editor.SelectedGrid[1] == y and Isaac_Tower.editor.SelectedGrid[2] == x
-				Isaac_Tower.sprites.Col0Grid:Render(renderpos)
+				Isaac_Tower.sprites.Col0GridHalf:Render(renderpos)
 				
 				if Isaac_Tower.editor.SelectedMenu == "grid" and not Isaac_Tower.editor.BlockPlaceGrid
 				and selGrid and not Isaac_Tower.game:IsPaused() then
-					Isaac_Tower.sprites.chosenGrid:Render(renderpos)
+					Isaac_Tower.sprites.chosenGridHalf:Render(renderpos)
 
 					local pGrid = Isaac_Tower.editor.GridTypes.Enemies[Isaac_Tower.editor.SelectedGridType or ""]
 					if pGrid then
@@ -2850,15 +2863,24 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 			end
 		end
 	end
+	if IsSelected and Isaac_Tower.RG then
+		local endPos = (Isaac_Tower.editor.GridStartPos)+Isaac_Tower.editor.Memory.CurrentRoom.Size*(26/2)*Gridscale
+		Isaac_Tower.editor.RenderGrid(Isaac_Tower.editor.GridStartPos,26/4*Gridscale,26/4*Gridscale,endPos.X,endPos.Y,Gridscale)
+		if Isaac_Tower.editor.SelectedGrid then
+			local xr,yr = Isaac_Tower.editor.SelectedGrid[2]-2, Isaac_Tower.editor.SelectedGrid[1]-2
+			local RenderPos = Isaac_Tower.editor.GridStartPos + Vector(xr*26/4, yr*26/4)*Gridscale
+			Isaac_Tower.sprites.chosenGridHalf:Render(RenderPos)
+		end
+	end
 	if Col0GridScale then
-		Isaac_Tower.sprites.Col0Grid.Scale = Col0GridScale
-		Isaac_Tower.sprites.chosenGrid.Scale = Col0GridScale
+		Isaac_Tower.sprites.Col0GridHalf.Scale = Col0GridScale
+		Isaac_Tower.sprites.chosenGridHalf.Scale = Col0GridScale
 	end
 	if IsSelected and Isaac_Tower.editor.SelectedGrid then
 		local pGrid = Isaac_Tower.editor.GridTypes.Enemies[Isaac_Tower.editor.SelectedGridType]
 		if pGrid then
 			local y,x = Isaac_Tower.editor.SelectedGrid[1], Isaac_Tower.editor.SelectedGrid[2]
-			local renderpos = Isaac_Tower.editor.GridStartPos + Vector((x-1)*26/2, 26*(y-1)/2)*Gridscale
+			local renderpos = Isaac_Tower.editor.GridStartPos + Vector((x-2)*26/4, 26*(y-2)/4)*Gridscale
 			
 			if (list[y] and list[y][x]) or pGrid.size and not CheckEmpty(list, Vector(x,y), pGrid.size) then
 				pGrid.trueSpr.Color = Color(2,0.5,0.5,0.5)

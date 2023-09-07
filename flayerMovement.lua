@@ -1063,6 +1063,7 @@ function Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, target)
 end
 function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 	local data = ent:GetData().Isaac_Tower_Data
+	if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
 	if not ent:GetData().Isaac_Tower_Data.Flags.Invincibility
 	and (not fent.DamageSource or fent.DamageSource.Index and fent.DamageSource.Index ~= ent.Index) then
 
