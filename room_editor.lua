@@ -646,8 +646,11 @@ function Isaac_Tower.editor.AddObstacle(name, animName, sprite, data, ingridSpr,
 end
 function Isaac_Tower.editor.AddEnemies(name, sprite, Enemyname, subtype, ingridSpr)
     if name and sprite and Enemyname then
-		Isaac_Tower.editor.GridTypes["Enemies"][name] = {spr = sprite, info = {Enemyname, subtype}, trueSpr = ingridSpr or sprite, size = Vector(2,2)}
-    end
+		Isaac_Tower.editor.GridTypes["Enemies"][name] = {spr = sprite, info = {Enemyname, subtype}, 
+			trueSpr = ingridSpr or sprite, size = Vector(2,2), group = "Enemies"}
+		--Isaac_Tower.editor.Overlay.menus.groups = {}
+		--SafePlacingTable(Isaac_Tower.editor.Overlay.menus,"Enemies","groups","Enemies")[name] = true
+	end
     --Isaac_Tower.editor.ObsAnimNames[animName] = true
 end
 function Isaac_Tower.editor.AddSpecial(name, animName, sprite, data, ingridSpr)
@@ -694,7 +697,10 @@ end
 ---@param sizeTable Vector
 function Isaac_Tower.editor.AddBonusPickup(name, sprite, BonusName, ingridSpr, sizeTable)
 	if name and sprite then
-		Isaac_Tower.editor.GridTypes["Bonus"][name] = {name = name, spr = sprite, info = BonusName, trueSpr = ingridSpr or sprite, size = sizeTable}
+		--Isaac_Tower.editor.GridTypes["Bonus"][name] = {name = name, spr = sprite, info = BonusName, trueSpr = ingridSpr or sprite, size = sizeTable}
+		SafePlacingTable(Isaac_Tower.editor.GridTypes,"Enemies")[name] = {name = name, spr = sprite, 
+			info = BonusName, trueSpr = ingridSpr or sprite, size = sizeTable, group = "Bonus"}
+		--SafePlacingTable(Isaac_Tower.editor.Overlay.menus,"Enemies","groups","Bonus")[name] = true
 	end
 end
 
@@ -2767,9 +2773,9 @@ end)
 Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","оверлей_иконки",4), function(IsSelected, self)
 	local Gridscale = Isaac_Tower.editor.GridScale
 	local overlayData = self --Isaac_Tower.editor.GetOverlay("Grid")
-	if not overlayData.lists then
-		overlayData.lists = {"Enemies","Bonus"}
-	end
+	--if not overlayData.lists then
+	--	overlayData.lists = {"Enemies","Bonus"}
+	--end
 
 	local startPosRender = -Isaac_Tower.editor.GridStartPos/Gridscale - Vector(26*2,26*2)
 	local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(26/4)), math.ceil(startPosRender.Y/(26/4)))
@@ -2785,7 +2791,7 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 		local mouseOffset = Vector(0,0)
 		local pGrid = Isaac_Tower.editor.GridTypes.Enemies[Isaac_Tower.editor.SelectedGridType or ""]
 		if pGrid and pGrid.size and pGrid.size.X then
-			mouseOffset = pGrid.size*13/4
+			mouseOffset = pGrid.size*13/4*Gridscale
 		end
 
 		local algMousePos = Isaac_Tower.editor.MousePos - Isaac_Tower.editor.GridStartPos - mouseOffset
@@ -2847,7 +2853,7 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 	local Flist = overlayData.lists
 	local main = Flist[self.Layer+1]
 	local list = lists[main]
-	local list = Isaac_Tower.editor.Memory.CurrentRoom.Enemies
+	--local list = Isaac_Tower.editor.Memory.CurrentRoom.Enemies
 	--for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y) do  --for y=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y do
 	--	local ypos = 26*(y-1)/2
 	--	for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.editor.Memory.CurrentRoom.Size.X) do  --for x=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.X do
@@ -2858,6 +2864,28 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 			local renderpos = IsSelected and Isaac_Tower.editor.GridStartPos + Vector(xr*26/4, ypos)*Gridscale
 			local grid = list[y] and list[y][x]
 
+			for l=1,#Flist do
+				if main ~= Flist[l] then
+					local list = lists[Flist[l]]
+					local grid = list[y] and list[y][x]
+					if grid then
+						if not IsSelected then
+							renderpos =Isaac_Tower.editor.GridStartPos + Vector(xr*26/4, ypos)*Gridscale 
+						else
+							if grid.Parent and not (list[grid.Parent.Y] and list[grid.Parent.Y][grid.Parent.X]) then
+								list[y][x] = nil
+							end
+						end
+						
+						if grid.sprite then
+							local scale = grid.sprite.Scale/1
+							grid.sprite.Scale = Vector(0.5, 0.5)*Gridscale
+							grid.sprite:Render(renderpos+enemScaleOffset)
+							grid.sprite.Scale = scale
+						end
+					end
+				end
+			end
 			if grid then
 				if not IsSelected then
 					renderpos =Isaac_Tower.editor.GridStartPos + Vector(xr*26/4, ypos)*Gridscale 
@@ -2948,7 +2976,7 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 			
 			local trueScale = pGrid.trueSpr.Scale/1
 			pGrid.trueSpr.Scale = Vector(0.5, 0.5)*Gridscale
-			pGrid.trueSpr:Render(renderpos)
+			pGrid.trueSpr:Render(renderpos+enemScaleOffset)
 			pGrid.trueSpr.Color = Color.Default
 			pGrid.trueSpr.Scale = trueScale
 		end
@@ -2972,6 +3000,27 @@ end, nil, function(str)
 				solidTab = solidTab .. "  {pos=Vector(" .. math.ceil(pos.X) .. "," .. math.ceil(pos.Y) .. ")," 
 				solidTab = solidTab.."name='" .. grid.info[1] .. "',"
 				solidTab = solidTab.."st=" .. grid.info[2] .. ","
+				--EditorType
+				solidTab = solidTab .. "EditorType='" .. grid.type .. "',"
+				solidTab = solidTab .. "},\n"
+			end
+
+		end
+	end
+	str = str .. solidTab .. "},"
+
+	str = str .. "\nBonus={\n"
+	local solidTab = "" --  gfx='gfx/fakegrid/tutorial.png',\n"
+	
+	for y=2, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2 do
+		local ycol = Isaac_Tower.editor.Memory.CurrentRoom.Bonus[y]
+		for x=2, Isaac_Tower.editor.Memory.CurrentRoom.Size.X*2 do
+			local grid = ycol and ycol[x]
+			
+			if grid and grid.info then
+				local pos = Vector(x,y)
+				solidTab = solidTab .. "  {pos=Vector(" .. math.ceil(pos.X) .. "," .. math.ceil(pos.Y) .. ")," 
+				solidTab = solidTab.."name='" .. grid.info .. "',"
 				--EditorType
 				solidTab = solidTab .. "EditorType='" .. grid.type .. "',"
 				solidTab = solidTab .. "},\n"
@@ -4717,93 +4766,160 @@ end
 do
 	local Enemiesmenu = Isaac_Tower.editor.GetOverlay("Enemies")
 	Enemiesmenu.Layer = 0
+	Enemiesmenu.lists = {"Enemies","Bonus"}
+	local SelectedTiles = {}
 	Enemiesmenu.CustomGenTileList = function(menuName, page)
 		local StartPos = Vector(Isaac.GetScreenWidth()/2, Isaac.GetScreenHeight()/2) - Vector(200, 160)
 		local Flist = Enemiesmenu.lists
 		local main = Flist[Enemiesmenu.Layer+1]
-		Isaac_Tower.editor.BasicGenGridListMenuBtn(main, page)
+		--Isaac_Tower.editor.BasicGenGridListMenuBtn(main, page)
 
-		local pos = StartPos + Vector(80, 256)
-		local SolidMode1
-		SolidMode1 = Isaac_Tower.editor.AddButton("GridList", "SolidMode1", pos+Vector(0,-16), 17, 28, UIs.GridOverlayTab1(), function(button) 
-			if button ~= 0 then return end
-			Enemiesmenu.Layer = 0
-			Isaac_Tower.editor.GridListMenuPage = 1
-			Isaac_Tower.editor.BasicGenGridListMenuBtn(Flist[Enemiesmenu.Layer+1], Isaac_Tower.editor.GridListMenuPage)
-		end, function(pos)
-			local off = Vector(0,9)
-			if Enemiesmenu.Layer == 0 then
-				off.Y = 7
-				if SolidMode1.spr:GetAnimation() ~= "вкладка2" then
-					local frame = SolidMode1.spr:GetFrame()
-					SolidMode1.spr = UIs.GridOverlayTab2()
-					SolidMode1.spr:SetFrame(frame)
-				end
-				UIs.EnemiesMode1:SetFrame(SolidMode1.spr:GetFrame())
-				UIs.EnemiesMode1:Render(pos+off)
-			else
-				UIs.EnemiesMode1:SetFrame(SolidMode1.spr:GetFrame())
-				UIs.EnemiesMode1:Render(pos+off)
-				if SolidMode1.spr:GetAnimation() ~= "вкладка1" then
-					local frame = SolidMode1.spr:GetFrame()
-					SolidMode1.spr = UIs.GridOverlayTab1()
-					SolidMode1.spr:SetFrame(frame)
-				end
-			end
-		end)
-		local SolidMode2
-		SolidMode2 = Isaac_Tower.editor.AddButton("GridList", "SolidMode2", pos+Vector(17,-16), 17, 28, UIs.GridOverlayTab1(), function(button) 
-			if button ~= 0 then return end
-			Enemiesmenu.Layer = 1
-			Isaac_Tower.editor.GridListMenuPage = 1
-			Isaac_Tower.editor.BasicGenGridListMenuBtn(Flist[Enemiesmenu.Layer+1], Isaac_Tower.editor.GridListMenuPage)
-		end, function(pos)
-			local off = Vector(0,9)
-			if Enemiesmenu.Layer == 1 then
-				off.Y = 7
-				if SolidMode2.spr:GetAnimation() ~= "вкладка2" then
-					local frame = SolidMode2.spr:GetFrame()
-					SolidMode2.spr = UIs.GridOverlayTab2()
-					SolidMode2.spr:SetFrame(frame)
-				end
-				UIs.EnemiesMode2:SetFrame(SolidMode2.spr:GetFrame())
-				UIs.EnemiesMode2:Render(pos+off)
-			else
-				UIs.EnemiesMode2:SetFrame(SolidMode2.spr:GetFrame())
-				UIs.EnemiesMode2:Render(pos+off)
-				if SolidMode2.spr:GetAnimation() ~= "вкладка1" then
-					local frame = SolidMode2.spr:GetFrame()
-					SolidMode2.spr = UIs.GridOverlayTab1()
-					SolidMode2.spr:SetFrame(frame)
+		----------------
+			local StartPos = Vector(Isaac.GetScreenWidth() / 2, Isaac.GetScreenHeight() / 2) - Vector(200, 160)
+			Isaac_Tower.editor.MenuData["GridList"] = { sortList = {}, Buttons = {} }
+
+			local CurGroup = Flist[Enemiesmenu.Layer+1]
+			if Isaac_Tower.editor.TilesListMenus[menuName][CurGroup][page] then
+				for i = 1, 15 do
+					local grid = Isaac_Tower.editor.TilesListMenus[menuName][CurGroup][page][i]
+
+					if grid and grid.type then
+						local pos = StartPos + grid.pos
+						Isaac_Tower.editor.AddButton("GridList", i, pos, 48, 48, UIs.Box48(), function(button)
+							if button ~= 0 then return end
+							Isaac_Tower.editor.Overlay.menus[menuName].selectedTile = grid.type
+							Isaac_Tower.editor.SelectedGridType = grid.type
+
+							local menu = Isaac_Tower.editor.GridTypes[Isaac_Tower.editor.Overlay.selectedMenu]
+							if menu then
+								local grid = menu[Isaac_Tower.editor.Overlay.menus[menuName].selectedTile]
+								if grid and grid.spr then
+									Isaac_Tower.editor.Overlay.SelectedTileSprite = grid.spr
+								end
+							end
+						end, function(pos)
+							if grid.sprite then
+								grid.sprite:Render(pos + Vector(12, 12))
+							end
+						end)
+					else
+						Isaac_Tower.editor.RemoveButton("GridList", i)
+					end
 				end
 			end
-		end)
+			if Isaac_Tower.editor.TilesListMenus[menuName][CurGroup][page - 1] then
+				local pos = StartPos + Vector(25, 240)
+				Isaac_Tower.editor.AddButton("GridList", "pre", pos, 32, 32, UIs.PrePage(), function(button)
+					if button ~= 0 then return end
+					Isaac_Tower.editor.GridListMenuPage = page - 1
+					Isaac_Tower.editor.GenGridListMenuBtn(Isaac_Tower.editor.Overlay.selectedMenu,
+						Isaac_Tower.editor.GridListMenuPage)
+				end, nil)
+			else
+				Isaac_Tower.editor.RemoveButton("GridList", "pre")
+			end
+			if Isaac_Tower.editor.TilesListMenus[menuName][CurGroup][page + 1] then
+				local pos = StartPos + Vector(350, 240)
+				Isaac_Tower.editor.AddButton("GridList", "next", pos, 32, 32, UIs.NextPage(), function(button)
+					if button ~= 0 then return end
+					Isaac_Tower.editor.GridListMenuPage = page + 1
+					Isaac_Tower.editor.GenGridListMenuBtn(Isaac_Tower.editor.Overlay.selectedMenu,
+						Isaac_Tower.editor.GridListMenuPage)
+				end, nil)
+			else
+				Isaac_Tower.editor.RemoveButton("GridList", "next")
+			end
+		---------------------
+
+		local function Buttons()
+
+			local pos = StartPos + Vector(80, 256)
+			local SolidMode1
+			SolidMode1 = Isaac_Tower.editor.AddButton("GridList", "SolidMode1", pos+Vector(0,-16), 17, 28, UIs.GridOverlayTab1(), function(button) 
+				if button ~= 0 then return end
+				SelectedTiles[Enemiesmenu.Layer] = Isaac_Tower.editor.SelectedGridType
+				Enemiesmenu.Layer = 0
+				Isaac_Tower.editor.GridListMenuPage = 1
+				--Isaac_Tower.editor.BasicGenGridListMenuBtn(Flist[Enemiesmenu.Layer+1], Isaac_Tower.editor.GridListMenuPage)
+				Enemiesmenu.CustomGenTileList(menuName, Isaac_Tower.editor.GridListMenuPage)
+				Buttons()
+				if SelectedTiles[Enemiesmenu.Layer] then
+					Isaac_Tower.editor.SelectedGridType = SelectedTiles[Enemiesmenu.Layer]
+					Isaac_Tower.editor.Overlay.SelectedTileSprite = 
+						Isaac_Tower.editor.GridTypes[menuName][Isaac_Tower.editor.SelectedGridType].spr
+				end
+			end, function(pos)
+				local off = Vector(0,9)
+				if Enemiesmenu.Layer == 0 then
+					off.Y = 7
+					if SolidMode1.spr:GetAnimation() ~= "вкладка2" then
+						local frame = SolidMode1.spr:GetFrame()
+						SolidMode1.spr = UIs.GridOverlayTab2()
+						SolidMode1.spr:SetFrame(frame)
+					end
+					UIs.EnemiesMode1:SetFrame(SolidMode1.spr:GetFrame())
+					UIs.EnemiesMode1:Render(pos+off)
+				else
+					UIs.EnemiesMode1:SetFrame(SolidMode1.spr:GetFrame())
+					UIs.EnemiesMode1:Render(pos+off)
+					if SolidMode1.spr:GetAnimation() ~= "вкладка1" then
+						local frame = SolidMode1.spr:GetFrame()
+						SolidMode1.spr = UIs.GridOverlayTab1()
+						SolidMode1.spr:SetFrame(frame)
+					end
+				end
+			end)
+			local SolidMode2
+			SolidMode2 = Isaac_Tower.editor.AddButton("GridList", "SolidMode2", pos+Vector(17,-16), 17, 28, UIs.GridOverlayTab1(), function(button) 
+				if button ~= 0 then return end
+				SelectedTiles[Enemiesmenu.Layer] = Isaac_Tower.editor.SelectedGridType
+				Enemiesmenu.Layer = 1
+				Isaac_Tower.editor.GridListMenuPage = 1
+				--Isaac_Tower.editor.BasicGenGridListMenuBtn(Flist[Enemiesmenu.Layer+1], Isaac_Tower.editor.GridListMenuPage)
+				Enemiesmenu.CustomGenTileList(menuName, Isaac_Tower.editor.GridListMenuPage)
+				Buttons()
+				if SelectedTiles[Enemiesmenu.Layer] then
+					Isaac_Tower.editor.SelectedGridType = SelectedTiles[Enemiesmenu.Layer]
+					Isaac_Tower.editor.Overlay.SelectedTileSprite = Isaac_Tower.editor.GridTypes[menuName][Isaac_Tower.editor.SelectedGridType].spr
+				end
+			end, function(pos)
+				local off = Vector(0,9)
+				if Enemiesmenu.Layer == 1 then
+					off.Y = 7
+					if SolidMode2.spr:GetAnimation() ~= "вкладка2" then
+						local frame = SolidMode2.spr:GetFrame()
+						SolidMode2.spr = UIs.GridOverlayTab2()
+						SolidMode2.spr:SetFrame(frame)
+					end
+					UIs.EnemiesMode2:SetFrame(SolidMode2.spr:GetFrame())
+					UIs.EnemiesMode2:Render(pos+off)
+				else
+					UIs.EnemiesMode2:SetFrame(SolidMode2.spr:GetFrame())
+					UIs.EnemiesMode2:Render(pos+off)
+					if SolidMode2.spr:GetAnimation() ~= "вкладка1" then
+						local frame = SolidMode2.spr:GetFrame()
+						SolidMode2.spr = UIs.GridOverlayTab1()
+						SolidMode2.spr:SetFrame(frame)
+					end
+				end
+			end)
+		end
+		Buttons()
 	end
+
 	Enemiesmenu.CustomPreGenTileList = function(menuName)
 		Isaac_Tower.editor.TilesListMenus[menuName] = {}
-		local num = 0
+		local num = {} --0
 		for i, k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
-			num = num + 1
-			local page = math.ceil(num / 15)
-			Isaac_Tower.editor.TilesListMenus[menuName][page] = Isaac_Tower.editor.TilesListMenus[menuName][page] or
-			{}
-			local xpos, ypos = (num - 1) % 5 + 1, math.ceil(((num - 1) % 15 + 1) / 5)
-			Isaac_Tower.editor.TilesListMenus[menuName][page][(num - 1) % 15 + 1] = {
-				pos = Vector(60 * xpos, 60 * ypos), --Vector(52*xpos, 49*ypos),
-				sprite = k.spr,
-				type = i,
-			}
-		end
-		local menuName = "Bonus"
-		Isaac_Tower.editor.TilesListMenus[menuName] = {}
-		local num = 0
-		for i, k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
-			num = num + 1
-			local page = math.ceil(num / 15)
-			Isaac_Tower.editor.TilesListMenus[menuName][page] = Isaac_Tower.editor.TilesListMenus[menuName][page] or
-			{}
-			local xpos, ypos = (num - 1) % 5 + 1, math.ceil(((num - 1) % 15 + 1) / 5)
-			Isaac_Tower.editor.TilesListMenus[menuName][page][(num - 1) % 15 + 1] = {
+		--for name, bol in pairs(Enemiesmenu.groups[Enemiesmenu.lists[Enemiesmenu.Layer+1] ]) do
+			--local k = Isaac_Tower.editor.GridTypes[menuName][name]
+			num[k.group] = num[k.group] or 0
+			num[k.group] = num[k.group] + 1
+			local nbum = num[k.group]
+			
+			local page = math.ceil(nbum / 15)
+			local xpos, ypos = (nbum - 1) % 5 + 1, math.ceil(((nbum - 1) % 15 + 1) / 5)
+			SafePlacingTable(Isaac_Tower.editor.TilesListMenus,menuName,k.group,page)[(nbum - 1) % 15 + 1] = {
 				pos = Vector(60 * xpos, 60 * ypos), --Vector(52*xpos, 49*ypos),
 				sprite = k.spr,
 				type = i,
@@ -4903,6 +5019,7 @@ function Isaac_Tower.editor.PreGenerateGridListMenu(menuName)
 			else
 				Isaac_Tower.editor.TilesListMenus[name] = {}
 				local num = 0
+				print(name)
 				for i,k in pairs(Isaac_Tower.editor.GridTypes[name]) do
 					
 					num = num + 1

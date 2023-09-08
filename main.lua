@@ -118,7 +118,7 @@ end
 
 function Isaac_Tower.SetScale(num, noLerp) TSJDNHC_PT:SetScale(num, noLerp) end
 
-Isaac_Tower.FlayerHandlers = {}
+Isaac_Tower.FlayerHandlers = { BonusPickup = {} }
 
 Isaac_Tower.ENT = {}
 Isaac_Tower.ENT.GIB = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_GibVariant}
@@ -402,7 +402,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			end
 		end
 		for i, k in pairs(fakelist) do
-			list.List[i] = {pos = k.pos, spr = k.spr, l = 0}
+			local id = #list.List+1
+			list.List[id] = {pos = k.pos, spr = k.spr, l = 0}
 			local layer = "fake"
 
 			list[layer] = list[layer] or {}
@@ -411,7 +412,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				gridlist[index[1] ] = gridlist[index[1] ] or {}
 				gridlist[index[1] ][index[2] ] = gridlist[index[1] ][index[2] ] or {}
 				gridlist[index[1] ][index[2] ].Ps = gridlist[index[1] ][index[2] ].Ps or {}
-				gridlist[index[1] ][index[2] ].Ps[i] = true
+				gridlist[index[1] ][index[2] ].Ps[id] = true
 			end
 		end
 	end
@@ -968,7 +969,7 @@ do
 	local num = 1
 	function Isaac_Tower.RegisterBonusPickup(name, gfx, anim, size, flags)
 		if name then
-			if size and type(size) ~= "number" then error("[3] is not a integer") end
+			if size and type(size) ~= "userdata" then error("[3] is not a integer",2) end
 			if flags and type(flags) ~= "table" then error("[4] is not a table",2) end
 			Isaac_Tower.FlayerHandlers.BonusPickup[name] = {Name = name, gfx = gfx, anim = anim, Size = size, Flags = flags or {}}
 			local sprite = Sprite() sprite:Load(gfx,true) sprite:Play(anim)
@@ -3428,3 +3429,70 @@ if reloadData then
 		Isaac_Tower.OpenEditor()
 	end
 end
+
+--[[
+local TrinketID = Isaac.GetTrinketIdByName("А какое название?")
+
+local function tearsUp(firedelay, val)  --Скорострельность вычисляется через эту формулу
+	local currentTears = 30 / (firedelay + 1)
+	local newTears = currentTears + val
+	return math.max((30 / newTears) - 1, -0.99)
+end
+
+function mod:TrinketNewRoom() --Эта функция вызывается после смены комнаты
+	for i=0, Game():GetNumPlayers()-1 do --Цикл, в котором проходимся по всем игрокам
+		local player = Isaac.GetPlayer(i)
+		if player:HasTrinket(TrinketID) then
+			local data = player:GetData()
+			--local TrinkRNG = player:GetTrinketRNG(1)
+			local TrinkRNG = RNG()  --RNG отвечает за неслучайную случайность
+			TrinkRNG:SetSeed(Game():GetLevel():GetCurrentRoomDesc().SpawnSeed+player.InitSeed, 35) --Сид, который отвечает за рандом
+			data.PeremenuyEto = 1 << TrinkRNG:RandomInt(6)
+			player:AddCacheFlags(CacheFlag.CACHE_ALL)  --Добавляются флаги, чтобы указать какие статы перевычислятся
+			player:EvaluateItems() --Эта функция вызывает перевычисление статов
+		end
+	end
+end
+mod:AddCallback(ModCallbacks.MC_POST_NEW_ROOM, mod.TrinketNewRoom)
+
+local statUp = 0.1
+function mod:TrinketBonus(player, cache) --Эта функция вызывается при перевычисление статов
+	local data = player:GetData()
+	if data and data.PeremenuyEto and player:HasTrinket(TrinketID) then
+		if cache == data.PeremenuyEto or cache == CacheFlag.CACHE_LUCK then
+			local multi = player:GetTrinketMultiplier(TrinketID)
+			if cache == CacheFlag.CACHE_SPEED then --SPEED
+				player.MoveSpeed = player.MoveSpeed + statUp*multi
+			elseif cache == CacheFlag.CACHE_DAMAGE  then --DAMAGE
+				player.Damage = player.Damage + statUp*multi
+			elseif cache == CacheFlag.CACHE_FIREDELAY then --FIREDELAY
+				player.MaxFireDelay = tearsUp(player.MaxFireDelay, statUp*multi)
+			elseif cache == CacheFlag.CACHE_RANGE then --RANGE
+				player.TearRange = player.TearRange + statUp*40*multi
+			elseif cache == CacheFlag.CACHE_SHOTSPEED then --SHOTSPEED
+				player.ShotSpeed = player.ShotSpeed + statUp*multi
+			elseif cache == CacheFlag.CACHE_LUCK and data.PeremenuyEto == CacheFlag.CACHE_TEARFLAG then --LUCK
+				player.Luck = player.Luck + statUp*multi
+			end
+		end
+	end
+end
+mod:AddCallback(ModCallbacks.MC_EVALUATE_CACHE, mod.TrinketBonus)
+
+function mod:CheckTrinketHold(player) --Эта функция вызывается каждый кадр для каждого игрока
+	local data = player:GetData()
+	if player:HasTrinket(TrinketID) then
+		if not data.PeremenuyEto then --Если есть брелок, но нет статов, то есть поднятие брелока
+			local TrinkRNG = RNG()
+			TrinkRNG:SetSeed(Game():GetLevel():GetCurrentRoomDesc().SpawnSeed+player.InitSeed, 35)
+			data.PeremenuyEto = 1 << TrinkRNG:RandomInt(6)
+			player:AddCacheFlags(data.PeremenuyEto)
+			player:EvaluateItems()
+		end
+	elseif not player:HasTrinket(TrinketID) and data.PeremenuyEto then --Если нету есть брелока, но есть статы, то есть потеря брелока
+		player:AddCacheFlags(data.PeremenuyEto)
+		data.PeremenuyEto = nil
+		player:EvaluateItems()
+	end
+end
+mod:AddCallback(ModCallbacks.MC_POST_PEFFECT_UPDATE, mod.CheckTrinketHold)]]

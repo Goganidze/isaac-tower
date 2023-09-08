@@ -1885,6 +1885,9 @@ ObsList={
   {pos=Vector(113,63),Type='kick_breakable',Collision=1,EditorType='kick_breakable',},
   {pos=Vector(113,65),Type='kick_breakable',Collision=1,EditorType='kick_breakable',},
 },
+Bonus={
+  {pos=Vector(20,55),name='ScoreUp1',EditorType='auto_ScoreUp1_1',},
+},
 } Isaac_Tower.AddRoom(roomdata)
 
 end
