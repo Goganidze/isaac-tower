@@ -58,6 +58,19 @@ local function GenSprite(gfx, anim, frame)
 	end
 end
 
+---@return table
+local function SafePlacingTable(tab,...)
+	tab = tab or {}
+	local itab = tab
+	for i,k in pairs({...}) do
+		if not itab[k] then
+			itab[k] = {}
+		end
+		itab = itab[k]
+	end
+	return itab
+end
+
 if Renderer then
 	Isaac_Tower.RG = true
 end
@@ -110,6 +123,9 @@ local Isaac_TowerCallbacks = {
 	PROJECTILE_POST_UPDATE = {},
 	PROJECTILE_POST_RENDER = {},
 	PROJECTILE_PRE_REMOVE = {},
+	BONUSPICKUP_INIT = {},
+	BONUSPICKUP_RENDER = {},
+	BONUSPICKUP_COLLISION = {},
 }
 
 for i,k in pairs(Isaac_TowerCallbacks) do
@@ -222,17 +238,23 @@ function Isaac_Tower.AddRoom(tab)
   end
 end
 
-local function GetLinkedGrid(grid, pos, size, fill)
+local function GetLinkedGrid(grid, pos, size, fill, sizeY)
 	if size and pos then
 		local tab = {}
 		local Sx,Sy = pos.X,pos.Y
 		for i=1, size.Y do
 			for j=1, size.X do
 				if i ~= 1 or j ~= 1 then
-					local index = tostring(math.ceil(Sx+j-1)) .. "." .. tostring(math.ceil(Sy+i-1))
+					--local index = tostring(math.ceil(Sx+j-1)) .. "." .. tostring(math.ceil(Sy+i-1))
+					local index 
+					if sizeY then
+						index = (Sy+i-1) * sizeY + (Sx+j-1)
+					else
+						index = Vector(Sy+i-1, Sx+j-1)
+					end
 					local Hasgrid = grid[index]
 					if Hasgrid or fill then
-						tab[#tab+1] = {index}
+						tab[#tab+1] = index
 					end
 				end
 			end
@@ -425,6 +447,30 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			end
 		end
 	end
+	if newRoom.Bonus then
+		Isaac_Tower.GridLists.Bonus.Grid = {}
+		Isaac_Tower.GridLists.Bonus.Ref = {}
+		for i, k in pairs(newRoom.Bonus) do
+			local data = Isaac_Tower.FlayerHandlers.BonusPickup[k.name]
+			if data then
+				--Isaac_Tower.Spawn(k.name, k.st, k.pos*20 + Vector(-60,80-data.spawnOffset), Vector(0,0))
+				--for i,k in pairs(data) do
+				--	print(i,k)
+				--end
+				local spr = GenSprite(data.gfx, data.anim)
+				local x,y = k.pos.X, k.pos.Y
+				local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y)[x]
+				grid = { Sprite = spr, Position = k.pos, RenderPos = (k.pos*40 + Vector(-60,80))/Wtr,
+					Exists = true, Type = data.Name, CH = {}, Ref = #Isaac_Tower.GridLists.Bonus.Ref+1}
+				for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Bonus.Grid,
+				k.pos, data.Size, true)) do
+					SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid)[k.Y][k.X] = {Parent = #Isaac_Tower.GridLists.Bonus.Ref+1}
+					grid.CH[#grid.CH+1] = k
+				end
+				Isaac_Tower.GridLists.Bonus.Ref[#Isaac_Tower.GridLists.Bonus.Ref+1] = {k.pos, grid}
+			end
+		end
+	end
 
 	local EntersSpawn = {}
 	local SpawnPoints = {}
@@ -433,13 +479,14 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			if gType ~= "spawnpoint_def" and gType ~= "" then
 				Isaac_Tower.GridLists.Special[gType] = {}
 				for i, grid in ipairs(tab) do
-					local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
+					--local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
+					local index = (grid.XY.Y) * newRoom.Size.X + (grid.XY.X)
 					Isaac_Tower.GridLists.Special[gType][index] = TabDeepCopy(grid)
 					Isaac_Tower.GridLists.Special[gType][index].pos = grid.XY*40 + Vector(-60,80)
 					Isaac_Tower.GridLists.Special[gType][index].FrameCount = 0
 					if Isaac_Tower.GridLists.Special[gType][index].Size then
-						for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].Size, true)) do
-							Isaac_Tower.GridLists.Special[gType][k[1]] = {Parent = index}
+						for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].Size, true, newRoom.Size.X)) do
+							Isaac_Tower.GridLists.Special[gType][k] = {Parent = index}
 						end
 					end
 					if gType == "Room_Transition" then
@@ -1637,11 +1684,13 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		fent.Velocity = fent.Velocity / repeatNum
 		local slowedVelocity = fent.Velocity / 1
 		fent.RepeatingNum = repeatNum
+		local GridListSizeX = Isaac_Tower.GridLists.Solid.X
 		
 		for i = 1, repeatNum do
 			local indexs = {}
 			local pointIndex = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position)
-			local pointIndexStr = pointIndex and (math.ceil(pointIndex.XY.X) .. "." .. math.ceil(pointIndex.XY.Y))
+			--local pointIndexStr = pointIndex and (math.ceil(pointIndex.XY.X) .. "." .. math.ceil(pointIndex.XY.Y))
+			local pointIndexStr = pointIndex and (pointIndex.XY.Y * GridListSizeX + pointIndex.XY.X)
 			for ia, k in pairs(d.TSJDNHC_GridPoints) do
 				local grid = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position + Vector(0, 12) + fent.Velocity + k[1])
 
@@ -1651,7 +1700,8 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 						--collidedGrid[grid][i] = k[1] + fent.Position
 						ent:GetData().LastcollidedGrid[#ent:GetData().LastcollidedGrid + 1] = grid
 					end
-					local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
+					--local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
+					local index = grid.XY.Y * GridListSizeX + grid.XY.X
 					indexs[index] = true
 				end
 				--fent.Velocity = origVelocity
@@ -2925,37 +2975,13 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 	local zer = -Offset - Isaac.WorldToRenderPosition(v40100)
 	local modZer = Vector(math.abs(zer.X), math.abs(zer.Y))
 
+	-- 40x40 зона
 	local startPosRender = modZer - v26 + (zeroOffset or v0)
 	local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(26*modScale)), math.ceil(startPosRender.Y/(26*modScale)))
 	local EndPosRender = modZer + Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())*(math.max(1,modScale)) -- + (zeroOffset or Vector(0,0)) -- + Vector(26*2,26*2)
 	local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(26*modScale)), math.ceil(EndPosRender.Y/(26*modScale)))
 
 	local startPos = -zer
-
-	--GridCollPoint:Render( Isaac.WorldToRenderPosition(Vector(-40,100)) )
-
-	--[[if Isaac_Tower.GridLists.Fake then
-		--Isaac_Tower.GridLists.Fake:Render(Offset, Scale)
-		Isaac_Tower.GridLists.FakeList = {}
-		local self = Isaac_Tower.GridLists.Fake
-		--local startPos = Isaac.WorldToRenderPosition(self.StartPos)
-		
-		for i=self.Y, 1,-1 do
-			for j=self.X, 1,-1 do
-				if self.Grid[i][j].SpriteAnim then
-					--print(self.Grid[i][j].SpriteAnim, self.GridSprites[self.Grid[i][j].SpriteAnim])
-					Isaac_Tower.GridLists.FakeList[#Isaac_Tower.GridLists.FakeList+1] = {
-						pos = self.Grid[i][j].RenderPos,
-						spr = self.GridSprites[self.Grid[i][j].SpriteAnim] or self.GridSprites[tostring(self.Grid[i][j].SpriteAnim)]}
-				end
-				if self.Grid[i][j].Sprite then
-					Isaac_Tower.GridLists.FakeList[#Isaac_Tower.GridLists.FakeList+1] = {
-						pos = self.Grid[i][j].RenderPos,
-						spr = self.Grid[i][j].Sprite}
-				end
-			end
-		end
-	end]]
 
 	local RenderList = {}
 	local list = Isaac_Tower.GridLists.Evri 
@@ -2988,6 +3014,38 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 			end
 		end
 	end
+
+	-- 20x20 зона
+	local startPosRender = modZer - v26 + (zeroOffset or v0)
+	local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(13*modScale)), math.ceil(startPosRender.Y/(13*modScale)))
+	local EndPosRender = modZer + Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())*(math.max(1,modScale)) -- + (zeroOffset or Vector(0,0)) -- + Vector(26*2,26*2)
+	local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(13*modScale)), math.ceil(EndPosRender.Y/(13*modScale)))
+
+	local Bonuslist = {}           --TODO
+	local gridlist = Isaac_Tower.GridLists.Bonus.Grid
+	print(#Isaac_Tower.GridLists.Bonus.Ref)
+	print(math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y), math.max(1,StartPosRenderGrid.Y))
+	print(math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X))
+	if #Isaac_Tower.GridLists.Bonus.Ref > 100 then
+		local layer = Bonuslist
+		for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y*2), math.max(1,StartPosRenderGrid.Y),-1 do
+			for x=math.max(1,StartPosRenderGrid.X*2), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X*2) do
+				local tab = gridlist[y] and gridlist[y][x]
+				if tab then
+					print(tab, y,x)
+					if tab.Sprite then
+						--layer = layer or {}
+						layer[tab.Ref] = tab.Ref
+					elseif tab.Parent then
+						layer[tab.Parent] = tab.Parent
+					end
+				end
+			end
+		end
+	else
+		Bonuslist = Isaac_Tower.GridLists.Bonus.Ref
+	end
+
 	local minindex,maxindex = 0,0
 	local tab = {}
 	for layer, gridlist in pairs(RenderList) do
@@ -3002,6 +3060,7 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 		end
 	end
 	--table.sort(tab)
+	tab.Bonus = Bonuslist
 	Isaac_Tower.Renders.EnviRender = tab
 	Isaac_Tower.Renders.EnviMaxLayer = maxindex
 	Isaac_Tower.Renders.EnviMinLayer = minindex
@@ -3101,6 +3160,13 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 				end
 			end
 		--end
+	end
+
+	local bonuslist = Isaac_Tower.Renders.EnviRender.Bonus
+	if bonuslist then
+		for i,k in pairs(bonuslist) do
+			print(i,k)
+		end
 	end
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.GRID_BACKDROP_RENDER, Isaac_Tower.Renders.PostGridRender)
@@ -3220,6 +3286,9 @@ end
 mod:AddCallback(TSJDNHC_PT.Callbacks.PRE_BACKDROP_RENDER, Isaac_Tower.Renders.backgroung_render)
 
 
+function Isaac_Tower.Renders.BonusPickupRender(_, Pos, Offset, Scale)
+
+end
 
 
 -----------------------------------------------------------------------------------------------------
@@ -3401,8 +3470,8 @@ editor(mod, Isaac_Tower)
 local init = include("IT_init")
 init(mod, Isaac_Tower)
 
-local rgon = include("rgon")
 if Isaac_Tower.RG then
+	local rgon = include("rgon")
 	rgon(mod, Isaac_Tower)
 end
 

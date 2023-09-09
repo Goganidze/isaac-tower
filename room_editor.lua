@@ -3334,9 +3334,6 @@ end, function(tab)
 					
 					local grid = ycol and ycol[x]
 					if grid and grid.info then
-						--for i,k in pairs(grid) do
-						--	print(i,k)
-						--end
 						if typ == "Room_Transition" then
 							tab.Special[typ][#tab.Special[typ]+1] = {} --TabDeepCopy(grid.info)
 							tab.Special[typ][#tab.Special[typ]].TargetRoom = grid.TargetRoom
@@ -3458,7 +3455,6 @@ local function FindCollidedGrid(list, pos, size, onlyfind, sizer)
 
 				GridCollPoint:Render( pointpos + Isaac_Tower.editor.GridStartPos + Vector(13,13) )
 
-				--print("sgs", pos, size, y,x , "sgs", maxX, maxY)
 				if not ignorelist[(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.X+x] and
 				x~=0 and y~=0 and x<=Isaac_Tower.editor.Memory.CurrentRoom.Size.X and y<=Isaac_Tower.editor.Memory.CurrentRoom.Size.Y then
 					if onlyfind then
@@ -3491,10 +3487,6 @@ local function DetectColEnvi(list, pos, index)
 			for i,k in pairs(grid.Parents) do
 				local box = Isaac_Tower.editor.Memory.CurrentRoom.EnviList[i]
 				
-				--for j,g in pairs(box) do
-				--	print(j,g)
-				--end
-				--print(pos, box.upleft, box.downright)
 				if pos.X>box.upleft.X and pos.Y>box.upleft.Y and
 				pos.X<=box.downright.X and pos.Y<=box.downright.Y then
 					if Isaac_Tower.editor.EnvironmentSelectedLayer ~= box.layer then
@@ -3783,9 +3775,6 @@ end, nil, function(str)
 		local hasCustom = false
 		for i, grid in pairs(Isaac_Tower.editor.Memory.CurrentRoom.EnviList) do
 			if grid and grid.info.file then
-				--for j, k  in pairs(grid.info) do
-					--print(j, k)
-				--end
 				if not customFileEnvi[grid.info.file] then
 					customFileEnvi[grid.info.file] = true --{grid.info.pivot, grid.info.size} --true
 					hasCustom = true
@@ -3813,7 +3802,6 @@ end, nil, function(str)
 				str = str .."{"..customFileEnvi[data[1]]..",'"..data[4].."',"..vec1..","..vec2.."},"
 				customEnvi[data[1]..data[4]] = num
 				num = num + 1
-				--print(file, data[1], customEnvi[file..data[1]] )
 			end
 			str = str .. "},\n"
 		end
@@ -5019,7 +5007,6 @@ function Isaac_Tower.editor.PreGenerateGridListMenu(menuName)
 			else
 				Isaac_Tower.editor.TilesListMenus[name] = {}
 				local num = 0
-				print(name)
 				for i,k in pairs(Isaac_Tower.editor.GridTypes[name]) do
 					
 					num = num + 1
@@ -5207,10 +5194,6 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_UPDATE, function(_,IsSelect
 		for Gtype,tab in pairs(Isaac_Tower.editor.Memory.CurrentRoom.Special) do
 			for i,y in pairs(tab) do
 				for j, x in pairs(y) do
-					--for k,l in pairs(x) do
-					--	print(k,l)
-					--end
-					--print(x)
 					if x.info and x.info.IsDefSpawnPoint then
 						DefPointNum = DefPointNum + 1
 						if DefPointNum > 1 then
@@ -5609,15 +5592,9 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 					end
 				end, nil, 10)
 			end
-			--for i,k in pairs(Linfo) do 
-			--	print(i,k)
-			--end
 		end
 	end
 	if Linfo and Linfo.type == "Room_Transition" then
-		--for i,k in pairs(Linfo) do
-			--print(i,k)
-		--end
 		Linfo.Size = Linfo.Size or Vector(1,1)
 		local oldScale = Room_Transition_Spr.Scale*1
 		Room_Transition_Spr.Scale = Vector(0.5,0.5) * Gridscale * Vector(math.max(1,Linfo.Size.X*(1-2/28)), math.max(1,Linfo.Size.Y*(1-2/28)))
