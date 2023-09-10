@@ -959,8 +959,10 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent:GetSprite():Play("pooo")
 end, "signp")
 
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemySignLogic, "sign")
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemySignLogic, "signp")
+--mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemySignLogic, "sign")
+--mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemySignLogic, "signp")
+Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemySignLogic, "sign")
+Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemySignLogic, "signp")
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, Isaac_Tower.ENT.LOGIC.EnemySignRender, "sign")
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, Isaac_Tower.ENT.LOGIC.EnemySignRender, "signp")
@@ -1023,8 +1025,8 @@ function Isaac_Tower.ENT.LOGIC.EnemyClottigLogic(_,ent)
 		end
 	end
 end
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyClottigLogic, "clottig")
-
+--mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyClottigLogic, "clottig")
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyClottigLogic, "clottig")
 
 ---------------------------------------СРЕДНЕРОСТНЫЙ ПОРТАЛ--------------------------------------------
 
@@ -1082,8 +1084,8 @@ function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
 		end
 	end
 end
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.midportalLogic, "mid portal")
-
+--mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.midportalLogic, "mid portal")
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.midportalLogic, "mid portal")
 
 ---------------------------------------ЗЕВАКА--------------------------------------------
 
@@ -1183,7 +1185,8 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 		end
 	end
 end
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyGaperLogic, "gaper")
+--mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyGaperLogic, "gaper")
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyGaperLogic, "gaper")
 
 Isaac_Tower.EnemyHandlers.FlayerCollision["gaper"] = function(fent, ent, EntData)
 	local spr = ent:GetSprite()
@@ -1300,8 +1303,8 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 		end
 	end
 end
-mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyHorhLogic, "horh")
-
+--mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyHorhLogic, "horh")
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyHorhLogic, "horh")
 
 --------------------------------------ПИКАПЫ-БОНУСЫ----------------------------------------------
 

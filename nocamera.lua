@@ -733,7 +733,7 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 				k[3]:Render(CameraOffset)
 			end
 		end
-	end 
+	end
 
 	Isaac.RunCallback(TSJDNHC.Callbacks.GRID_BACKDROP_RENDER, Pos, CameraOffset, scale)
 

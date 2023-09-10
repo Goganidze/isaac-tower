@@ -132,6 +132,59 @@ for i,k in pairs(Isaac_TowerCallbacks) do
 	addCallbackID(i)
 end
 
+Isaac_Tower.DirectCallback = {}
+function Isaac_Tower.AddPriorityDirectCallback(mod, callId, priority, func, param)
+	priority = priority or 0
+	local calltab = SafePlacingTable(Isaac_Tower.DirectCallback,callId)
+	if param then
+		local tab = SafePlacingTable(calltab,"Params",param)
+		--tab[#tab+1] = func
+		local pos = #tab+1
+		for i=#tab,1,-1 do
+			if tab[i].Pr <= priority then
+				break
+			else
+				pos = pos-1
+			end
+		end
+		table.insert(tab, pos, {Mod = mod, Func = func, Pr = priority})
+	else
+		--calltab[#calltab+1] = func
+		local pos = #calltab+1
+		for i=#calltab,1,-1 do
+			if calltab[i].Pr <= priority then
+				break
+			else
+				pos = pos-1
+			end
+		end
+		table.insert(calltab, pos, {Mod = mod, Func = func, Pr = priority})
+	end
+end
+
+function Isaac_Tower.AddDirectCallback(mod, callId, func, param)
+	Isaac_Tower.AddPriorityDirectCallback(mod, callId, 0, func, param)
+end
+
+function Isaac_Tower.RunDirectCallbacks(callId, param, ...)
+	local ctab = Isaac_Tower.DirectCallback[callId]
+	if ctab then
+		--print(#ctab)
+		if param then
+			local tab = ctab.Params[param]
+			if tab and #tab>0 then
+				for i=1,#tab do
+					tab[i].Func(tab[i].Mod,...)
+				end
+			end
+		elseif #ctab>0 then
+			for i=1,#ctab do
+				ctab[i].Func(ctab[i].Mod,...)
+			end
+		end
+	end
+end
+
 function Isaac_Tower.SetScale(num, noLerp) TSJDNHC_PT:SetScale(num, noLerp) end
 
 Isaac_Tower.FlayerHandlers = { BonusPickup = {} }
@@ -459,15 +512,14 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				--end
 				local spr = GenSprite(data.gfx, data.anim)
 				local x,y = k.pos.X, k.pos.Y
-				local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y)[x]
-				grid = { Sprite = spr, Position = k.pos, RenderPos = (k.pos*40 + Vector(-60,80))/Wtr,
+				local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y) --[x]
+				grid[x] = { Sprite = spr, Position = k.pos, RenderPos = (k.pos*20 + Vector(-40,-40))/Wtr, --+ Vector(-60,80)
 					Exists = true, Type = data.Name, CH = {}, Ref = #Isaac_Tower.GridLists.Bonus.Ref+1}
-				for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Bonus.Grid,
-				k.pos, data.Size, true)) do
-					SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid)[k.Y][k.X] = {Parent = #Isaac_Tower.GridLists.Bonus.Ref+1}
-					grid.CH[#grid.CH+1] = k
+				for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Bonus.Grid, k.pos, data.Size, true)) do
+					SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid,k.Y)[k.X] = {Parent = #Isaac_Tower.GridLists.Bonus.Ref+1}
+					grid[x].CH[#grid[x].CH+1] = k
 				end
-				Isaac_Tower.GridLists.Bonus.Ref[#Isaac_Tower.GridLists.Bonus.Ref+1] = {k.pos, grid}
+				Isaac_Tower.GridLists.Bonus.Ref[#Isaac_Tower.GridLists.Bonus.Ref+1] = {k.pos, grid[x]}
 			end
 		end
 	end
@@ -2558,8 +2610,8 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 			Isaac_Tower.EnemyHandlers.EnemyStateLogic[data.State](ent)
 		end
 		
-
-		Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, typ, ent)
+		--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, typ, ent)
+		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, typ, ent)
 		--ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
 		data.LastPosition = ent.Position/1
 	end)
@@ -3021,29 +3073,31 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 	local EndPosRender = modZer + Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())*(math.max(1,modScale)) -- + (zeroOffset or Vector(0,0)) -- + Vector(26*2,26*2)
 	local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(13*modScale)), math.ceil(EndPosRender.Y/(13*modScale)))
 
-	local Bonuslist = {}           --TODO
-	local gridlist = Isaac_Tower.GridLists.Bonus.Grid
-	print(#Isaac_Tower.GridLists.Bonus.Ref)
-	print(math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y), math.max(1,StartPosRenderGrid.Y))
-	print(math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X))
-	if #Isaac_Tower.GridLists.Bonus.Ref > 100 then
-		local layer = Bonuslist
-		for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y*2), math.max(1,StartPosRenderGrid.Y),-1 do
-			for x=math.max(1,StartPosRenderGrid.X*2), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X*2) do
-				local tab = gridlist[y] and gridlist[y][x]
-				if tab then
-					print(tab, y,x)
-					if tab.Sprite then
-						--layer = layer or {}
-						layer[tab.Ref] = tab.Ref
-					elseif tab.Parent then
-						layer[tab.Parent] = tab.Parent
+	local Bonuslist = {}
+	if Isaac_Tower.GridLists.Bonus.Ref then
+		local reftab = Isaac_Tower.GridLists.Bonus.Ref
+		local gridlist = Isaac_Tower.GridLists.Bonus.Grid
+		--print(Isaac_Tower.GridLists.Bonus.Ref and #Isaac_Tower.GridLists.Bonus.Ref)
+		--print(math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y*2), math.max(1,StartPosRenderGrid.Y))
+		--print(math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X*2))
+		if #Isaac_Tower.GridLists.Bonus.Ref > 100 then
+			local layer = Bonuslist
+			for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y*2), math.max(1,StartPosRenderGrid.Y),-1 do
+				for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X*2) do
+					local tab = gridlist[y] and gridlist[y][x]
+					if tab then
+						if tab.Sprite then
+							--layer = layer or {}
+							layer[tab.Ref] = reftab[tab.Ref]
+						elseif tab.Parent then
+							layer[tab.Parent] = reftab[tab.Parent]
+						end
 					end
 				end
 			end
+		else
+			Bonuslist = Isaac_Tower.GridLists.Bonus.Ref
 		end
-	else
-		Bonuslist = Isaac_Tower.GridLists.Bonus.Ref
 	end
 
 	local minindex,maxindex = 0,0
@@ -3165,7 +3219,8 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 	local bonuslist = Isaac_Tower.Renders.EnviRender.Bonus
 	if bonuslist then
 		for i,k in pairs(bonuslist) do
-			print(i,k)
+			local grid = k[2]
+			grid.Sprite:Render(grid.RenderPos*Scale + startPos)
 		end
 	end
 end
