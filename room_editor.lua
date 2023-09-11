@@ -2805,9 +2805,9 @@ Isaac_Tower.editor.AddOverlay("Enemies", GenSprite("gfx/editor/ui.anm2","ове�
 		local mouseOffset = Vector(0,0)
 		local pGrid = Isaac_Tower.editor.GridTypes.Enemies[Isaac_Tower.editor.SelectedGridType or ""]
 		if pGrid and pGrid.size and pGrid.size.X then
-			mouseOffset = pGrid.size*13/4*Gridscale
+			local size = pGrid.size+Vector(-1,-1)
+			mouseOffset = size*13/4*Gridscale
 		end
-
 		local algMousePos = Isaac_Tower.editor.MousePos - Isaac_Tower.editor.GridStartPos - mouseOffset
 		local xs,ys = math.floor(algMousePos.Y/(26/4)/Gridscale), math.floor(algMousePos.X/(26/4)/Gridscale)
 		if xs>=0 and ys>=0 and Isaac_Tower.editor.Memory.CurrentRoom.Size.Y*2-1>=xs and Isaac_Tower.editor.Memory.CurrentRoom.Size.X*2-1>=ys then

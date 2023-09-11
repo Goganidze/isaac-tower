@@ -271,7 +271,8 @@ local function ERenTrack(_,ent)
 			--if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
 			if not d.IsCamRender and not d.SpecialRender.igronelist[ent.Index] then
 				local data = ent:GetData()
-				if data and (data.RA or not data.ml and (data.Isaac_Tower_Data and data.Isaac_Tower_Data.GrabbedBy or ent.Variant == IsaacTower_GibVariant)) then
+				if data and (data.RA or not data.ml and 
+				(data.Isaac_Tower_Data and data.Isaac_Tower_Data.GrabbedBy or Isaac_Tower.ENT.AboveRender[ent.Variant])) then
 					d.renderlist.entityAbove[#d.renderlist.entityAbove+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
 				elseif ent.Type and (ent.Variant ~= entCam.VARIANT) then
 					d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 

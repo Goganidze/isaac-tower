@@ -180,7 +180,6 @@ end
 function Isaac_Tower.RunDirectCallbacks(callId, param, ...)
 	local ctab = Isaac_Tower.DirectCallback[callId]
 	if ctab then
-		--print(#ctab)
 		if param and ctab.Params then
 			local tab = ctab.Params[param]
 			if tab and #tab>0 then
@@ -231,9 +230,13 @@ Isaac_Tower.ENT.GibSubType = {
 	SWEET = 101,
 	BLOOD = 102,
 	SOUND_BARRIER = 110,
+	BONUS_EFFECT = 200,
+	BONUS_EFFECT2 = 201,
 }
 Isaac_Tower.ENT.Enemy = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_Enemy}
 Isaac_Tower.ENT.Proj = {ID = EntityType.ENTITY_EFFECT, VAR = Isaac.GetEntityVariantByName("PIZTOW Projectile")}
+Isaac_Tower.ENT.AboveRender = {[Isaac_Tower.ENT.GibSubType.SOUND_BARRIER] = true,
+	[IsaacTower_GibVariant] = true}
 
 Isaac_Tower.sprites.BlackNotCube = Sprite()
 Isaac_Tower.sprites.BlackNotCube:Load("gfx/doubleRender/black.anm2",true)
@@ -549,7 +552,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				spr.PlaybackSpeed = 0.5
 				local x,y = k.pos.X, k.pos.Y
 				local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y) --[x]
-				grid[x] = { Sprite = spr, XY = k.pos, Position = k.pos*20, RenderPos = (k.pos*20 + Vector(-20,-20))/Wtr, --+ Vector(-60,80)
+				local posi = k.pos*20 + data.Size*10+Vector(-60,80)
+				grid[x] = { Sprite = spr, XY = k.pos, Position = posi, RenderPos = (k.pos*20 + Vector(-20,-20))/Wtr, --+ Vector(-60,80)
 					Exists = true, Type = data.Name, CH = {}, Ref = #Isaac_Tower.GridLists.Bonus.Ref+1}
 				for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Bonus.Grid, k.pos, data.Size, true)) do
 					SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid,k.Y)[k.X] = {XY = k, Parent = grid[x]}
@@ -1143,6 +1147,31 @@ do
 			end
 		else
 			error("Grid is not in right position!!!",2)
+		end
+	end
+
+	function Isaac_Tower.ScoreHandler.SpawnRandomMultiEffect(gfx, anim, pos, vel, num, size)
+		num = num or 1
+		vel = vel or Vector(0,0)
+		for i=1, num do
+			local addvel = vel + Vector(1,0):Rotated(Isaac_Tower.Random(0,359)):Resized(Isaac_Tower.Random(0,30)/10)
+			local rpos = pos
+			if size then
+				rpos = rpos + Vector(1,0):Rotated(Isaac_Tower.Random(0,359)):Resized(Isaac_Tower.Random(size/4,size))
+			end
+			local eff = Isaac.Spawn(Isaac_Tower.ENT.GIB.ID,Isaac_Tower.ENT.GIB.VAR,
+				Isaac_Tower.ENT.GibSubType.BONUS_EFFECT, rpos, addvel, nil)
+			eff.DepthOffset = 250
+			local spr = eff:GetSprite()
+			spr.PlaybackSpeed = Isaac_Tower.Random(10,25+num)/20
+			spr:Load(gfx, true)
+			if type(anim) == "table" then
+				spr:Play(anim[Isaac_Tower.Random(1,#anim)])
+			elseif anim then
+				spr:Play(anim, true)
+			else
+				spr:Play(spr:GetDefaultAnimation())
+			end
 		end
 	end
 
@@ -2939,20 +2968,20 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.ENTITY_POSTRENDER, Isaac_Tower.ProjectilePo
 local GibsLogic
 GibsLogic = {
 	Init = {
-		[101] = function(e)
+		[Isaac_Tower.ENT.GibSubType.SWEET] = function(e)
 			e:GetSprite():Load("gfx/effects/it_sweet.anm2",true)
 			e:GetSprite():Play("drop", true)
 			e.DepthOffset = 310
 			e:GetData().Color = Color(1,1,1,1)
 			e:Update()
 		end,
-		[102] = function(e)
+		[Isaac_Tower.ENT.GibSubType.BLOOD] = function(e)
 			GibsLogic.Init[101](e)
 			e:GetSprite():Play("blood_drop")
 		end
 	},
 	Update = {
-		[0] = function(e)
+		[Isaac_Tower.ENT.GibSubType.GIB] = function(e)
 			e.Velocity = e.Velocity.Y < 15 and Vector(e.Velocity.X,e.Velocity.Y + 0.6) or e.Velocity
 
 			if e.Rotation then
@@ -2969,10 +2998,10 @@ GibsLogic = {
 				end
 			end
 		end,
-		[100] = function(e)
+		[Isaac_Tower.ENT.GibSubType.AFTERIMAGE] = function(e)
 
 		end,
-		[101] = function(e)
+		[Isaac_Tower.ENT.GibSubType.SWEET] = function(e)
 			if e.State == 0 then
 				e.Velocity = e.Velocity.Y < 15 and Vector(e.Velocity.X,e.Velocity.Y + 0.6) or e.Velocity
 				local spr = e:GetSprite()
@@ -3027,7 +3056,7 @@ GibsLogic = {
 				end
 			end
 		end,
-		[102] = function (e)
+		[Isaac_Tower.ENT.GibSubType.BLOOD] = function (e)
 			GibsLogic.Update[101](e)
 			local spr = e:GetSprite()
 			if spr:IsPlaying("kapsmol") then
@@ -3036,16 +3065,22 @@ GibsLogic = {
 				spr:Play("blood_kap")
 			end
 		end,
-		[110] = function (e)
+		[Isaac_Tower.ENT.GibSubType.SOUND_BARRIER] = function (e)
 			if e:GetSprite():IsFinished(e:GetSprite():GetAnimation()) then
 				e:Remove()
 			end
-		end
+		end,
+		[Isaac_Tower.ENT.GibSubType.BONUS_EFFECT]= function(e)
+			e.Velocity = e.Velocity * 0.95
+			if e:GetSprite():IsFinished(e:GetSprite():GetAnimation()) then
+				e:Remove()
+			end
+		end,
 	},
 	Render = {
-		[100] = function(e)
+		[Isaac_Tower.ENT.GibSubType.AFTERIMAGE] = function(e)
 			if Isaac_Tower.game:IsPaused() or not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
-			if not TSJDNHC_PT:IsCamRender() and e:GetData().color then
+			if e:GetData().color then
 				e:GetData().color.A = e:GetData().color.A-0.05
 				e:GetSprite().Color = e:GetData().color
 				if e:GetData().color.A <= 0 then
@@ -3053,19 +3088,28 @@ GibsLogic = {
 				end
 			end
 		end,
-		[101] = function(e)
+		[Isaac_Tower.ENT.GibSubType.SWEET] = function(e)
 			e.SpriteRotation = e.Velocity:GetAngleDegrees()
 		end,
-		[102] = function(e)
+		[Isaac_Tower.ENT.GibSubType.BLOOD] = function(e)
 			GibsLogic.Render[101](e)
 		end,
 		[Isaac_Tower.ENT.GibSubType.SOUND_BARRIER] = function(e)
-			--print(e.SubType, e:GetSprite():GetFrame())
 			if Isaac_Tower.game:IsPaused() or not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
-			if not TSJDNHC_PT:IsCamRender() then
-				e:GetSprite():Update()
-			end
+			e:GetSprite():Update()
 		end,
+		---@param e EntityEffect
+		[Isaac_Tower.ENT.GibSubType.BONUS_EFFECT2] = function(e)
+			if Isaac_Tower.game:IsPaused() or not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
+			local col = Color(1,1,1, math.abs(e.FrameCount-8)/8 )
+			e.Color = col
+			local s = math.abs(e.FrameCount-30)/30
+			e:GetSprite().Offset = e:GetData().offset/s-e:GetData().offset*2
+			e:GetSprite().Scale = Vector(s,s)
+			if e.FrameCount>8 then
+				e:Remove()
+			end
+		end
 	},
 
 }
@@ -3082,7 +3126,7 @@ function Isaac_Tower.ENT.GIBCalls.Update(e)
 	e.Position = Isaac_Tower.HandleUpdateSpeedPos(e.Position, e.Velocity)
 end
 function Isaac_Tower.ENT.GIBCalls.Render(e)
-	if GibsLogic.Render[e.SubType] then
+	if TSJDNHC_PT:IsCamRender() and GibsLogic.Render[e.SubType] then
 		GibsLogic.Render[e.SubType](e)
 	end
 end

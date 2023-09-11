@@ -1314,6 +1314,8 @@ Isaac_Tower.RegisterBonusPickup("ScoreUp1", "gfx/it_picks/scoreUps.anm2", "2", V
 function Isaac_Tower.ENT.LOGIC.BonusScoreUpSmolCollision(_, ent, bonus)
 	Isaac_Tower.FlayerHandlers.RemoveInGridBonusPickup(bonus)
 	Isaac_Tower.ScoreHandler.AddScore(10)
+	local vel = ent:GetData().Isaac_Tower_Data.Velocity/2
+	Isaac_Tower.ScoreHandler.SpawnRandomMultiEffect("gfx/it_picks/scoreUps.anm2", bonus.eff.."ef", bonus.Position, vel, 3, 10)
 end
 Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.BONUSPICKUP_COLLISION,Isaac_Tower.ENT.LOGIC.BonusScoreUpSmolCollision,"ScoreUp1")
 function Isaac_Tower.ENT.LOGIC.BonusScoreUpSmolInit(_, bonus)
@@ -1325,11 +1327,20 @@ end
 Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.BONUSPICKUP_INIT,Isaac_Tower.ENT.LOGIC.BonusScoreUpSmolInit,"ScoreUp1")
 
 Isaac_Tower.RegisterBonusPickup("ScoreUp2", "gfx/it_picks/scoreUps.anm2", "1big", Vector(2,2), {})
---Isaac_Tower.editor.AddBonusPickup("scoreUp1", GenSprite("gfx/it_picks/scoreUps.anm2"), "ScoreUp", ingridSpr, sizeTable)
 
 function Isaac_Tower.ENT.LOGIC.BonusScoreUpBigCollision(_, ent, bonus)
 	Isaac_Tower.FlayerHandlers.RemoveInGridBonusPickup(bonus)
 	Isaac_Tower.ScoreHandler.AddScore(50)
+	local vel = ent:GetData().Isaac_Tower_Data.Velocity/2
+	Isaac_Tower.ScoreHandler.SpawnRandomMultiEffect("gfx/it_picks/scoreUps.anm2", bonus.eff.."ef", bonus.Position, vel, 8, 20)
+	local eff = Isaac.Spawn(1000,Isaac_Tower.ENT.GIB.VAR,Isaac_Tower.ENT.GibSubType.BONUS_EFFECT2, bonus.Position,Vector.Zero, nil)
+	eff.DepthOffset = -250
+	local spr = eff:GetSprite()
+	spr.Offset = Vector(-13,-13)
+	eff:GetData().offset = -spr.Offset
+	spr:Load("gfx/it_picks/scoreUps.anm2", true)
+	spr:Play(bonus.Sprite:GetAnimation()) --Таблицы нельзя удалить, поэтому это работает
+	spr:SetFrame(bonus.Sprite:GetFrame())
 end
 Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.BONUSPICKUP_COLLISION,Isaac_Tower.ENT.LOGIC.BonusScoreUpBigCollision,"ScoreUp2")
 function Isaac_Tower.ENT.LOGIC.BonusScoreUpBigInit(_, bonus)
