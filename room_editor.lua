@@ -354,6 +354,20 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 			end
 		end
 	end
+	if roomdata.Bonus then
+		for y, grid in ipairs(roomdata.Bonus) do
+			Isaac_Tower.editor.Memory.CurrentRoom.Bonus[grid.pos.Y+1] = Isaac_Tower.editor.Memory.CurrentRoom.Bonus[grid.pos.Y+1] or {}
+			Isaac_Tower.editor.Memory.CurrentRoom.Bonus[grid.pos.Y+1][grid.pos.X+1] = {
+				sprite = Isaac_Tower.editor.GridTypes.Enemies[grid.EditorType].trueSpr,
+				type = grid.EditorType,
+				info = Isaac_Tower.editor.GridTypes.Enemies[grid.EditorType].info,
+			}
+			for i,k in pairs(GetLinkedGrid(Isaac_Tower.editor.Memory.CurrentRoom.Bonus, 
+			Vector(grid.pos.X,grid.pos.Y), Isaac_Tower.editor.GridTypes.Enemies[grid.EditorType].size, true)) do
+				SafePlacingTable(Isaac_Tower.editor.Memory.CurrentRoom.Bonus,k[1]+1,k[2]+1).Parent = Vector(grid.pos.X+1,grid.pos.Y+1)
+			end
+		end
+	end
 	
 	if roomdata.EnviList then
 		local CustomType = {}
@@ -3019,7 +3033,7 @@ end, nil, function(str)
 			
 			if grid and grid.info then
 				local pos = Vector(x,y)
-				solidTab = solidTab .. "  {pos=Vector(" .. math.ceil(pos.X) .. "," .. math.ceil(pos.Y) .. ")," 
+				solidTab = solidTab .. "  {pos=Vector(" .. math.ceil(pos.X-1) .. "," .. math.ceil(pos.Y-1) .. ")," 
 				solidTab = solidTab.."name='" .. grid.info .. "',"
 				--EditorType
 				solidTab = solidTab .. "EditorType='" .. grid.type .. "',"

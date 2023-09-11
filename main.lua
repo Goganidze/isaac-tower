@@ -75,6 +75,17 @@ if Renderer then
 	Isaac_Tower.RG = true
 end
 
+function Isaac_Tower.Random(a, b, rng)
+    rng = rng or Isaac_Tower.rng
+    if a and b then
+        return rng:Next() % (b - a + 1) + a
+    elseif a then
+        return rng:Next() % (a + 1)
+    end
+    return rng:Next()
+end
+
+
 
 Isaac_Tower.InAction = false
 Isaac_Tower.Pause = true
@@ -170,11 +181,16 @@ function Isaac_Tower.RunDirectCallbacks(callId, param, ...)
 	local ctab = Isaac_Tower.DirectCallback[callId]
 	if ctab then
 		--print(#ctab)
-		if param then
+		if param and ctab.Params then
 			local tab = ctab.Params[param]
 			if tab and #tab>0 then
 				for i=1,#tab do
 					tab[i].Func(tab[i].Mod,...)
+				end
+			end
+			if #ctab>0 then
+				for i=1,#ctab do
+					ctab[i].Func(ctab[i].Mod,...)
 				end
 			end
 		elseif #ctab>0 then
@@ -184,6 +200,24 @@ function Isaac_Tower.RunDirectCallbacks(callId, param, ...)
 		end
 	end
 end
+mod:AddCallback(ModCallbacks.MC_PRE_MOD_UNLOAD, function(_, mod)
+	for i,k in pairs(Isaac_Tower.DirectCallback) do
+		if k.Params then
+			for j,f in pairs(k.Params) do
+				for h,tab in pairs(f) do
+					if tab.Mod == mod then
+						table.remove(f, h)
+					end
+				end
+			end
+		end
+		for j,f in ipairs(k) do
+			if f.Mod == mod then
+				table.remove(f, j)
+			end
+		end
+	end
+end)
 
 function Isaac_Tower.SetScale(num, noLerp) TSJDNHC_PT:SetScale(num, noLerp) end
 
@@ -303,7 +337,7 @@ local function GetLinkedGrid(grid, pos, size, fill, sizeY)
 					if sizeY then
 						index = (Sy+i-1) * sizeY + (Sx+j-1)
 					else
-						index = Vector(Sy+i-1, Sx+j-1)
+						index = Vector(Sx+i-1, Sy+j-1)
 					end
 					local Hasgrid = grid[index]
 					if Hasgrid or fill then
@@ -339,6 +373,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 	end
 
 	TSJDNHC_PT.DeleteAllGridList()
+	Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
 	local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
 	local newRoom = Isaac_Tower.Rooms[roomName]
 	Isaac_Tower.GridLists = {
@@ -511,15 +546,17 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				--	print(i,k)
 				--end
 				local spr = GenSprite(data.gfx, data.anim)
+				spr.PlaybackSpeed = 0.5
 				local x,y = k.pos.X, k.pos.Y
 				local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y) --[x]
-				grid[x] = { Sprite = spr, Position = k.pos, RenderPos = (k.pos*20 + Vector(-40,-40))/Wtr, --+ Vector(-60,80)
+				grid[x] = { Sprite = spr, XY = k.pos, Position = k.pos*20, RenderPos = (k.pos*20 + Vector(-20,-20))/Wtr, --+ Vector(-60,80)
 					Exists = true, Type = data.Name, CH = {}, Ref = #Isaac_Tower.GridLists.Bonus.Ref+1}
 				for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Bonus.Grid, k.pos, data.Size, true)) do
-					SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid,k.Y)[k.X] = {Parent = #Isaac_Tower.GridLists.Bonus.Ref+1}
+					SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid,k.Y)[k.X] = {XY = k, Parent = grid[x]}
 					grid[x].CH[#grid[x].CH+1] = k
 				end
 				Isaac_Tower.GridLists.Bonus.Ref[#Isaac_Tower.GridLists.Bonus.Ref+1] = {k.pos, grid[x]}
+				Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_INIT, data.Name, grid[x])
 			end
 		end
 	end
@@ -684,6 +721,10 @@ local function TowerInit(bool)
 		end
     end
     if IsTower then
+		Isaac_Tower.seeds = Isaac_Tower.game:GetSeeds()
+		Isaac_Tower.rng = RNG()
+		Isaac_Tower.rng:SetSeed(Isaac_Tower.seeds:GetStartSeed(), 35)
+
 		Isaac.ExecuteCommand("stage 1")
 		--Isaac_Tower.game:GetLevel():SetStage(1,0)
 		Isaac_Tower.game:GetLevel():RemoveCurses( Isaac_Tower.game:GetLevel():GetCurses() )
@@ -1065,6 +1106,10 @@ function Isaac_Tower.GerNearestFlayer(pos)
 end
 
 do 
+	Isaac_Tower.ScoreHandler = { Current = 0, Active = false, textArray = {}, RenderPos = Vector(40,20) }
+	Isaac_Tower.ScoreHandler.Font = Font()
+	Isaac_Tower.ScoreHandler.Font:Load("font/upheaval.fnt")
+
 	local num = 1
 	function Isaac_Tower.RegisterBonusPickup(name, gfx, anim, size, flags)
 		if name then
@@ -1077,6 +1122,94 @@ do
 			Isaac_Tower.editor.AddBonusPickup("auto_"..name.."_"..num, sprite, name, ingridSpr, size)
 			num = num + 1
 		end
+	end
+
+	function Isaac_Tower.FlayerHandlers.RemoveInGridBonusPickup(bonus)
+		if not bonus then error("[1] is not a table",2) end
+		local XY = bonus.XY
+		local ref = bonus.Ref
+		local grid = Isaac_Tower.GridLists.Bonus.Grid[XY.Y] and Isaac_Tower.GridLists.Bonus.Grid[XY.Y][XY.X]
+		if grid then
+			if bonus.CH then
+				for i=1, #bonus.CH do
+					local k = bonus.CH[i]
+					Isaac_Tower.GridLists.Bonus.Grid[k.Y][k.X] = nil
+				end
+			end
+			Isaac_Tower.GridLists.Bonus.Grid[XY.Y][XY.X] = nil
+			table.remove(Isaac_Tower.GridLists.Bonus.Ref, ref)
+			for i=1, #Isaac_Tower.GridLists.Bonus.Ref do
+				Isaac_Tower.GridLists.Bonus.Ref[i][2].Ref = i
+			end
+		else
+			error("Grid is not in right position!!!",2)
+		end
+	end
+
+	function Isaac_Tower.ScoreHandler.AddText(text,data)
+		if text then
+			data = data or {}
+			local color = data.color or KColor(1,1,1,0.8)
+			Isaac_Tower.ScoreHandler.textArray[#Isaac_Tower.ScoreHandler.textArray+1] = {text, Vector(0,0), color}
+		end
+	end
+
+	function Isaac_Tower.ScoreHandler.RenderTextArray(StartPos)
+		for i=1, #Isaac_Tower.ScoreHandler.textArray do
+			local dat = Isaac_Tower.ScoreHandler.textArray[i]
+			local pos = dat[2] + StartPos
+			Isaac_Tower.ScoreHandler.Font:DrawStringScaledUTF8(dat[1],pos.X,pos.Y,.5,.5,dat[3],1,true)
+		end
+	end
+
+	function Isaac_Tower.ScoreHandler.Render(StartPos)
+		Isaac_Tower.ScoreHandler.Font:DrawStringScaledUTF8(Isaac_Tower.ScoreHandler.Current,StartPos.X,StartPos.Y,.5,.5,KColor(1,1,1,0.8),1,true)
+		Isaac_Tower.ScoreHandler.RenderTextArray(StartPos)
+	end
+
+	function Isaac_Tower.ScoreHandler.UpdateTextArray()
+		for i=1, #Isaac_Tower.ScoreHandler.textArray do
+			local dat = Isaac_Tower.ScoreHandler.textArray[i]
+			dat[2].Y = dat[2].Y - 0.5
+			if dat[2].Y < -5 then
+				dat[3].Alpha = dat[3].Alpha - 0.1
+			end
+			--if dat[3].Alpha <= 0 then
+			--	table.remove(Isaac_Tower.ScoreHandler.textArray, i)
+			--end
+		end
+		for i=1, #Isaac_Tower.ScoreHandler.textArray do
+			local dat = Isaac_Tower.ScoreHandler.textArray[i]
+			if not dat or dat[3].Alpha <= 0 then
+				--Isaac_Tower.ScoreHandler.textArray[i] = nil
+				table.remove(Isaac_Tower.ScoreHandler.textArray, 1)
+			end
+		end
+	end
+
+	function Isaac_Tower.ScoreHandler.AddScore(num)
+		if num and num ~= 0 then
+			Isaac_Tower.ScoreHandler.Current = math.max(0, Isaac_Tower.ScoreHandler.Current + num)
+			if num < 0 then
+				Isaac_Tower.ScoreHandler.AddText("- " .. math.ceil(math.abs(num)), {color = KColor(1,0.2,0.2,0.6)})
+			else
+				Isaac_Tower.ScoreHandler.AddText("+ " .. math.ceil(num), {color = KColor(0.2,1,0.2,0.6)})
+			end
+		end
+	end
+end
+do
+	Isaac_Tower.LevelHandler = {RoomData = {}}
+
+	function Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
+		if not SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, roomName).seed then
+			Isaac_Tower.LevelHandler.RoomData[roomName].seed = Isaac_Tower.seeds:GetNextSeed()  --Isaac_Tower.seed
+			Isaac_Tower.LevelHandler.RoomData[roomName].rng = RNG()
+			Isaac_Tower.LevelHandler.RoomData[roomName].rng:SetSeed(Isaac_Tower.LevelHandler.RoomData[roomName].seed, 35)
+		end
+	end
+	function Isaac_Tower.LevelHandler.GetCurrentRoomData()
+		return SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, Isaac_Tower.CurrentRoom.Name)
 	end
 end
 
@@ -1738,7 +1871,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		fent.RepeatingNum = repeatNum
 		local GridListSizeX = Isaac_Tower.GridLists.Solid.X
 		
-		for i = 1, repeatNum do
+		for ihhh = 1, repeatNum do
 			local indexs = {}
 			local pointIndex = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position)
 			--local pointIndexStr = pointIndex and (math.ceil(pointIndex.XY.X) .. "." .. math.ceil(pointIndex.XY.Y))
@@ -1757,13 +1890,28 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 					indexs[index] = true
 				end
 				--fent.Velocity = origVelocity
-				local obs = Isaac_Tower.GridLists.Obs:GetGrid(fent.Position + Vector(0, 12) + fent.Velocity + k[1])
+				local obs = Isaac_Tower.GridLists.Obs:GetGrid(fent.Position + Vector(0, 12) + fent.Velocity + k[1]*Vector(1,1.2))
 				if obs and Isaac_Tower.ShouldCollide(ent, obs) then
 					collidedGrid[obs] = collidedGrid[grid] or {} --true
 					--collidedGrid[obs][i] = k[1] + fent.Position -- ent.Velocity
 					ent:GetData().LastcollidedGrid[#ent:GetData().LastcollidedGrid + 1] = obs
 				end
 				--fent.Velocity = slowedVelocity
+
+				if obs and Isaac_Tower.GridLists.Bonus.Grid then
+					local yr,xr = obs.XY.Y, obs.XY.X
+					local bonus = Isaac_Tower.GridLists.Bonus.Grid[yr] and Isaac_Tower.GridLists.Bonus.Grid[yr][xr]
+					if bonus then
+						if bonus.Parent then
+							--if Isaac_Tower.GridLists.Bonus.Ref[bonus.Parent] then
+								bonus = bonus.Parent --Isaac_Tower.GridLists.Bonus.Ref[bonus.Parent][2]
+							--else
+							--	Isaac_Tower.GridLists.Bonus.Grid[bonus.XY.Y][bonus.XY.X] = nil
+							--end
+						end
+						Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_COLLISION, bonus.Type, ent, bonus)
+					end
+				end
 			end
 
 			for ia, k in pairs(indexs) do
@@ -2292,6 +2440,12 @@ function Isaac_Tower.GameRenderUpdate()
 			end
 		end
 	end]]
+
+	--if Isaac_Tower.ScoreHandler.Active then
+	--	Isaac_Tower.ScoreHandler.Render(Isaac_Tower.ScoreHandler.RenderPos)
+		--Isaac_Tower.ScoreHandler.RenderTextArray(Isaac_Tower.ScoreHandler.RenderPos)
+	--	Isaac_Tower.ScoreHandler.UpdateTextArray()
+	--end
 end
 
 function Isaac_Tower.GetFlayer(num)
@@ -3082,15 +3236,23 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 		--print(math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X*2))
 		if #Isaac_Tower.GridLists.Bonus.Ref > 100 then
 			local layer = Bonuslist
+			local max = 0
+			local ignore = {}
 			for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y*2), math.max(1,StartPosRenderGrid.Y),-1 do
 				for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X*2) do
 					local tab = gridlist[y] and gridlist[y][x]
 					if tab then
 						if tab.Sprite then
 							--layer = layer or {}
-							layer[tab.Ref] = reftab[tab.Ref]
+							if not ignore[tab.Ref] then
+								layer[#layer+1] = reftab[tab.Ref] --tab.Ref
+								ignore[tab.Ref] = true
+							end
 						elseif tab.Parent then
-							layer[tab.Parent] = reftab[tab.Parent]
+							if not ignore[tab.Ref] then
+								layer[#layer+1] = reftab[tab.Parent] --tab.Parent
+								ignore[tab.Ref] = true
+							end
 						end
 					end
 				end
@@ -3218,9 +3380,12 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 
 	local bonuslist = Isaac_Tower.Renders.EnviRender.Bonus
 	if bonuslist then
-		for i,k in pairs(bonuslist) do
+		for i=1,#bonuslist do    --,k in pairs(bonuslist) do
+			local k = bonuslist[i]
 			local grid = k[2]
 			grid.Sprite:Render(grid.RenderPos*Scale + startPos)
+			grid.Sprite:Update()
+			Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_RENDER, grid.Type, grid)
 		end
 	end
 end
@@ -3306,6 +3471,20 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, Isaac_Tower.Renders.PostAllEntityRender)
 
+function Isaac_Tower.Renders.HUDRender()
+	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
+
+	if Isaac_Tower.ScoreHandler.Active then
+		--print(Isaac_Tower.ScoreHandler.RenderPos)
+		Isaac_Tower.ScoreHandler.Render(Isaac_Tower.ScoreHandler.RenderPos)
+		--Isaac_Tower.ScoreHandler.RenderTextArray(Isaac_Tower.ScoreHandler.RenderPos)
+		Isaac_Tower.ScoreHandler.UpdateTextArray()
+	end
+end
+mod:AddCallback(ModCallbacks.MC_POST_RENDER, Isaac_Tower.Renders.HUDRender)
+
+
+
 local background = {
 	spr = Sprite(),
 	size = Vector(100,100),
@@ -3341,9 +3520,9 @@ end
 mod:AddCallback(TSJDNHC_PT.Callbacks.PRE_BACKDROP_RENDER, Isaac_Tower.Renders.backgroung_render)
 
 
-function Isaac_Tower.Renders.BonusPickupRender(_, Pos, Offset, Scale)
+--function Isaac_Tower.Renders.BonusPickupRender(_, Pos, Offset, Scale)
 
-end
+--end
 
 
 -----------------------------------------------------------------------------------------------------

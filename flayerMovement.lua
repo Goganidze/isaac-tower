@@ -365,6 +365,10 @@ function Isaac_Tower.FlayerHandlers.TryTakeDamage(fent, Damage, Flags, Source, D
 	fent.RunSpeed = 0
 	fent.Flayer.Sprite.Rotation = 0
 	fent.Flayer.Sprite.Offset = Vector(0,12)
+
+	if Isaac_Tower.ScoreHandler.Active then
+		Isaac_Tower.ScoreHandler.AddScore(-50)
+	end
 	return true
 end
 
@@ -1715,6 +1719,10 @@ Isaac_Tower.FlayerMovementState["Стомп_импакт_пол"] = function(pla
 	toReturn.donttransformRunSpeedtoX = true
 	fent.RunSpeed = 0
 	fent.Velocity = Vector(0,0)
+
+	if spr:IsPlaying("super_jump_fall") then
+		spr:Play("super_jump_landing", true)
+	end
 
 	if spr:IsFinished(spr:GetAnimation()) and Flayer.Queue == -1 or fent.StateFrame > 360 then
 		if fent.NextState then

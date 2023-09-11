@@ -1311,6 +1311,34 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaa
 Isaac_Tower.RegisterBonusPickup("ScoreUp1", "gfx/it_picks/scoreUps.anm2", "2", Vector(1,1), {})
 --Isaac_Tower.editor.AddBonusPickup("scoreUp1", GenSprite("gfx/it_picks/scoreUps.anm2"), "ScoreUp", ingridSpr, sizeTable)
 
+function Isaac_Tower.ENT.LOGIC.BonusScoreUpSmolCollision(_, ent, bonus)
+	Isaac_Tower.FlayerHandlers.RemoveInGridBonusPickup(bonus)
+	Isaac_Tower.ScoreHandler.AddScore(10)
+end
+Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.BONUSPICKUP_COLLISION,Isaac_Tower.ENT.LOGIC.BonusScoreUpSmolCollision,"ScoreUp1")
+function Isaac_Tower.ENT.LOGIC.BonusScoreUpSmolInit(_, bonus)
+	local rng = Isaac_Tower.LevelHandler:GetCurrentRoomData().rng
+	local int = rng:RandomInt(4)+1
+	bonus.Sprite:Play(int)
+	bonus.eff = int
+end
+Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.BONUSPICKUP_INIT,Isaac_Tower.ENT.LOGIC.BonusScoreUpSmolInit,"ScoreUp1")
+
+Isaac_Tower.RegisterBonusPickup("ScoreUp2", "gfx/it_picks/scoreUps.anm2", "1big", Vector(2,2), {})
+--Isaac_Tower.editor.AddBonusPickup("scoreUp1", GenSprite("gfx/it_picks/scoreUps.anm2"), "ScoreUp", ingridSpr, sizeTable)
+
+function Isaac_Tower.ENT.LOGIC.BonusScoreUpBigCollision(_, ent, bonus)
+	Isaac_Tower.FlayerHandlers.RemoveInGridBonusPickup(bonus)
+	Isaac_Tower.ScoreHandler.AddScore(50)
+end
+Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.BONUSPICKUP_COLLISION,Isaac_Tower.ENT.LOGIC.BonusScoreUpBigCollision,"ScoreUp2")
+function Isaac_Tower.ENT.LOGIC.BonusScoreUpBigInit(_, bonus)
+	local rng = Isaac_Tower.LevelHandler:GetCurrentRoomData().rng
+	local int = rng:RandomInt(4)+1
+	bonus.Sprite:Play(int.."big")
+	bonus.eff = int
+end
+Isaac_Tower.AddDirectCallback(mod,Isaac_Tower.Callbacks.BONUSPICKUP_INIT,Isaac_Tower.ENT.LOGIC.BonusScoreUpBigInit,"ScoreUp2")
 
 ---------------------------------------ПУЛЬКИ------------------------------------
 
