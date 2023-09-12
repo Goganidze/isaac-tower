@@ -357,9 +357,17 @@ local RemoveimmutyEnt = {[Isaac.GetEntityVariantByName('PIZTOW CamEnt')]=true}
 --Isaac_Tower.TransitionSpawnOffset
 function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 	--if not Isaac_Tower.InAction then error("Func called outside the Isaac Tower mod",2) end
-    if Isaac_Tower.Rooms[roomName] then
+	if Isaac_Tower.Rooms[roomName] then
+		local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
+		local newRoom = Isaac_Tower.Rooms[roomName]
+		if Isaac_Tower.LevelHandler.HasSavedData(roomName) then
+			TSJDNHC_PT.DeleteAllGridList()
+			Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
 
-	--[[for i, ent in pairs(Isaac.FindByType(1000, IsaacTower_Enemy, -1)) do
+			Isaac_Tower.LevelHandler.TryRestoreSavedGridList(roomName)
+			Isaac_Tower.LevelHandler.TryRestoreSavedtEnemies(roomName)
+		else
+			--[[for i, ent in pairs(Isaac.FindByType(1000, IsaacTower_Enemy, -1)) do
 		if not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
 			ent:Remove()
 		end
@@ -369,237 +377,259 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			ent:Remove()
 		end
 	end]]
-	for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
-		if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
-			ent:Remove()
-		end
-	end
-
-	TSJDNHC_PT.DeleteAllGridList()
-	Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
-	local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
-	local newRoom = Isaac_Tower.Rooms[roomName]
-	Isaac_Tower.GridLists = {
-		Solid = false,
-		Obs = false,
-		Special = {},
-		Evri = {},
-		Bonus = {},
-		--Fake = {},
-	}
-	Isaac_Tower.GridLists.Solid = TSJDNHC_PT:MakeGridList(Vector(-40,100),newRoom.Size.Y,newRoom.Size.X, 40,40)
-	Isaac_Tower.GridLists.Obs = TSJDNHC_PT:MakeGridList(Vector(-40,100),newRoom.Size.Y*2,newRoom.Size.X*2, 20,20)
-	Isaac_Tower.GridLists.Solid:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
-	Isaac_Tower.GridLists.Solid:SetGridFromList(newRoom.SolidList)
-	Isaac_Tower.GridLists.Obs:SetGridFromList(newRoom.ObsList or {})
-	Isaac_Tower.GridLists.Solid:SetRenderMethod(1)
-	local fakelist = {}
-	if newRoom.SolidFakeList then
-		--Isaac_Tower.GridLists.Fake = TSJDNHC_PT:MakeGridList(Vector(-40,100),newRoom.Size.Y,newRoom.Size.X, 40,40)
-		--Isaac_Tower.GridLists.Fake:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
-		--Isaac_Tower.GridLists.Fake:SetGridFromList(newRoom.SolidFakeList)
-		----Isaac_Tower.GridLists.Fake:SetManualRender(true)
-		----Isaac_Tower.GridLists.Fake:SetRenderMethod(1)
-
-		--Isaac_Tower.GridLists.Fake:Render(Offset, Scale)
-		local Fake = TSJDNHC_PT:MakeGridList(Vector(-40,100),newRoom.Size.Y,newRoom.Size.X, 40,40) --TODO: прямое преобразование
-		Fake:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
-		Fake:SetGridFromList(newRoom.SolidFakeList)
-		Isaac_Tower.GridLists.Fake = {}
-		Isaac_Tower.GridLists.Fake.Sorted = {}
-		--Isaac_Tower.GridLists.FakeList = {}
-
-		local gfx = Isaac_Tower.GridLists.Solid.SpriteSheep
-		local anim = Isaac_Tower.GridLists.Solid.Anm2File
-		local function makeSprite(gridlist, Gtype)
-			local spr = Sprite()
-			spr:Load(anim, false)
-			if gfx then
-				for layer = 0, spr:GetLayerCount()-1 do
-					spr:ReplaceSpritesheet(layer, gfx)
+			for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
+				if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+					ent:Remove()
 				end
 			end
-			spr:LoadGraphics()
-			spr:Play(tostring(Gtype))
-			return spr
+
+			TSJDNHC_PT.DeleteAllGridList()
+			Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
+			--local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
+			--local newRoom = Isaac_Tower.Rooms[roomName]
+			Isaac_Tower.GridLists = {
+				Solid = false,
+				Obs = false,
+				Special = {},
+				Evri = {},
+				Bonus = {},
+				--Fake = {},
+			}
+			Isaac_Tower.GridLists.Solid = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y, newRoom.Size.X, 40,
+				40)
+			Isaac_Tower.GridLists.Obs = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y * 2, newRoom.Size.X * 2,
+				20, 20)
+			Isaac_Tower.GridLists.Solid:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
+			Isaac_Tower.GridLists.Solid:SetGridFromList(newRoom.SolidList)
+			Isaac_Tower.GridLists.Obs:SetGridFromList(newRoom.ObsList or {})
+			Isaac_Tower.GridLists.Solid:SetRenderMethod(1)
+			local fakelist = {}
+			if newRoom.SolidFakeList then
+				--Isaac_Tower.GridLists.Fake = TSJDNHC_PT:MakeGridList(Vector(-40,100),newRoom.Size.Y,newRoom.Size.X, 40,40)
+				--Isaac_Tower.GridLists.Fake:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
+				--Isaac_Tower.GridLists.Fake:SetGridFromList(newRoom.SolidFakeList)
+				----Isaac_Tower.GridLists.Fake:SetManualRender(true)
+				----Isaac_Tower.GridLists.Fake:SetRenderMethod(1)
+
+				--Isaac_Tower.GridLists.Fake:Render(Offset, Scale)
+				local Fake = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y, newRoom.Size.X, 40, 40) --TODO: прямое преобразование
+				Fake:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
+				Fake:SetGridFromList(newRoom.SolidFakeList)
+				Isaac_Tower.GridLists.Fake = {}
+				Isaac_Tower.GridLists.Fake.Sorted = {}
+				--Isaac_Tower.GridLists.FakeList = {}
+
+				local gfx = Isaac_Tower.GridLists.Solid.SpriteSheep
+				local anim = Isaac_Tower.GridLists.Solid.Anm2File
+				local function makeSprite(gridlist, Gtype)
+					local spr = Sprite()
+					spr:Load(anim, false)
+					if gfx then
+						for layer = 0, spr:GetLayerCount() - 1 do
+							spr:ReplaceSpritesheet(layer, gfx)
+						end
+					end
+					spr:LoadGraphics()
+					spr:Play(tostring(Gtype))
+					return spr
+				end
+
+				local list = Fake
+
+				for i = list.Y, 1, -1 do
+					for j = list.X, 1, -1 do
+						local grid = list.Grid[i][j]
+						local setGrids
+						if grid.SpriteAnim then
+							--Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
+							--Isaac_Tower.GridLists.Fake[i][j] = grid.gr
+							local nextindex = #fakelist + 1
+							fakelist[nextindex] = {
+								pos = grid.RenderPos,
+								spr = makeSprite(nil, grid.SpriteAnim), --self.GridSprites[grid.SpriteAnim] or self.GridSprites[tostring(grid.SpriteAnim)],
+								chl = grid.chl,
+							}
+							setGrids = true
+							Isaac_Tower.GridLists.Fake.Sorted[grid.gr] = Isaac_Tower.GridLists.Fake.Sorted[grid.gr] or {}
+							Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr] + 1] =
+							fakelist[nextindex].spr
+							--print(Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr]], fakelist[nextindex].spr)
+						end
+						if grid.Sprite then
+							--Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
+							--Isaac_Tower.GridLists.Fake[i][j] = grid.gr
+							fakelist[#fakelist + 1] = {
+								pos = grid.RenderPos,
+								spr = grid.Sprite,
+								chl = grid.chl,
+							}
+							setGrids = true
+							Isaac_Tower.GridLists.Fake.Sorted[grid.gr] = Isaac_Tower.GridLists.Fake.Sorted[grid.gr] or {}
+							Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr] + 1] =
+							fakelist[#fakelist].spr
+						end
+						if setGrids then
+							Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
+							Isaac_Tower.GridLists.Fake[i][j] = grid.gr
+							if grid.Childs then
+								for id = 1, #grid.Childs do
+									local chl = grid.Childs[id]
+									Isaac_Tower.GridLists.Fake[chl.XY.Y] = Isaac_Tower.GridLists.Fake[chl.XY.Y] or {}
+									Isaac_Tower.GridLists.Fake[chl.XY.Y][chl.XY.X] = grid.gr
+								end
+							end
+						end
+					end
+				end
+				Fake:Delete()
+			end
+			--Isaac_Tower.GridLists.Obs:SetRenderMethod(1)
+
+			if newRoom.EnviList then
+				local list = Isaac_Tower.GridLists.Evri
+				list.List = {}
+				local CustomType = {}
+				if newRoom.EnviList.CT and newRoom.EnviList.CF then
+					for i, k in pairs(newRoom.EnviList.CT) do
+						local size, pivot = Vector(k[3][1], k[3][2]), Vector(k[4][1], k[4][2])
+						local anm2, anim = newRoom.EnviList.CF[k[1]], k[2]
+						local GType = anm2 .. anim
+						CustomType[i] = GType
+
+						local ingridSpr = GenSprite(anm2, anim)
+						ingridSpr.Scale = Vector(.5, .5)
+						Isaac_Tower.editor.AddEnvironment(GType,
+							GenSprite(anm2, anim),
+							function() return GenSprite(anm2, anim) end,
+							ingridSpr,
+							size,
+							pivot)
+					end
+					newRoom.EnviList.CT = nil
+					newRoom.EnviList.CF = nil
+				end
+				for i, k in pairs(newRoom.EnviList) do
+					if Isaac_Tower.editor.GridTypes["Environment"][k.name or CustomType[k.ct]] then
+						if k.ct and CustomType[k.ct] then
+							k.name = CustomType[k.ct]
+						end
+
+						local spr = Isaac_Tower.editor.GridTypes["Environment"][k.name or CustomType[k.ct]].info()
+						list.List[i] = { pos = k.pos, spr = spr, l = k.l or 0 }
+						local layer = k.l or 0
+
+						list[layer] = list[layer] or {}
+						for _, index in pairs(k.chl) do
+							local gridlist = list[layer]
+							gridlist[index[1]] = gridlist[index[1]] or {}
+							gridlist[index[1]][index[2]] = gridlist[index[1]][index[2]] or {}
+							gridlist[index[1]][index[2]].Ps = gridlist[index[1]][index[2]].Ps or {}
+							gridlist[index[1]][index[2]].Ps[i] = true
+						end
+					end
+				end
+				for i, k in pairs(fakelist) do
+					local id = #list.List + 1
+					list.List[id] = { pos = k.pos, spr = k.spr, l = 0 }
+					local layer = "fake"
+
+					list[layer] = list[layer] or {}
+					for _, index in pairs(k.chl) do
+						local gridlist = list[layer]
+						gridlist[index[1]] = gridlist[index[1]] or {}
+						gridlist[index[1]][index[2]] = gridlist[index[1]][index[2]] or {}
+						gridlist[index[1]][index[2]].Ps = gridlist[index[1]][index[2]].Ps or {}
+						gridlist[index[1]][index[2]].Ps[id] = true
+					end
+				end
+			end
+
+			if newRoom.Enemy then
+				for i, k in pairs(newRoom.Enemy) do
+					local data = Isaac_Tower.EnemyHandlers.Enemies[k.name]
+					if data then
+						Isaac_Tower.Spawn(k.name, k.st, k.pos * 20 + Vector(-60, 80 - data.spawnOffset), Vector(0, 0))
+					end
+				end
+			end
+			if newRoom.Bonus then
+				Isaac_Tower.GridLists.Bonus.Grid = {}
+				Isaac_Tower.GridLists.Bonus.Ref = {}
+				for i, k in pairs(newRoom.Bonus) do
+					local data = Isaac_Tower.FlayerHandlers.BonusPickup[k.name]
+					if data then
+						--Isaac_Tower.Spawn(k.name, k.st, k.pos*20 + Vector(-60,80-data.spawnOffset), Vector(0,0))
+						--for i,k in pairs(data) do
+						--	print(i,k)
+						--end
+						local spr = GenSprite(data.gfx, data.anim)
+						spr.PlaybackSpeed = 0.5
+						local x, y = k.pos.X, k.pos.Y
+						local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y)               --[x]
+						local posi = k.pos * 20 + data.Size * 10 + Vector(-60, 80)
+						grid[x] = {
+							Sprite = spr,
+							XY = k.pos,
+							Position = posi,
+							RenderPos = (k.pos * 20 + Vector(-20, -20)) / Wtr,                           --+ Vector(-60,80)
+							Exists = true,
+							Type = data.Name,
+							CH = {},
+							Ref = #Isaac_Tower.GridLists.Bonus.Ref + 1
+						}
+						for i, k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Bonus.Grid, k.pos, data.Size, true)) do
+							SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, k.Y)[k.X] = { XY = k, Parent = grid[x] }
+							grid[x].CH[#grid[x].CH + 1] = k
+						end
+						Isaac_Tower.GridLists.Bonus.Ref[#Isaac_Tower.GridLists.Bonus.Ref + 1] = { k.pos, grid[x] }
+						Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_INIT, data.Name, grid[x])
+					end
+				end
+			end
 		end
 
-		local list = Fake
-		
-		for i=list.Y, 1,-1 do
-			for j=list.X, 1,-1 do
-				local grid = list.Grid[i][j]
-				local setGrids
-				if grid.SpriteAnim then
-					--Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
-					--Isaac_Tower.GridLists.Fake[i][j] = grid.gr
-					local nextindex = #fakelist+1
-					fakelist[nextindex] = {
-						pos = grid.RenderPos,
-						spr = makeSprite(nil,grid.SpriteAnim),  --self.GridSprites[grid.SpriteAnim] or self.GridSprites[tostring(grid.SpriteAnim)],
-						chl = grid.chl,}
-					setGrids = true
-					Isaac_Tower.GridLists.Fake.Sorted[grid.gr] = Isaac_Tower.GridLists.Fake.Sorted[grid.gr] or {}
-					Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr]+1] = fakelist[nextindex].spr
-					--print(Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr]], fakelist[nextindex].spr)
-				end
-				if grid.Sprite then
-					--Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
-					--Isaac_Tower.GridLists.Fake[i][j] = grid.gr
-					fakelist[#fakelist+1] = {
-						pos = grid.RenderPos,
-						spr = grid.Sprite,
-						chl = grid.chl,}
-					setGrids = true
-					Isaac_Tower.GridLists.Fake.Sorted[grid.gr] = Isaac_Tower.GridLists.Fake.Sorted[grid.gr] or {}
-					Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr]+1] = fakelist[#fakelist].spr
-				end
-				if setGrids then
-					Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
-					Isaac_Tower.GridLists.Fake[i][j] = grid.gr
-					if grid.Childs then
-						for id=1,#grid.Childs do
-							local chl = grid.Childs[id]
-							Isaac_Tower.GridLists.Fake[chl.XY.Y] = Isaac_Tower.GridLists.Fake[chl.XY.Y] or {}
-							Isaac_Tower.GridLists.Fake[chl.XY.Y][chl.XY.X] = grid.gr
+		local EntersSpawn = {}
+		local SpawnPoints = {}
+		if newRoom.Special then
+			for gType, tab in pairs(newRoom.Special) do
+				if gType ~= "spawnpoint_def" and gType ~= "" then
+					Isaac_Tower.GridLists.Special[gType] = {}
+					for i, grid in ipairs(tab) do
+						--local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
+						local index = (grid.XY.Y) * newRoom.Size.X + (grid.XY.X)
+						Isaac_Tower.GridLists.Special[gType][index] = TabDeepCopy(grid)
+						Isaac_Tower.GridLists.Special[gType][index].pos = grid.XY * 40 + Vector(-60, 80)
+						Isaac_Tower.GridLists.Special[gType][index].FrameCount = 0
+						if Isaac_Tower.GridLists.Special[gType][index].Size then
+							for i, k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].Size, true, newRoom.Size.X)) do
+								Isaac_Tower.GridLists.Special[gType][k] = { Parent = index }
+							end
+						end
+						if gType == "Room_Transition" then
+							EntersSpawn[#EntersSpawn + 1] = {
+								Name = grid.Name,
+								pos = Isaac_Tower.GridLists.Special[gType][index].pos,
+								HasOffset = true
+							}
+						elseif gType == "spawnpoint" then
+							SpawnPoints[grid.Name] = {
+								Name = grid.Name,
+								pos = Isaac_Tower.GridLists.Special[gType][index].pos
+							}
 						end
 					end
 				end
 			end
 		end
-		Fake:Delete()
-	end
-	--Isaac_Tower.GridLists.Obs:SetRenderMethod(1)
 
-	if newRoom.EnviList then
-		local list = Isaac_Tower.GridLists.Evri
-		list.List = {}
-		local CustomType = {}
-		if newRoom.EnviList.CT and newRoom.EnviList.CF then
-			for i, k in pairs(newRoom.EnviList.CT) do
-				local size, pivot = Vector(k[3][1],k[3][2]), Vector(k[4][1],k[4][2])
-				local anm2, anim = newRoom.EnviList.CF[k[1]], k[2]
-				local GType = anm2..anim
-				CustomType[i] = GType
-
-				local ingridSpr = GenSprite(anm2,anim)
-				ingridSpr.Scale =  Vector(.5,.5)
-				Isaac_Tower.editor.AddEnvironment(GType,
-					GenSprite(anm2,anim),
-					function() return GenSprite(anm2,anim) end,
-					ingridSpr,
-					size,
-					pivot)
-			end
-			newRoom.EnviList.CT = nil
-			newRoom.EnviList.CF = nil
-		end
-		for i, k in pairs(newRoom.EnviList) do
-			if Isaac_Tower.editor.GridTypes["Environment"][k.name or CustomType[k.ct]] then
-				if k.ct and CustomType[k.ct] then
-					k.name = CustomType[k.ct]
-				end
-				
-				local spr = Isaac_Tower.editor.GridTypes["Environment"][k.name or CustomType[k.ct]].info()
-				list.List[i] = {pos = k.pos, spr = spr, l = k.l or 0}
-				local layer = k.l or 0
-
-				list[layer] = list[layer] or {}
-				for _, index in pairs(k.chl) do 
-					local gridlist = list[layer]
-					gridlist[index[1] ] = gridlist[index[1] ] or {}
-					gridlist[index[1] ][index[2] ] = gridlist[index[1] ][index[2] ] or {}
-					gridlist[index[1] ][index[2] ].Ps = gridlist[index[1] ][index[2] ].Ps or {}
-					gridlist[index[1] ][index[2] ].Ps[i] = true
-				end
-			end
-		end
-		for i, k in pairs(fakelist) do
-			local id = #list.List+1
-			list.List[id] = {pos = k.pos, spr = k.spr, l = 0}
-			local layer = "fake"
-
-			list[layer] = list[layer] or {}
-			for _, index in pairs(k.chl) do 
-				local gridlist = list[layer]
-				gridlist[index[1] ] = gridlist[index[1] ] or {}
-				gridlist[index[1] ][index[2] ] = gridlist[index[1] ][index[2] ] or {}
-				gridlist[index[1] ][index[2] ].Ps = gridlist[index[1] ][index[2] ].Ps or {}
-				gridlist[index[1] ][index[2] ].Ps[id] = true
-			end
-		end
-	end
-
-	if newRoom.Enemy then
-		for i, k in pairs(newRoom.Enemy) do
-			local data = Isaac_Tower.EnemyHandlers.Enemies[k.name]
-			if data then
-				Isaac_Tower.Spawn(k.name, k.st, k.pos*20 + Vector(-60,80-data.spawnOffset), Vector(0,0))
-			end
-		end
-	end
-	if newRoom.Bonus then
-		Isaac_Tower.GridLists.Bonus.Grid = {}
-		Isaac_Tower.GridLists.Bonus.Ref = {}
-		for i, k in pairs(newRoom.Bonus) do
-			local data = Isaac_Tower.FlayerHandlers.BonusPickup[k.name]
-			if data then
-				--Isaac_Tower.Spawn(k.name, k.st, k.pos*20 + Vector(-60,80-data.spawnOffset), Vector(0,0))
-				--for i,k in pairs(data) do
-				--	print(i,k)
-				--end
-				local spr = GenSprite(data.gfx, data.anim)
-				spr.PlaybackSpeed = 0.5
-				local x,y = k.pos.X, k.pos.Y
-				local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y) --[x]
-				local posi = k.pos*20 + data.Size*10+Vector(-60,80)
-				grid[x] = { Sprite = spr, XY = k.pos, Position = posi, RenderPos = (k.pos*20 + Vector(-20,-20))/Wtr, --+ Vector(-60,80)
-					Exists = true, Type = data.Name, CH = {}, Ref = #Isaac_Tower.GridLists.Bonus.Ref+1}
-				for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Bonus.Grid, k.pos, data.Size, true)) do
-					SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid,k.Y)[k.X] = {XY = k, Parent = grid[x]}
-					grid[x].CH[#grid[x].CH+1] = k
-				end
-				Isaac_Tower.GridLists.Bonus.Ref[#Isaac_Tower.GridLists.Bonus.Ref+1] = {k.pos, grid[x]}
-				Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_INIT, data.Name, grid[x])
-			end
-		end
-	end
-
-	local EntersSpawn = {}
-	local SpawnPoints = {}
-	if newRoom.Special then
-		for gType, tab in pairs(newRoom.Special) do
-			if gType ~= "spawnpoint_def" and gType ~= "" then
-				Isaac_Tower.GridLists.Special[gType] = {}
-				for i, grid in ipairs(tab) do
-					--local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
-					local index = (grid.XY.Y) * newRoom.Size.X + (grid.XY.X)
-					Isaac_Tower.GridLists.Special[gType][index] = TabDeepCopy(grid)
-					Isaac_Tower.GridLists.Special[gType][index].pos = grid.XY*40 + Vector(-60,80)
-					Isaac_Tower.GridLists.Special[gType][index].FrameCount = 0
-					if Isaac_Tower.GridLists.Special[gType][index].Size then
-						for i,k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].Size, true, newRoom.Size.X)) do
-							Isaac_Tower.GridLists.Special[gType][k] = {Parent = index}
-						end
-					end
-					if gType == "Room_Transition" then
-						EntersSpawn[#EntersSpawn+1] = {Name = grid.Name, pos = Isaac_Tower.GridLists.Special[gType][index].pos, HasOffset = true}
-					elseif gType == "spawnpoint" then
-						SpawnPoints[grid.Name] = {Name = grid.Name, pos = Isaac_Tower.GridLists.Special[gType][index].pos}
-					end
-				end
-			end
-		end
-	end
-
-	Isaac_Tower.SpawnPoint = newRoom.DefSpawnPoint
-	--if oldRoomName and newRoom.EntersSpawn and newRoom.EntersSpawn[oldRoomName] then
-	--	Isaac_Tower.SpawnPoint = newRoom.EntersSpawn[oldRoomName]
-	--end
-	local useOffset = false
-	local targetName
-	for i,k in pairs(EntersSpawn) do
-		--[[if k.FromRoom and preRoomName == k.FromRoom then
+		Isaac_Tower.SpawnPoint = newRoom.DefSpawnPoint
+		--if oldRoomName and newRoom.EntersSpawn and newRoom.EntersSpawn[oldRoomName] then
+		--	Isaac_Tower.SpawnPoint = newRoom.EntersSpawn[oldRoomName]
+		--end
+		local useOffset = false
+		local targetName
+		for i, k in pairs(EntersSpawn) do
+			--[[if k.FromRoom and preRoomName == k.FromRoom then
 			if TargetSpawnPoint and TargetSpawnPoint == k.Name then
 				--if TargetSpawnPoint == k.Name then
 					Isaac_Tower.SpawnPoint = k.pos
@@ -616,53 +646,57 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			end
 		end]]
 
-		if not TargetSpawnPoint then
-			if k.FromRoom and preRoomName == k.FromRoom then
-				Isaac_Tower.SpawnPoint = k.pos
-				useOffset = k.HasOffset
-			end
-		elseif TargetSpawnPoint == k.Name then
-			targetName = k.Name
-			if k.FromRoom and preRoomName == k.FromRoom then
-				Isaac_Tower.SpawnPoint = k.pos
-				useOffset = k.HasOffset
-			elseif not k.FromRoom then
-				Isaac_Tower.SpawnPoint = k.pos
-				useOffset = k.HasOffset
+			if not TargetSpawnPoint then
+				if k.FromRoom and preRoomName == k.FromRoom then
+					Isaac_Tower.SpawnPoint = k.pos
+					useOffset = k.HasOffset
+				end
+			elseif TargetSpawnPoint == k.Name then
+				targetName = k.Name
+				if k.FromRoom and preRoomName == k.FromRoom then
+					Isaac_Tower.SpawnPoint = k.pos
+					useOffset = k.HasOffset
+				elseif not k.FromRoom then
+					Isaac_Tower.SpawnPoint = k.pos
+					useOffset = k.HasOffset
+				end
 			end
 		end
+
+		Isaac.RunCallback(Isaac_Tower.Callbacks.ROOM_LOADING, newRoom, roomName, oldRoomName)
+
+		Isaac_Tower.CurrentRoom = newRoom
+
+		Isaac_Tower.RoomPostCompilator()
+
+		local offset = useOffset and Isaac_Tower.TransitionSpawnOffset or Vector(0, 0)
+		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
+		for i = 0, Isaac_Tower.game:GetNumPlayers() - 1 do
+			Isaac_Tower.SetPlayerPos(Isaac.GetPlayer(i), Isaac_Tower.SpawnPoint + offset)
+		end
+		TSJDNHC_PT:SetFocusPosition(Isaac.GetPlayer():GetData().Isaac_Tower_Data.Position, 1)
+		Isaac_Tower.SmoothPlayerPos = Isaac.GetPlayer():GetData().Isaac_Tower_Data.Position
+		Isaac_Tower.TransitionSpawnOffset = nil
+
+		if targetName and SpawnPoints[targetName] then
+			Isaac_Tower.SpawnPoint = SpawnPoints[targetName].pos - Vector(7, 7)
+		end
 	end
-
-	Isaac.RunCallback(Isaac_Tower.Callbacks.ROOM_LOADING, newRoom, roomName, oldRoomName)
-
-	Isaac_Tower.CurrentRoom = newRoom
-
-	Isaac_Tower.RoomPostCompilator()
-
-	local offset = useOffset and Isaac_Tower.TransitionSpawnOffset or Vector(0,0)
-	Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
-	for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
-		Isaac_Tower.SetPlayerPos(Isaac.GetPlayer(i), Isaac_Tower.SpawnPoint + offset)
-	end
-	TSJDNHC_PT:SetFocusPosition(Isaac.GetPlayer():GetData().Isaac_Tower_Data.Position, 1)
-	Isaac_Tower.SmoothPlayerPos = Isaac.GetPlayer():GetData().Isaac_Tower_Data.Position
-	Isaac_Tower.TransitionSpawnOffset = nil
-	
-	if targetName and SpawnPoints[targetName] then
-		Isaac_Tower.SpawnPoint = SpawnPoints[targetName].pos - Vector(7,7)
-	end
-    end
 end
 
 function Isaac_Tower.RoomTransition(roomName, force, preRoomName, TargetSpawnPoint)
 	--if not Isaac_Tower.InAction then error("Func called outside the Isaac Tower mod",2) end
     if Isaac_Tower.Rooms[roomName] then
 	if force then
+		Isaac_Tower.LevelHandler.SaveCurrentGridList()
+		Isaac_Tower.LevelHandler.SaveCurrentEnemies()
 		Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		Isaac_Tower.Pause = false
 	else
 		Isaac_Tower.Pause = true
 		Isaac_Tower.FadeInWithReaction(10, 5, function()
+			Isaac_Tower.LevelHandler.SaveCurrentGridList()
+			Isaac_Tower.LevelHandler.SaveCurrentEnemies()
 			Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			Isaac_Tower.Pause = false
 		end)
@@ -957,6 +991,7 @@ end
 
 function Isaac_Tower.Spawn(name, subtype, pos, vec, spawner)
 	local data = Isaac_Tower.EnemyHandlers.Enemies[name]
+	print(name, subtype, pos, vec, spawner)
 	local ent = Isaac.Spawn(EntityType.ENTITY_EFFECT, IsaacTower_Enemy, subtype or 0, pos, vec, spawner)
 	ent:GetSprite():Load(data.gfx, true)
 	ent:GetSprite():Play(ent:GetSprite():GetDefaultAnimation())
@@ -1243,6 +1278,56 @@ do
 	end
 	function Isaac_Tower.LevelHandler.GetCurrentRoomData()
 		return SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, Isaac_Tower.CurrentRoom.Name)
+	end
+	function Isaac_Tower.LevelHandler.GetRoomData(roomName)
+		return SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, roomName)
+	end
+	function Isaac_Tower.LevelHandler.SaveCurrentGridList()
+		if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
+			local curData = Isaac_Tower.LevelHandler.GetCurrentRoomData()
+			curData.GridLists = Isaac_Tower.GridLists
+		end
+	end
+	function Isaac_Tower.LevelHandler.TryRestoreSavedGridList(roomName)
+		local curData = Isaac_Tower.LevelHandler.GetRoomData(roomName)
+		if curData.GridLists then
+			Isaac_Tower.GridLists = curData.GridLists
+		end
+	end
+	function Isaac_Tower.LevelHandler.SaveCurrentEnemies()
+		if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
+			local curData = Isaac_Tower.LevelHandler.GetCurrentRoomData()
+			curData.EnemiesList = {}
+			local enemyList = Isaac_Tower.EnemyHandlers.GetRoomEnemies()
+			for i=1, #enemyList do
+				local ent = enemyList[i]
+				local entData = ent:GetData().Isaac_Tower_Data
+				curData.EnemiesList[#curData.EnemiesList+1] = {
+					type = entData.Type,
+					st = ent.SubType,
+					pos = ent.Position,
+					data = entData
+				}
+			end
+		end
+	end
+	function Isaac_Tower.LevelHandler.TryRestoreSavedtEnemies(roomName)
+		local curData = Isaac_Tower.LevelHandler.GetRoomData(roomName)
+		if curData.EnemiesList then
+			local zero = Vector(0,0)
+			for i=1,#curData.EnemiesList do
+				local entData = curData.EnemiesList[i]
+				local ent = Isaac_Tower.Spawn(entData.type, entData.st,entData.pos,zero,nil)
+				ent:GetData().Isaac_Tower_Data = entData.data
+			end
+		end
+	end
+	function Isaac_Tower.LevelHandler.HasSavedData(roomName)
+		if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
+			return  Isaac_Tower.LevelHandler.RoomData[roomName] and Isaac_Tower.LevelHandler.RoomData[roomName].GridLists
+		else
+			return false
+		end
 	end
 end
 
