@@ -770,52 +770,56 @@ mod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, Init_Player,0)
 ------------------------------к
 
 function Isaac_Tower.RoomPostCompilator()
-    local t = Isaac.GetTime()
-    local ignorelist = {}
-    for i, grid in pairs(Isaac_Tower.GridLists.Solid:GetGridsAsTable()) do
-        if not ignorelist[i] then
-            if grid.slope then
-                local num = 1
-		::retu::
-                if grid.Type == "45l" then
-                    local upgrid = Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y+num-2] and Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y+num-2][grid.XY.X-num+1]
-                    if num > 1 and upgrid then
-			if upgrid.Collision == 0 and not upgrid.Type then
-				Isaac_Tower.GridLists.Solid:LinkGrids( grid, upgrid, true)
+	local t = Isaac.GetTime()
+	local ignorelist = {}
+	for i, grid in pairs(Isaac_Tower.GridLists.Solid:GetGridsAsTable()) do
+		if not ignorelist[i] then
+			if grid.slope then
+				local num = 1
+				::retu::
+				if grid.Type == "45l" then
+					local upgrid = Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y + num - 2] and
+					Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y + num - 2][grid.XY.X - num + 1]
+					if num > 1 and upgrid then
+						if upgrid.Collision == 0 and not upgrid.Type then
+							Isaac_Tower.GridLists.Solid:LinkGrids(grid, upgrid, true)
+						end
+					end
+					local nextgrid = Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y + num] and
+					Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y + num][grid.XY.X - num]
+					if nextgrid then
+						if nextgrid.Type and nextgrid.Type == grid.Type then
+							ignorelist[nextgrid.Index] = true
+							Isaac_Tower.GridLists.Solid:LinkGrids(grid, nextgrid, true)
+							grid.slope = Vector(grid.Half.Y * 2, 0)
+							num = num + 1
+							goto retu
+						end
+					end
+				elseif grid.Type == "45r" then
+					local upgrid = Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y + num - 2] and
+					Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y + num - 2][grid.XY.X + num - 1]
+					if num > 1 and upgrid then
+						if upgrid.Collision == 0 and not upgrid.Type then
+							Isaac_Tower.GridLists.Solid:LinkGrids(grid, upgrid, true)
+						end
+					end
+					local nextgrid = Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y + num] and
+					Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y + num][grid.XY.X + num]
+					if nextgrid then
+						if nextgrid.Type and nextgrid.Type == grid.Type then
+							ignorelist[nextgrid.Index] = true
+							Isaac_Tower.GridLists.Solid:LinkGrids(grid, nextgrid, true)
+							grid.slope = Vector(0, grid.Half.Y * 2)
+							num = num + 1
+							goto retu
+						end
+					end
+				end
 			end
-                    end
-                    local nextgrid = Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y+num] and Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y+num][grid.XY.X-num]
-                    if nextgrid then
-			if nextgrid.Type and nextgrid.Type == grid.Type then
-				ignorelist[nextgrid.Index] = true
-				Isaac_Tower.GridLists.Solid:LinkGrids( grid, nextgrid, true)
-				grid.slope = Vector(grid.Half.Y*2,0)
-				num = num + 1
-				goto retu
-			end
-                    end
-		elseif grid.Type == "45r" then
-                    local upgrid = Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y+num-2] and Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y+num-2][grid.XY.X+num-1]
-                    if num > 1 and upgrid then
-			if upgrid.Collision == 0 and not upgrid.Type then
-				Isaac_Tower.GridLists.Solid:LinkGrids( grid, upgrid, true)
-			end
-                    end
-                    local nextgrid = Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y+num] and Isaac_Tower.GridLists.Solid.Grid[grid.XY.Y+num][grid.XY.X+num]
-                    if nextgrid then
-			if nextgrid.Type and nextgrid.Type == grid.Type then
-				ignorelist[nextgrid.Index] = true
-				Isaac_Tower.GridLists.Solid:LinkGrids( grid, nextgrid, true)
-				grid.slope = Vector(0,grid.Half.Y*2)
-				num = num + 1
-				goto retu
-			end
-                    end
-                end
-            end 
-        end
-    end
-    print(Isaac.GetTime()-t)
+		end
+	end
+	print(Isaac.GetTime() - t)
 end
 
 local updateframe = 0
@@ -3647,7 +3651,7 @@ local function debugFridRender(_, Pos, Offset, Scale)
 					Col1Grid.Scale = Scale*Vector(k.Xsize/35, k.Ysize/35)
 					Col1Grid:Render(renderPos)
 				end
-				Isaac.RenderText(grid.Index, renderPos.X, renderPos.Y, 1,1,1,0.3)
+				Isaac.RenderText(math.ceil(grid.Index), renderPos.X, renderPos.Y, 1,1,1,0.3)
 			--end
 		end
 	end
@@ -3754,7 +3758,7 @@ if Isaac_Tower.RG then
 end
 
 local rooms = {
-	"rooms.test",
+	--"rooms.test",
 	"rooms.tutorial",
 }
 

@@ -281,6 +281,9 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 			type = grid.EditorType,
 			info = Isaac_Tower.editor.GridTypes.Grid[grid.EditorType].info,
 		}
+		if grid.Collision ~= 1 then
+			Isaac_Tower.editor.Memory.CurrentRoom.Solid[grid.pos.Y][grid.pos.X].coll = grid.Collision
+		end
 		local pGrid = Isaac_Tower.editor.GridTypes.Grid[grid.EditorType]
 		local list = Isaac_Tower.editor.Memory.CurrentRoom.Solid
 		local x,y = grid.pos.X,grid.pos.Y
@@ -879,6 +882,8 @@ UIs.HintTextBG1 = GenSprite("gfx/editor/ui.anm2","фон_для_вспом_те�
 UIs.HintTextBG2 = GenSprite("gfx/editor/ui.anm2","фон_для_вспом_текста",1)
 UIs.SolidMode1 = GenSprite("gfx/editor/ui.anm2","твёрдаяКлетка")
 UIs.SolidMode2 = GenSprite("gfx/editor/ui.anm2","прозрачнаяКлетка")
+UIs.SolidMode3 = GenSprite("gfx/editor/ui.anm2","КлеткаБезКоллизии")
+UIs.SolidMode4 = GenSprite("gfx/editor/ui.anm2","ЛомающиесяКлетка")
 UIs.EnemiesMode1 = GenSprite("gfx/editor/ui.anm2","враги")
 UIs.EnemiesMode2 = GenSprite("gfx/editor/ui.anm2","бонусы")
 
@@ -2249,7 +2254,7 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 	local Gridscale = Isaac_Tower.editor.GridScale
 	local overlayData = self --Isaac_Tower.editor.GetOverlay("Grid")
 	if not overlayData.lists then
-		overlayData.lists = {"Solid","SolidFake"}
+		overlayData.lists = {"Solid","SolidFake","Solid"}
 	end
 
 	local startPosRender = -Isaac_Tower.editor.GridStartPos/Gridscale - Vector(26*2,26*2)
@@ -2335,7 +2340,13 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 				if grid.sprite then
 					local scale = grid.sprite.Scale/1
 					grid.sprite.Scale = Vector(0.5, 0.5)*Gridscale
+					if grid.coll then
+						grid.sprite.Color = Color(1,1,1,0.7)
+					end
 					grid.sprite:Render(renderpos)
+					if grid.coll then
+						grid.sprite.Color = Color.Default
+					end
 					grid.sprite.Scale = scale
 				end
 			end
@@ -2365,6 +2376,9 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 								list[y][x].sprite = pGrid.trueSpr
 								list[y][x].info = pGrid.info
 								list[y][x].type = Isaac_Tower.editor.SelectedGridType
+								if overlayData.Layer == 2 then
+									list[y][x].coll = 0
+								end
 								if pGrid.size then
 									for i,k in pairs(GetLinkedGrid(list, Vector(x,y), pGrid.size, true)) do
 										if not list[k[1]] then
@@ -2470,7 +2484,11 @@ end, function(str)
 					if type(dat) == "string" then
 						solidTab = solidTab..param.."='" .. dat .. "',"
 					else
-						solidTab = solidTab..param.."=" .. dat .. ","
+						if param == "Collision" and grid.coll then
+							solidTab = solidTab..param.."=" .. grid.coll .. ","
+						else
+							solidTab = solidTab..param.."=" .. dat .. ","
+						end
 					end
 				end
 				--EditorType
@@ -4760,6 +4778,31 @@ do
 					local frame = SolidMode2.spr:GetFrame()
 					SolidMode2.spr = UIs.GridOverlayTab1()
 					SolidMode2.spr:SetFrame(frame)
+				end
+			end
+		end)
+		local SolidMode3
+		SolidMode3 = Isaac_Tower.editor.AddButton("GridList", "SolidMode3", pos+Vector(34,-16), 17, 28, UIs.GridOverlayTab1(), function(button) 
+			if button ~= 0 then return end
+			Solidmenu.Layer = 2
+		end, function(pos)
+			local off = Vector(0,9)
+			if Solidmenu.Layer == 2 then
+				off.Y = 7
+				if SolidMode3.spr:GetAnimation() ~= "вкладка2" then
+					local frame = SolidMode3.spr:GetFrame()
+					SolidMode3.spr = UIs.GridOverlayTab2()
+					SolidMode3.spr:SetFrame(frame)
+				end
+				UIs.SolidMode3:SetFrame(SolidMode3.spr:GetFrame())
+				UIs.SolidMode3:Render(pos+off)
+			else
+				UIs.SolidMode3:SetFrame(SolidMode3.spr:GetFrame())
+				UIs.SolidMode3:Render(pos+off)
+				if SolidMode3.spr:GetAnimation() ~= "вкладка1" then
+					local frame = SolidMode3.spr:GetFrame()
+					SolidMode3.spr = UIs.GridOverlayTab1()
+					SolidMode3.spr:SetFrame(frame)
 				end
 			end
 		end)

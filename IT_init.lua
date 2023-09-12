@@ -764,7 +764,7 @@ Isaac_Tower.editor.AddEnvironment("t_paper4",
 	Vector(10,12),
 	Vector(4,5))
 
-for i=1,8 do
+for i=1,9 do
 	local anm = "back"..i
 	Isaac_Tower.editor.AddEnvironment("t_back"..i, 
 		GenSprite("gfx/evrom/tutorial.anm2",anm,nil,nil,Vector(13,13)), 
