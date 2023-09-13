@@ -130,6 +130,8 @@ local Isaac_TowerCallbacks = {
 	ENEMY_POST_INIT = {},
 	ENEMY_POST_UPDATE = {},
 	ENEMY_POST_RENDER = {},
+	ENEMY_PRE_SAVE = {},
+	ENEMY_POST_RESTORE = {},
 	PROJECTILE_POST_INIT = {},
 	PROJECTILE_POST_UPDATE = {},
 	PROJECTILE_POST_RENDER = {},
@@ -361,6 +363,11 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
 		local newRoom = Isaac_Tower.Rooms[roomName]
 		if Isaac_Tower.LevelHandler.HasSavedData(roomName) then
+			for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
+				if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+					ent:Remove()
+				end
+			end
 			TSJDNHC_PT.DeleteAllGridList()
 			Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
 
@@ -991,7 +998,6 @@ end
 
 function Isaac_Tower.Spawn(name, subtype, pos, vec, spawner)
 	local data = Isaac_Tower.EnemyHandlers.Enemies[name]
-	print(name, subtype, pos, vec, spawner)
 	local ent = Isaac.Spawn(EntityType.ENTITY_EFFECT, IsaacTower_Enemy, subtype or 0, pos, vec, spawner)
 	ent:GetSprite():Load(data.gfx, true)
 	ent:GetSprite():Play(ent:GetSprite():GetDefaultAnimation())
@@ -1292,6 +1298,8 @@ do
 		local curData = Isaac_Tower.LevelHandler.GetRoomData(roomName)
 		if curData.GridLists then
 			Isaac_Tower.GridLists = curData.GridLists
+			TSJDNHC_PT.GridsList[#TSJDNHC_PT.GridsList + 1] = Isaac_Tower.GridLists.Solid
+			TSJDNHC_PT.GridsList[#TSJDNHC_PT.GridsList + 1] = Isaac_Tower.GridLists.Obs
 		end
 	end
 	function Isaac_Tower.LevelHandler.SaveCurrentEnemies()
@@ -1302,12 +1310,17 @@ do
 			for i=1, #enemyList do
 				local ent = enemyList[i]
 				local entData = ent:GetData().Isaac_Tower_Data
-				curData.EnemiesList[#curData.EnemiesList+1] = {
-					type = entData.Type,
-					st = ent.SubType,
-					pos = ent.Position,
-					data = entData
-				}
+				if not entData.NoPersist then
+					local result = Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_PRE_SAVE, entData.Type, ent, curData) 
+					if result ~= true then
+						curData.EnemiesList[#curData.EnemiesList+1] = {
+							type = entData.Type,
+							st = ent.SubType,
+							pos = ent.Position,
+							data = entData
+						}
+					end
+				end
 			end
 		end
 	end
@@ -1319,6 +1332,7 @@ do
 				local entData = curData.EnemiesList[i]
 				local ent = Isaac_Tower.Spawn(entData.type, entData.st,entData.pos,zero,nil)
 				ent:GetData().Isaac_Tower_Data = entData.data
+				Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_POST_RESTORE, entData.type, ent, curData)
 			end
 		end
 	end
@@ -1328,6 +1342,9 @@ do
 		else
 			return false
 		end
+	end
+	function Isaac_Tower.LevelHandler.ClearRoomData()
+		Isaac_Tower.LevelHandler.RoomData = {}
 	end
 end
 

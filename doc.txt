@@ -1,0 +1,74 @@
+Список переменных и методов
+
+
+-TSJDNHC_PT-
+
+	Отвечает за низкоуровневый рендер и основу твёрдой сетки
+
+	GridList	MakeGridList( Vector pos, int y, int x, int xs, int ys )
+	void		debug( int num )
+	void		DeleteAllGridList()
+	void		AddGridType(string name, function initFunc, function updateFunc, function destroyFunc)
+	Frid		GetGrid(Vector pos)
+
+
+-GridList-
+
+	void Delete(self)
+	table GetGridsAsTable(self)
+	void SetGridGfxImage(self, string gfx, string animNum)
+	void SetDefaultGridAnim(self, string gfx, int animNum)
+	void SetGridAnim(self, string anm, int animNum)
+	void AddGridAnim(self, string anim)
+	void UpdateGridSprites(self)
+	void UpdateRenderTab(self)
+	void Render(self, Vector pos, float scale)
+	void SetRenderMethod(self, int num)
+	void SetManualRender(self, int num)
+	Frid GetGrid(self, Vector pos)
+	Frid GetRawGrid(self, Vector pos)
+	void DestroyGrid(self, float x, float y)
+	void MakeMegaGrid(self, Vector pos, float x, float y)
+	void MakeMegaGrid(self, int pos, float x, float y)
+	void LinkGrids(self, Frid parent, Frid child, bool autoSize)
+	void SetGridFromList(self, table list)
+
+	X integer
+	Y integer
+	Grid table
+	GridSprites table
+	SpriteSheep string|nil
+	Anm2File string
+	RenderGridList table
+	StartPos Vector
+	CenterPos Vector
+	CornerPos Vector
+	RenderCenterPos Vector
+	Xsize number
+	Ysize number
+	RenderMethod integer
+	ManualRender boolean
+	ListID integer
+
+-IT Enemy-
+
+	Дата сущности хранится в таблице с ключом Isaac_Tower_Data, кроме TSJDNHC_GridColl
+
+	Type string
+	State integer
+	StateFrame integer
+	GridPoints table
+	Self EntityEffect
+	SpawnXY Vector
+	CollisionOffset Vector
+	FlayerDistanceCheck integer
+	Flags table
+	OnGround boolean
+	CollideWall integer
+	CollideCeiling boolean
+	TrueVelocity Vector
+	grounding integer
+	NoPersist = boolean
+
+	TSJDNHC_GridColl integer - находится в GetData
+	

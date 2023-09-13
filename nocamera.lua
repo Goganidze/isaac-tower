@@ -1813,7 +1813,7 @@ function TSJDNHC.AddGridType(name, initFunc, updateFunc, destroyFunc)
 end
 
 
-
+---@return Frid
 function TSJDNHC.GetGrid(vec)
     if vec then
 	for _, k in pairs(TSJDNHC.GridsList) do

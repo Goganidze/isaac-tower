@@ -749,6 +749,7 @@ function Isaac_Tower.OpenEditor()
 		Isaac_Tower.editor.PreGenEmptyRoom()
 		Isaac_Tower.Rooms[Isaac_Tower.editor.Memory.CurrentRoom.Name] = Isaac_Tower.editor.GetConvertedEditorRoom()
 	end
+	Isaac_Tower.LevelHandler.ClearRoomData()
 
 	if Isaac_Tower.editor.InEditorTestRoom then
 		Isaac_Tower.editor.InEditorTestRoom = nil

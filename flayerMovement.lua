@@ -1218,6 +1218,12 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 end
 Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(player, fent, spr, idx)
 	
+	if not fent.GrabTarget or not fent.GrabTarget:Exists() then
+		SetState(fent, "Ходьба")
+		Isaac_Tower.HandleMoving(player)
+		return
+	end
+
 	local toReturn = {}
 	toReturn.donttransformRunSpeedtoX = true
 

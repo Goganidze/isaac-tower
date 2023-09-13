@@ -868,6 +868,14 @@ end
 do
 	local EnviList = {
 		{"t_","hint7",Vector(21,31),Vector(10,15),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","hint8",Vector(12,41),Vector(6,20),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","hint9",Vector(16,49),Vector(8,25),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","hint10",Vector(27,25),Vector(14,13),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","hint11",Vector(21,27),Vector(10,13),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","platform_shadow1",Vector(26,52),Vector(13,39),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","platform_shadow2",Vector(26,52),Vector(13,39),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","platform_shadow3",Vector(26,52),Vector(13,39),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","platform_shadow4",Vector(26,52),Vector(13,39),Vector(1.0,1.0),Vector(11,10)},
 	}
 
 	for i, tab in ipairs(EnviList) do
@@ -1050,6 +1058,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 			local off = Isaac_Tower.EnemyHandlers.Enemies[k:GetData().Isaac_Tower_Data.Type]
 			d.SpawnTarget = {Name = k:GetData().Isaac_Tower_Data.Type, ST = k.SubType, Off = off.spawnOffset-5}
 			ent.Target = k
+			k:GetData().Isaac_Tower_Data.NoPersist = true
 		end
 	end
 end, "mid portal")
@@ -1057,7 +1066,9 @@ end, "mid portal")
 function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
 	local data = ent:GetData().Isaac_Tower_Data
 	local spr = ent:GetSprite()
-
+	--for i,k in pairs(data.SpawnTarget) do
+	--	print(i,k)
+	--end
 	if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE and
 		(not ent.Target or ent.Target.Variant ~= Isaac_Tower.ENT.Enemy.VAR) then
 		if not spr:IsPlaying("spawn") then
@@ -1074,6 +1085,7 @@ function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
 			ent.Target = Isaac_Tower.Spawn(data.SpawnTarget.Name,data.SpawnTarget.ST,ent.Position+Vector(0,data.SpawnTarget.Off),Vector(0,0),ent)
 			ent:Update()
 			ent.Target:SetColor(Color(118/255,71/255,173/255,1,117/255,71/255,173/255),20,-1,true,true)
+			ent.Target:GetData().Isaac_Tower_Data.NoPersist = true
 			data.deley = 60
 		elseif data.deley then
 			data.deley = data.deley - 1
@@ -1086,6 +1098,23 @@ function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
 end
 --mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.midportalLogic, "mid portal")
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.midportalLogic, "mid portal")
+function Isaac_Tower.ENT.LOGIC.midportalSave(_,ent)
+	if ent.Target and ent.Target.Variant == Isaac_Tower.ENT.Enemy.VAR then
+		local data = ent:GetData().Isaac_Tower_Data
+		data.Restore_enemy = ent.Target.Position/1
+	end
+end
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_PRE_SAVE, Isaac_Tower.ENT.LOGIC.midportalSave, "mid portal")
+function Isaac_Tower.ENT.LOGIC.midportalRestore(_,ent)
+	local data = ent:GetData().Isaac_Tower_Data
+	if data.Restore_enemy and data.SpawnTarget then
+		ent.Target = Isaac_Tower.Spawn(data.SpawnTarget.Name,data.SpawnTarget.ST,data.Restore_enemy,Vector(0,0),ent)
+		ent.Target:GetData().Isaac_Tower_Data.NoPersist = true
+		ent.Target:Update()
+		data.State = Isaac_Tower.EnemyHandlers.EnemyState.IDLE
+	end
+end
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_RESTORE, Isaac_Tower.ENT.LOGIC.midportalRestore, "mid portal")
 
 ---------------------------------------ЗЕВАКА--------------------------------------------
 
@@ -1115,7 +1144,7 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 		else
 			ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+0.8))) or ent.Velocity
 		end
-
+		
 		if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
 			if data.State ~= 4 and data.InRage then
 				SetState(data,4) --data.State = 4
@@ -1157,6 +1186,11 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 				end
 			end
 		elseif data.State == 4 then
+			if spr:IsPlaying("idle") then
+				SetState(data, Isaac_Tower.EnemyHandlers.EnemyState.IDLE)
+				data.InRage = nil
+				return
+			end
 			data.InRage = true
 			--ent.Velocity = ent.Velocity * 0.8
 			if spr:IsPlaying("stun") then
