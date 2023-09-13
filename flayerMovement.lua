@@ -1095,6 +1095,7 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 			end
 			fent.Velocity.Y = -4
 			fent.JumpActive = 15
+			fent.UseApperkot = nil
 		end
 	end
 end
@@ -1218,11 +1219,11 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 end
 Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(player, fent, spr, idx)
 	
-	if not fent.GrabTarget or not fent.GrabTarget:Exists() then
+	--[[if not fent.GrabTarget or not fent.GrabTarget:Exists() then
 		SetState(fent, "Ходьба")
 		Isaac_Tower.HandleMoving(player)
 		return
-	end
+	end]]
 
 	local toReturn = {}
 	toReturn.donttransformRunSpeedtoX = true
@@ -1238,6 +1239,11 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 	end
 
 	if spr:IsEventTriggered("hit") then
+		if not fent.GrabTarget or not fent.GrabTarget:Exists() then
+			SetState(fent, "Ходьба")
+			Isaac_Tower.HandleMoving(player)
+			return
+		end
 		--fent.GrabTarget.Position = fent.Position + Vector(0,-10)
 		fent.GrabTarget:GetData().Isaac_Tower_Data.State  = Isaac_Tower.EnemyHandlers.EnemyState.PUNCHED
 		local rot = spr.FlipX and -1 or 1

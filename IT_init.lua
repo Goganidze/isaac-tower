@@ -872,10 +872,10 @@ do
 		{"t_","hint9",Vector(16,49),Vector(8,25),Vector(1.0,1.0),Vector(11,10)},
 		{"t_","hint10",Vector(27,25),Vector(14,13),Vector(1.0,1.0),Vector(11,10)},
 		{"t_","hint11",Vector(21,27),Vector(10,13),Vector(1.0,1.0),Vector(11,10)},
-		{"t_","platform_shadow1",Vector(26,52),Vector(13,39),Vector(1.0,1.0),Vector(11,10)},
-		{"t_","platform_shadow2",Vector(26,52),Vector(13,39),Vector(1.0,1.0),Vector(11,10)},
-		{"t_","platform_shadow3",Vector(26,52),Vector(13,39),Vector(1.0,1.0),Vector(11,10)},
-		{"t_","platform_shadow4",Vector(26,52),Vector(13,39),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","platform_shadow1",Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","platform_shadow2",Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","platform_shadow3",Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(11,10)},
+		{"t_","platform_shadow4",Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(11,10)},
 	}
 
 	for i, tab in ipairs(EnviList) do
