@@ -662,6 +662,41 @@ Isaac_Tower.editor.AddSpecialEditData("Room_Transition", "Test5", 1, {HintText =
 end})]]
 
 
+local nilSpr = GenSprite("gfx/editor/special_tiles.anm2","trigger")
+nilSpr.Color = Color(1,1,1,0)
+Isaac_Tower.editor.AddSpecial("trigger", nil, 
+	GenSprite("gfx/editor/special_tiles.anm2","trigger"),
+	{TargetRoom = -1, Name = "", Size = Vector(1,1)},
+	nilSpr)
+	
+Isaac_Tower.editor.AddSpecialEditData("trigger", "name", 1, {HintText = GetStr("Transition Name"), ResultCheck = function(info, result)
+	if not result then
+		return true
+	else
+		if #result < 1 or not string.find(result,"%S") then
+			return GetStr("emptyField")
+		end
+		info.Name = result
+		return true
+	end
+end})
+Isaac_Tower.editor.AddSpecialEditData("trigger", "mode", 2, {HintText = GetStr("Transition Target"), ResultCheck = function(info,result)
+	if not result then
+		return false
+	else
+		info.TargetRoom = result
+		return true
+	end
+end, Generation = function(info)
+	local tab = {}
+	for rnam, romdat in pairs(Isaac_Tower.Rooms) do
+		if rnam ~= Isaac_Tower.editor._EditorTestRoom then
+			tab[#tab+1] = rnam
+		end
+	end
+	return tab
+end})
+
 ------------------------------------------------------------------ОКРУЖЕНИЕ---------------------------------------------
 
 --for i=1,10 do

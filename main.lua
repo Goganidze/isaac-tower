@@ -3576,7 +3576,9 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 		for layer=minindex,-1 do
 			local gridlist = tab[layer]
 			if gridlist then
-				for i,k in pairs(gridlist) do
+				--for i,k in pairs(gridlist) do
+				for i=1,#gridlist do
+					local k = gridlist[i]
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj then
 						local pos = obj.pos*Scale + startPos
@@ -3645,7 +3647,8 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 	local gridlist = Isaac_Tower.Renders.EnviRender[0]
 	if gridlist then
 		--if layer==0 then
-			for i,k in pairs(gridlist) do
+			for i=1,#gridlist do --,k in pairs(gridlist) do
+				local k = gridlist[i]
 				local obj = Isaac_Tower.GridLists.Evri.List[k]
 				if obj then
 					local pos = obj.pos*Scale + startPos
@@ -3694,7 +3697,9 @@ function Isaac_Tower.Renders.FakeLayerRender(_, Pos, Offset, Scale)
 		--for layer=1,Isaac_Tower.Renders.EnviMaxLayer do
 			local gridlist = Isaac_Tower.Renders.EnviRender["fake"]
 			if gridlist then
-				for i,k in pairs(gridlist) do
+				--for i,k in pairs(gridlist) do
+				for i=1,#gridlist do
+					local k = gridlist[i]
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj and obj.spr.Color.A>0 then
 						local pos = obj.pos*Scale + startPos
@@ -3715,6 +3720,32 @@ function Isaac_Tower.Renders.FakeLayerRender(_, Pos, Offset, Scale)
 			end
 		--end
 	--end
+	local gridlist = Isaac_Tower.Renders.EnviRender[1]
+	if gridlist then
+		--if layer==0 then
+			for i=1,#gridlist do --,k in pairs(gridlist) do
+				local k = gridlist[i]
+				local obj = Isaac_Tower.GridLists.Evri.List[k]
+				if obj then
+					local pos = obj.pos*Scale + startPos
+					if Scale ~= 1 then
+						--local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
+						pos = pos -zeroOffset --+ vec + scaledOffset
+					end
+					if Scale ~= 1 then
+						local preScale = obj.spr.Scale/1
+						obj.spr.Scale = obj.spr.Scale*Scale
+						obj.spr:Render(pos)
+						obj.spr.Scale = preScale
+					else
+						obj.spr:Render(pos)
+					end
+					--obj.spr:Render(pos)
+					--Isaac.RenderScaledText(tostring(pos), pos.X, pos.Y, 0.5, 0.5, 1,1,1,1)
+				end
+			end
+		--end
+	end
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.ISAAC_TOWER_POST_ALL_ENEMY_RENDER, Isaac_Tower.Renders.FakeLayerRender)
 
@@ -3729,10 +3760,12 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 	end
 	--for layer,gridlist in pairs(Isaac_Tower.Renders.EnviRender) do
 	if Isaac_Tower.Renders.EnviMaxLayer>0 then
-		for layer=1,Isaac_Tower.Renders.EnviMaxLayer do
+		for layer=2,Isaac_Tower.Renders.EnviMaxLayer do
 			local gridlist = Isaac_Tower.Renders.EnviRender[layer]
 			if gridlist then
-				for i,k in pairs(gridlist) do
+				--for i,k in pairs(gridlist) do
+				for i=1,#gridlist do
+					local k = gridlist[i]
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj then
 						local pos = obj.pos*Scale + startPos

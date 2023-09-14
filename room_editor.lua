@@ -887,6 +887,7 @@ UIs.SolidMode3 = GenSprite("gfx/editor/ui.anm2","КлеткаБезКоллиз�
 UIs.SolidMode4 = GenSprite("gfx/editor/ui.anm2","ЛомающиесяКлетка")
 UIs.EnemiesMode1 = GenSprite("gfx/editor/ui.anm2","враги")
 UIs.EnemiesMode2 = GenSprite("gfx/editor/ui.anm2","бонусы")
+UIs.PinedPos = GenSprite("gfx/editor/special_tiles.anm2","pin point")
 
 
 function UIs.Box48() return GenSprite("gfx/editor/ui.anm2","контейнер") end
