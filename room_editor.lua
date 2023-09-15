@@ -203,6 +203,9 @@ Isaac_Tower.editor.SpecialTypes = {}
 --Isaac_Tower.editor.SpecialSpriteTab = {}
 
 function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
+	Isaac_Tower.editor.ConvertRoomToEditor(Isaac_Tower.CurrentRoom.Name)
+end
+function Isaac_Tower.editor.ConvertRoomToEditor(RoomName)
 	Isaac_Tower.editor.Memory.CurrentRoom = nil
 	--[[Isaac_Tower.editor.Memory.CurrentRoom = {
 		Name = Isaac_Tower.CurrentRoom.Name,
@@ -257,10 +260,10 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 	Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab["spawnpoint_def"][index] = {spr = pGrid.trueSpr, pos = Vector(defspawn.X*26/2, 26*defspawn.Y/2), info = info}
 	]]
 	
-	local roomdata = Isaac_Tower.Rooms[Isaac_Tower.CurrentRoom.Name]
+	local roomdata = Isaac_Tower.Rooms[RoomName] --Isaac_Tower.CurrentRoom.Name]
 
 	Isaac_Tower.editor.Memory.CurrentRoom = {
-		Name = Isaac_Tower.CurrentRoom.Name,
+		Name = RoomName, --Isaac_Tower.CurrentRoom.Name,
 		Size = roomdata.Size/1,
 		DefSpawnPoint = roomdata.DefSpawnPoint/1,
 		solidGfx = roomdata.SolidList.gfx,
@@ -447,7 +450,7 @@ function Isaac_Tower.editor.ConvertCurrentRoomToEditor()
 
 	Isaac_Tower.editor.MenuData.grid = nil
 
-	Isaac.RunCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, Isaac_Tower.editor.Memory, roomdata, Isaac_Tower.CurrentRoom.Name) -- Isaac_Tower.GridLists)
+	Isaac.RunCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, Isaac_Tower.editor.Memory, roomdata, RoomName) -- Isaac_Tower.GridLists)
 end
 
 local roomGridStartPoses = {}
@@ -463,8 +466,9 @@ function Isaac_Tower.editor.ChangeRoom(roomName)
 			Isaac_Tower.editor.GridStartPos = roomGridStartPoses[roomName] or Vector(50,50)
 		else
 			Isaac_Tower.editor.GridStartPos = Vector(50,50)
-			Isaac_Tower.SetRoom(roomName)
-			Isaac_Tower.editor.ConvertCurrentRoomToEditor()
+			--Isaac_Tower.SetRoom(roomName)
+			--Isaac_Tower.editor.ConvertCurrentRoomToEditor()
+			Isaac_Tower.editor.ConvertRoomToEditor(roomName)
 		end
 		if not Isaac_Tower.editor.Memory.Ver[Isaac_Tower.editor.Memory.CurrentRoom.Name] then
 			Isaac_Tower.editor.MakeVersion()
@@ -2000,7 +2004,7 @@ end)
 
 Isaac_Tower.editor.AddButton("menuUp", "Test", Vector(336,12), 32, 32, UIs.TestRun, function(button) 
 	if button ~= 0 then return end
-	
+	Isaac_Tower.LevelHandler.ClearRoomData()
 	--Isaac_Tower.Rooms[Isaac_Tower.editor._EditorTestRoom] = Isaac_Tower.editor.GetConvertedEditorRoom()
 	Isaac_Tower.Rooms[Isaac_Tower.editor.Memory.CurrentRoom.Name] = Isaac_Tower.editor.GetConvertedEditorRoom()
 	Isaac_Tower.editor.Memory.LastRoom = TabDeepCopy(Isaac_Tower.editor.Memory.CurrentRoom)
@@ -4892,8 +4896,10 @@ do
 				Buttons()
 				if SelectedTiles[Enemiesmenu.Layer] then
 					Isaac_Tower.editor.SelectedGridType = SelectedTiles[Enemiesmenu.Layer]
-					Isaac_Tower.editor.Overlay.SelectedTileSprite = 
-						Isaac_Tower.editor.GridTypes[menuName][Isaac_Tower.editor.SelectedGridType].spr
+					if Isaac_Tower.editor.GridTypes[menuName][Isaac_Tower.editor.SelectedGridType] then
+						Isaac_Tower.editor.Overlay.SelectedTileSprite = 
+							Isaac_Tower.editor.GridTypes[menuName][Isaac_Tower.editor.SelectedGridType].spr
+					end
 				end
 			end, function(pos)
 				local off = Vector(0,9)
@@ -4927,7 +4933,10 @@ do
 				Buttons()
 				if SelectedTiles[Enemiesmenu.Layer] then
 					Isaac_Tower.editor.SelectedGridType = SelectedTiles[Enemiesmenu.Layer]
-					Isaac_Tower.editor.Overlay.SelectedTileSprite = Isaac_Tower.editor.GridTypes[menuName][Isaac_Tower.editor.SelectedGridType].spr
+					if Isaac_Tower.editor.GridTypes[menuName][Isaac_Tower.editor.SelectedGridType] then
+						Isaac_Tower.editor.Overlay.SelectedTileSprite = 
+							Isaac_Tower.editor.GridTypes[menuName][Isaac_Tower.editor.SelectedGridType].spr
+					end
 				end
 			end, function(pos)
 				local off = Vector(0,9)
@@ -5245,6 +5254,14 @@ SpecialConstMem.ArrowRight.Offset = Vector(0,-1.0)
 SpecialConstMem.ArrowUp.Offset = Vector(-1,0)
 SpecialConstMem.ArrowDown.Offset = Vector(-1,0)
 
+SpecialConstMem.ArrowUpLeft = GenSprite("gfx/editor/special_tiles.anm2","arrow_smol",0)
+SpecialConstMem.ArrowUpLeft.Offset = Vector(0,-1.0)
+SpecialConstMem.ArrowUpLeft.Rotation = 45
+
+SpecialConstMem.ArrowDownRight = GenSprite("gfx/editor/special_tiles.anm2","arrow_smol",0)
+SpecialConstMem.ArrowDownRight.Offset = Vector(0,1.0)
+SpecialConstMem.ArrowDownRight.Rotation = 225
+
 mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_UPDATE, function(_,IsSelected)
 	if IsSelected and Isaac.GetFrameCount()%60 == 0 and not Isaac_Tower.game:IsPaused() then
 		local NeedRepeat = false
@@ -5295,8 +5312,427 @@ local function SameVector(v1,v2)
 	return v1.X == v2.X and v1.Y == v2.Y
 end
 
-local Room_Transition_Spr =  GenSprite("gfx/editor/special_tiles.anm2","room_transition")
-Room_Transition_Spr.Scale = Vector(0.5,0.5)
+Isaac_Tower.sprites.Room_Transition_Spr = GenSprite("gfx/editor/special_tiles.anm2","room_transition")
+Isaac_Tower.sprites.Room_Transition_Spr.Scale = Vector(0.5,0.5)
+Isaac_Tower.sprites.Trigger_Spr = GenSprite("gfx/editor/special_tiles.anm2","trigger")
+Isaac_Tower.sprites.Trigger_Spr.Scale = Vector(0.5,0.5)
+
+local SelectedSpecialRenderFunc = {
+	Room_Transition = function(Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
+		local size = info.info().Size
+		local Cenpos = renderPos + Vector(13/2.0*size.X,13/2.0*size.Y)*Gridscale
+		local addOffset = Linfo.ThitRenderOffset or Vector(0,0)
+		if size.Y<2 then
+			SpecialConstMem.ArrowLeft:Render(Cenpos-Vector(13/2*size.X,0)*Gridscale+addOffset)
+			SpecialConstMem.ArrowRight:Render(Cenpos+Vector(13/2*size.X,0)*Gridscale+addOffset)
+		end
+		if size.X<2 then
+			SpecialConstMem.ArrowUp:Render(Cenpos+Vector(0,-13/2*size.Y)*Gridscale+addOffset)
+			SpecialConstMem.ArrowDown:Render(Cenpos+Vector(0,13/2*size.Y)*Gridscale+addOffset)
+		end
+
+		if not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" then
+			if Isaac_Tower.editor.NeedRemoveBlockPlaceGrid and not SpecialConstMem.OldMousePos then
+				Isaac_Tower.editor.NeedRemoveBlockPlaceGrid = nil
+				Isaac_Tower.editor.BlockPlaceGrid = nil
+			end
+			local MousePos = Isaac_Tower.editor.MousePos
+
+			local CanDrag = false
+			if size.Y < 2 then
+				--SpecialConstMem.ArrowLeft:Render(Rpos-Vector(13/2*size.X,0))
+				--SpecialConstMem.ArrowRight:Render(Rpos+Vector(13/2*size.X,0))
+				if (Cenpos - Vector(13 / 2 * size.X*Gridscale + 4, 0)):Distance(MousePos) < 5 then
+					if not Isaac_Tower.editor.BlockPlaceGrid then
+						Isaac_Tower.editor.NeedRemoveBlockPlaceGrid = true
+					end
+					Isaac_Tower.editor.BlockPlaceGrid = true
+					SpecialConstMem.ArrowLeft.Color = Color(0.5, 0.5, 0.5, 1)
+					SpecialConstMem.ArrowLeft:Render(Cenpos - Vector(13 / 2 * size.X, 0)*Gridscale)
+					SpecialConstMem.ArrowLeft.Color = Color.Default
+					CanDrag = 0
+					SpecialConstMem.GragDir = 0
+				elseif (Cenpos+Vector(13/2*size.X*Gridscale + 4,0)):Distance(MousePos) < 5 then
+					if not Isaac_Tower.editor.BlockPlaceGrid then
+						Isaac_Tower.editor.NeedRemoveBlockPlaceGrid = true
+					end
+					Isaac_Tower.editor.BlockPlaceGrid = true
+					SpecialConstMem.ArrowRight.Color = Color(0.5, 0.5, 0.5, 1)
+					SpecialConstMem.ArrowRight:Render(Cenpos+Vector(13/2*size.X,0)*Gridscale)
+					SpecialConstMem.ArrowRight.Color = Color.Default
+					CanDrag = 2
+					SpecialConstMem.GragDir = 2
+				end
+			end
+			if size.X < 2 then
+				if (Cenpos+Vector(0,-13/2*size.Y*Gridscale-4)):Distance(MousePos) < 5 then
+					if not Isaac_Tower.editor.BlockPlaceGrid then
+						Isaac_Tower.editor.NeedRemoveBlockPlaceGrid = true
+					end
+					Isaac_Tower.editor.BlockPlaceGrid = true
+					SpecialConstMem.ArrowUp.Color = Color(0.5, 0.5, 0.5, 1)
+					SpecialConstMem.ArrowUp:Render(Cenpos+Vector(0,-13/2*size.Y)*Gridscale)
+					SpecialConstMem.ArrowUp.Color = Color.Default
+					CanDrag = 1
+					SpecialConstMem.GragDir = 1
+				elseif (Cenpos+Vector(0,13/2*size.Y*Gridscale+4)):Distance(MousePos) < 5 then
+					if not Isaac_Tower.editor.BlockPlaceGrid then
+						Isaac_Tower.editor.NeedRemoveBlockPlaceGrid = true
+					end
+					Isaac_Tower.editor.BlockPlaceGrid = true
+					SpecialConstMem.ArrowDown.Color = Color(0.5, 0.5, 0.5, 1)
+					SpecialConstMem.ArrowDown:Render(Cenpos+Vector(0,13/2*size.Y)*Gridscale)
+					SpecialConstMem.ArrowDown.Color = Color.Default
+					CanDrag = 3
+					SpecialConstMem.GragDir = 3
+				end
+			end
+			if size.X < 2 then
+				--SpecialConstMem.ArrowUp:Render(Rpos+Vector(0,-13/2*size.Y))
+				--SpecialConstMem.ArrowDown:Render(Rpos+Vector(0,13/2*size.Y))
+			end	
+
+			if CanDrag or SpecialConstMem.OldMousePos then
+				if Input.IsMouseBtnPressed(0) then
+					if not SpecialConstMem.OldMousePos then
+						SpecialConstMem.OldMousePos = MousePos
+						SpecialConstMem.OldSize = size*1
+					end
+					local Offset = MousePos - SpecialConstMem.OldMousePos
+					if SpecialConstMem.GragDir == 0 then
+						--print(math.ceil(Offset.X/-13*0.90))
+						SpecialConstMem.NewSize = SpecialConstMem.NewSize or size/1
+
+						--size.X = math.min( math.max(SpecialConstMem.OldSize.X, Linfo.XY.X) ,math.max(1-SpecialConstMem.OldSize.X+1,math.ceil(Offset.X/-13*1.1)+SpecialConstMem.OldSize.X))
+						size.X = math.min( math.max(SpecialConstMem.NewSize.X+1, Linfo.XY.X) ,math.max(1,math.ceil(Offset.X/-13*1.1)+SpecialConstMem.OldSize.X))
+						--print(size.X, Linfo.XY.X, 1-SpecialConstMem.OldSize.X+1, math.max(0,size.X-SpecialConstMem.NewSize.X))
+						--local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						--local grid = list[Linfo.XY.Y][Linfo.XY.X - size.X-SpecialConstMem.NewSize.X]
+						--print(Linfo.XY.X - size.X-SpecialConstMem.NewSize.X, grid)
+						--if SpecialConstMem.NewSize.X<size.X and CheckEmpty(Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type],
+						--Linfo.XY-Vector(size.X-SpecialConstMem.OldSize.X,0), Vector(math.max(0,size.X-SpecialConstMem.OldSize.X),1)) then
+
+						local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						local nextInx = Linfo.XY.X - SpecialConstMem.NewSize.X + SpecialConstMem.OldSize.X-1
+						local grid = list[Linfo.XY.Y][nextInx]
+						--print(grid, nextInx, SpecialConstMem.OldSize.Y)
+						--if SpecialConstMem.NewSize.Y<size.Y and CheckEmpty(Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type],
+						--Linfo.XY-Vector(0,size.Y-SpecialConstMem.OldSize.Y), Vector(1,math.max(0,size.Y-SpecialConstMem.OldSize.Y))) then
+						local isSameGrid = grid and (not grid.Parent and SameVector(Linfo.XY,grid.XY) or grid.Parent and SameVector(Linfo.XY,grid.Parent) )
+						--print( not grid , grid and not grid.Parent , grid and grid.Parent and (grid.Parent.X == Linfo.XY.X and grid.Parent.Y == Linfo.XY.Y),
+						--	not grid or isSameGrid)
+						if SpecialConstMem.NewSize.X<size.X and (not grid or isSameGrid) and (nextInx)>0 then
+							SpecialConstMem.NewSize.X = SpecialConstMem.NewSize.X + 1
+						elseif SpecialConstMem.NewSize.X>size.X then
+							SpecialConstMem.NewSize.X = SpecialConstMem.NewSize.X - 1
+						end
+						info.info().Size = SpecialConstMem.NewSize/1
+						Linfo.ThitRenderOffset = Vector(-13*0.99*(info.info().Size.X-SpecialConstMem.OldSize.X),0)  ---Нужно смещать позицию при отпускание
+						--info.info().Size = SpecialConstMem.NewSize/1
+
+					elseif SpecialConstMem.GragDir == 1  then
+						SpecialConstMem.NewSize = SpecialConstMem.NewSize or size/1
+						size.Y = math.min( math.max(SpecialConstMem.NewSize.Y+1, Linfo.XY.Y) ,math.max(1,math.ceil(Offset.Y/-13*1.1)+SpecialConstMem.OldSize.Y))
+
+						local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						local nextInx = Linfo.XY.Y - SpecialConstMem.NewSize.Y + SpecialConstMem.OldSize.Y-1
+						local grid = list[nextInx] 
+							and list[nextInx][Linfo.XY.X]
+						--print(grid, nextInx, SpecialConstMem.OldSize.Y)
+						--if SpecialConstMem.NewSize.Y<size.Y and CheckEmpty(Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type],
+						--Linfo.XY-Vector(0,size.Y-SpecialConstMem.OldSize.Y), Vector(1,math.max(0,size.Y-SpecialConstMem.OldSize.Y))) then
+						local isSameGrid = grid and (not grid.Parent and SameVector(Linfo.XY,grid.XY) or grid.Parent and SameVector(Linfo.XY,grid.Parent) )
+						--print( not grid , grid and not grid.Parent , grid and grid.Parent and (grid.Parent.X == Linfo.XY.X and grid.Parent.Y == Linfo.XY.Y),
+						--	not grid or isSameGrid)
+						if SpecialConstMem.NewSize.Y<size.Y and (not grid or isSameGrid) and (nextInx)>0 then
+							SpecialConstMem.NewSize.Y = SpecialConstMem.NewSize.Y + 1
+						elseif SpecialConstMem.NewSize.Y>size.Y then
+							SpecialConstMem.NewSize.Y = SpecialConstMem.NewSize.Y - 1
+						end
+						info.info().Size = SpecialConstMem.NewSize/1
+						Linfo.ThitRenderOffset = Vector(0,-13*0.99*(info.info().Size.Y-SpecialConstMem.OldSize.Y))
+
+					elseif SpecialConstMem.GragDir == 2  then
+						SpecialConstMem.NewSize = SpecialConstMem.NewSize or size/1
+
+						size.X = math.min( math.max(SpecialConstMem.NewSize.X+1, Linfo.XY.X) ,math.max(1,math.ceil(Offset.X/13*1.1)+SpecialConstMem.OldSize.X))
+						
+						local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						local nextInx = Linfo.XY.X + SpecialConstMem.NewSize.X
+						local grid = list[Linfo.XY.Y][nextInx]
+						local isSameGrid = grid and (not grid.Parent and SameVector(Linfo.XY,grid.XY) or grid.Parent and SameVector(Linfo.XY,grid.Parent) )
+						
+						if SpecialConstMem.NewSize.X<size.X and (not grid or isSameGrid) and (nextInx)<Isaac_Tower.editor.Memory.CurrentRoom.Size.X+1 then
+							SpecialConstMem.NewSize.X = SpecialConstMem.NewSize.X + 1
+						elseif SpecialConstMem.NewSize.X>size.X then
+							SpecialConstMem.NewSize.X = SpecialConstMem.NewSize.X - 1
+						end
+						info.info().Size = SpecialConstMem.NewSize/1
+						Linfo.ThitRenderOffset = Vector(0,0) 
+					elseif SpecialConstMem.GragDir == 3  then
+						SpecialConstMem.NewSize = SpecialConstMem.NewSize or size/1
+
+						size.Y = math.min( math.max(SpecialConstMem.NewSize.Y+1, Linfo.XY.Y) ,math.max(1,math.ceil(Offset.Y/13*1.1)+SpecialConstMem.OldSize.Y))
+					
+						local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						local nextInx = Linfo.XY.Y + SpecialConstMem.NewSize.Y
+
+						local grid = list[nextInx] 
+							and list[nextInx][Linfo.XY.X]
+						local isSameGrid = grid and (not grid.Parent and SameVector(Linfo.XY,grid.XY) or grid.Parent and SameVector(Linfo.XY,grid.Parent) )
+						
+						if SpecialConstMem.NewSize.Y<size.Y and (not grid or isSameGrid) and (nextInx)<Isaac_Tower.editor.Memory.CurrentRoom.Size.Y+1 then
+							SpecialConstMem.NewSize.Y = SpecialConstMem.NewSize.Y + 1
+						elseif SpecialConstMem.NewSize.Y>size.Y then
+							SpecialConstMem.NewSize.Y = SpecialConstMem.NewSize.Y - 1
+						end
+						info.info().Size = SpecialConstMem.NewSize/1
+						Linfo.ThitRenderOffset = Vector(0,0) 
+					end
+				else
+					size = SpecialConstMem.NewSize and (SpecialConstMem.NewSize/1) or size
+					SpecialConstMem.NewSize = nil
+					SpecialConstMem.OldMousePos = nil
+					--SpecialConstMem.GragDir = nil
+					local hernya = {[0] = true,[1] = true}
+					if hernya[SpecialConstMem.GragDir] and Linfo.ThitRenderOffset and (Linfo.ThitRenderOffset.X<0 or Linfo.ThitRenderOffset.Y<0) then
+						local pGrid = Isaac_Tower.editor.GridTypes.Special[Linfo.type]
+						local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						local x,y = math.ceil(Linfo.XY.X-(size.X-SpecialConstMem.OldSize.X)), math.ceil(Linfo.XY.Y-(size.Y-SpecialConstMem.OldSize.Y))
+						--if not list[y] then
+						--	list[y] = {}
+						--end
+						--if not list[y][x] then
+						--	list[y][x] = {}
+						--end
+						--list[y][x].sprite = pGrid.trueSpr
+						local Gtype = Linfo.type
+						SafePlacingTable(list,y,x)
+						list[y][x] = TabDeepCopy(Linfo)
+						list[y][x].info = pGrid.info
+						list[y][x].type = Gtype --Isaac_Tower.editor.SelectedGridType
+						list[y][x].XY = Vector(x,y)
+						list[y][x].pos = Vector(x*26/2, y*26/2)
+						list[y][x].Size = size*1
+						list[y][x].ThitRenderOffset = nil
+
+						local index = tostring(x) .. "." .. tostring(y)   --(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + x
+						local info = function() return Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y][x] end
+						Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
+						Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = {spr = pGrid.trueSpr, pos = Vector(x*26/2, y*26/2), info = info}
+						
+						--------------------
+						local xs,ys = math.ceil(x+(size.X-SpecialConstMem.OldSize.X)), math.ceil(y+(size.Y-SpecialConstMem.OldSize.Y))
+						local grid = list[ys][xs]
+						if grid.Parent then
+							local par = list[grid.Parent.Y][grid.Parent.X]
+							if Isaac_Tower.editor.GridTypes.Special[par.type] and Isaac_Tower.editor.GridTypes.Special[par.type].size then
+								for i,k in pairs(GetLinkedGrid(list, grid.Parent, Isaac_Tower.editor.GridTypes.Special[par.type].size)) do
+									list[k[1]][k[2]] = nil
+								end
+							end
+						end
+						list[ys][xs] = nil
+						local index = tostring(xs) .. "." .. tostring(ys)   --(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + x
+						Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
+						Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = nil
+
+						------------------
+						for i,k in pairs(GetLinkedGrid(list, Vector(x,y), size, true)) do
+							if k[1] ~= y or k[2] ~= x then
+								--if not list[k[1]] then
+								--	list[k[1]] = {}
+								--end
+								--if not list[k[1]][k[2]] then
+								--	list[k[1]][k[2]] = {}
+								--end
+								SafePlacingTable(list,k[1],k[2])
+								list[k[1]][k[2]].Parent = Vector(x,y)
+							end
+						end
+						Isaac_Tower.editor.MakeVersion()
+					elseif hernya[SpecialConstMem.GragDir] and SpecialConstMem.OldSize and (SpecialConstMem.OldSize.X>size.X or SpecialConstMem.OldSize.Y>size.Y) then
+						local pGrid = Isaac_Tower.editor.GridTypes.Special[Linfo.type]
+						local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						local Gtype = Linfo.type
+
+						--------------------
+						local xs,ys = math.ceil(Linfo.XY.X), math.ceil(Linfo.XY.Y)
+						local grid = list[ys][xs]
+						if grid.Parent then
+							local par = list[grid.Parent.Y][grid.Parent.X]
+							if Isaac_Tower.editor.GridTypes.Special[par.type] and Isaac_Tower.editor.GridTypes.Special[par.type].size then
+								for i,k in pairs(GetLinkedGrid(list, grid.Parent, Isaac_Tower.editor.GridTypes.Special[par.type].size)) do
+									list[k[1] ][k[2] ] = nil
+								end
+							end
+						end
+						list[ys][xs] = nil
+						local index = tostring(xs) .. "." .. tostring(ys)   --(y-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + x
+						Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
+						Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = nil
+
+						------------------
+						
+						local x,y = math.ceil(Linfo.XY.X-(size.X-SpecialConstMem.OldSize.X)), math.ceil(Linfo.XY.Y-(size.Y-SpecialConstMem.OldSize.Y))
+						if not list[y] then
+							list[y] = {}
+						end
+						--if not list[y][x] then
+							list[y][x] = {}
+						--end
+						--list[y][x].sprite = pGrid.trueSpr
+						
+						list[y][x] = TabDeepCopy(Linfo)
+						list[y][x].info = pGrid.info
+						list[y][x].type = Gtype --Isaac_Tower.editor.SelectedGridType
+						list[y][x].XY = Vector(x,y)
+						list[y][x].pos = Vector(x*26/2, y*26/2)
+						list[y][x].Size = size*1
+						list[y][x].ThitRenderOffset = nil
+
+						local index = tostring(x) .. "." .. tostring(y)
+						local info = function() return Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y][x] end
+						Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] = Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype] or {}
+						Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = {spr = pGrid.trueSpr, pos = Vector(x*26/2, y*26/2), info = info}
+						for i,k in pairs(GetLinkedGrid(list, Vector(x,y), size, true)) do
+							if k[1] ~= y or k[2] ~= x then
+								if not list[k[1] ] then
+									list[k[1] ] = {}
+								end
+								--if not list[k[1] ][k[2] ] then
+									list[k[1] ][k[2] ] = {}
+								--end
+								list[k[1] ][k[2] ].Parent = Vector(x,y)
+							end
+						end
+						Isaac_Tower.editor.MakeVersion()
+					elseif SpecialConstMem.OldSize and Linfo.ThitRenderOffset and (SpecialConstMem.GragDir==2 or SpecialConstMem.GragDir==3) then ------------------
+						local pGrid = Isaac_Tower.editor.GridTypes.Special[Linfo.type]
+						local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						local Gtype = Linfo.type
+
+						local xs,ys = math.ceil(Linfo.XY.X), math.ceil(Linfo.XY.Y)
+						for i,k in pairs(GetLinkedGrid(list, Linfo.XY, SpecialConstMem.OldSize)) do
+							if k[1] ~= ys or k[2] ~= xs then
+								list[k[1] ][k[2] ] = nil
+							end
+						end
+
+						for i,k in pairs(GetLinkedGrid(list, Linfo.XY, Linfo.Size, true)) do
+							if k[1] ~= ys or k[2] ~= xs then
+								--if not list[k[1] ] then
+								--	list[k[1] ] = {}
+								--end
+								SafePlacingTable(list,k[1],k[2])
+								list[k[1] ][k[2] ] = {Parent = Vector(xs,ys)}
+							end
+						end
+						Isaac_Tower.editor.MakeVersion()
+					end
+					SpecialConstMem.OldSize = nil
+					SpecialConstMem.GragDir = nil
+					
+				end
+			end
+		end
+	end,
+	trigger = function(Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
+		local size = info.info().Size
+		local Cenpos = renderPos + Vector(13/2.0*size.X,13/2.0*size.Y)*Gridscale
+		local addOffset = Linfo.ThitRenderOffset or Vector(0,0)
+		local renPos = Cenpos+Vector(13/2*size.X,13/2*size.Y)*Gridscale --+addOffset
+		--if size.Y<2 then
+		--	SpecialConstMem.ArrowUpLeft:Render(Cenpos+Vector(-13/2*size.X,-13/2*size.Y)*Gridscale+addOffset)
+		--end
+		--if size.X<2 then
+			SpecialConstMem.ArrowDownRight:Render(renPos+addOffset)
+		--end
+
+		if not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" then
+			if Isaac_Tower.editor.NeedRemoveBlockPlaceGrid and not SpecialConstMem.OldMousePos then
+				Isaac_Tower.editor.NeedRemoveBlockPlaceGrid = nil
+				Isaac_Tower.editor.BlockPlaceGrid = nil
+			end
+			local MousePos = Isaac_Tower.editor.MousePos
+
+			local CanDrag = false
+			--if size.Y < 2 then
+				--SpecialConstMem.ArrowLeft:Render(Rpos-Vector(13/2*size.X,0))
+				--SpecialConstMem.ArrowRight:Render(Rpos+Vector(13/2*size.X,0))
+			local dragsize = 13 / 2 *Gridscale
+			if (Cenpos + Vector(dragsize*size.X + 4, dragsize*size.Y + 4)):Distance(MousePos) < 5 then
+				if not Isaac_Tower.editor.BlockPlaceGrid then
+					Isaac_Tower.editor.NeedRemoveBlockPlaceGrid = true
+				end
+				Isaac_Tower.editor.BlockPlaceGrid = true
+				SpecialConstMem.ArrowDownRight.Color = Color(0.5, 0.5, 0.5, 1)
+				SpecialConstMem.ArrowDownRight:Render(renPos)
+				SpecialConstMem.ArrowDownRight.Color = Color.Default
+				CanDrag = true
+				SpecialConstMem.GragDir = true
+			end
+
+			if CanDrag or SpecialConstMem.OldMousePos then
+				if Input.IsMouseBtnPressed(0) then
+					if not SpecialConstMem.OldMousePos then
+						SpecialConstMem.OldMousePos = MousePos
+						SpecialConstMem.OldSize = size*1
+					end
+					local Offset = MousePos - SpecialConstMem.OldMousePos
+					if SpecialConstMem.GragDir == true then
+						SpecialConstMem.NewSize = SpecialConstMem.NewSize or size/1
+
+						size.Y = math.min( math.max(SpecialConstMem.NewSize.Y+1, Linfo.XY.Y) ,math.max(1,math.ceil(Offset.Y/13)+SpecialConstMem.OldSize.Y))
+						size.X = math.min( math.max(SpecialConstMem.NewSize.X+1, Linfo.XY.X) ,math.max(1,math.ceil(Offset.X/13)+SpecialConstMem.OldSize.X))
+
+						local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Linfo.type]
+						local nextInx = Linfo.XY.Y + SpecialConstMem.NewSize.Y
+
+						local grid = list[nextInx] 
+							and list[nextInx][Linfo.XY.X]
+						local isSameGrid = grid and (not grid.Parent and SameVector(Linfo.XY,grid.XY) or grid.Parent and SameVector(Linfo.XY,grid.Parent) )
+						
+						if SpecialConstMem.NewSize.Y<size.Y and (not grid or isSameGrid) and (nextInx)<Isaac_Tower.editor.Memory.CurrentRoom.Size.Y+1 then
+							SpecialConstMem.NewSize.Y = SpecialConstMem.NewSize.Y + 1
+						elseif SpecialConstMem.NewSize.Y>size.Y then
+							SpecialConstMem.NewSize.Y = SpecialConstMem.NewSize.Y - 1
+						end
+						if SpecialConstMem.NewSize.X<size.X and (not grid or isSameGrid) and (nextInx)<Isaac_Tower.editor.Memory.CurrentRoom.Size.X+1 then
+							SpecialConstMem.NewSize.X = SpecialConstMem.NewSize.X + 1
+						elseif SpecialConstMem.NewSize.X>size.X then
+							SpecialConstMem.NewSize.X = SpecialConstMem.NewSize.X - 1
+						end
+						info.info().Size = SpecialConstMem.NewSize/1
+						Linfo.ThitRenderOffset = Vector(0,0) 
+					end
+				else
+					size = SpecialConstMem.NewSize and (SpecialConstMem.NewSize/1) or size
+					SpecialConstMem.NewSize = nil
+					SpecialConstMem.OldMousePos = nil
+					SpecialConstMem.OldSize = nil
+					SpecialConstMem.GragDir = nil
+				end
+			end
+		end
+	end,
+}
+local SpecialRenderFunc = {
+	Room_Transition = function(Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
+		Linfo.Size = Linfo.Size or Vector(1,1)
+		local oldScale = Isaac_Tower.sprites.Room_Transition_Spr.Scale*1
+		Isaac_Tower.sprites.Room_Transition_Spr.Scale = Vector(0.5,0.5) * Gridscale * Vector(math.max(1,Linfo.Size.X*(1-2/28)), math.max(1,Linfo.Size.Y*(1-2/28)))
+		Isaac_Tower.sprites.Room_Transition_Spr:Render(renderPos+(Linfo.ThitRenderOffset or Vector(0,0))+Isaac_Tower.sprites.Room_Transition_Spr.Scale)
+		Isaac_Tower.sprites.Room_Transition_Spr.Scale = oldScale
+	end,
+	trigger = function(Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
+		Linfo.Size = Linfo.Size or Vector(1,1)
+		local oldScale = Isaac_Tower.sprites.Trigger_Spr.Scale*1
+		Isaac_Tower.sprites.Trigger_Spr.Scale = Vector(0.5,0.5) * Gridscale * Linfo.Size --  * Vector(math.max(1,Linfo.Size.X*(1-2/28)), math.max(1,Linfo.Size.Y*(1-2/28)))
+		Isaac_Tower.sprites.Trigger_Spr:Render(renderPos+(Linfo.ThitRenderOffset or Vector(0,0))+Isaac_Tower.sprites.Room_Transition_Spr.Scale)
+		Isaac_Tower.sprites.Trigger_Spr.Scale = oldScale
+	end,
+}
 mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,info, renderPos, OverleySelected, IsSel, Gridscale)
 	local Linfo = info.info()
 	if Linfo and Linfo.ErrorMes then
@@ -5306,8 +5742,12 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 		end
 	end
 	if OverleySelected and Linfo then
-		if Isaac_Tower.editor.SpecialSelectedTile == Linfo and Linfo.type == "Room_Transition" then --стена коооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооода
-			local size = info.info().Size
+		if Isaac_Tower.editor.SpecialSelectedTile == Linfo then --and Linfo.type == "Room_Transition" then --стена коооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооооода
+			if SelectedSpecialRenderFunc[Linfo.type] then
+				SelectedSpecialRenderFunc[Linfo.type](Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
+			end
+
+			--[[local size = info.info().Size
 			local Cenpos = renderPos + Vector(13/2.0*size.X,13/2.0*size.Y)*Gridscale
 			local addOffset = Linfo.ThitRenderOffset or Vector(0,0)
 			if size.Y<2 then
@@ -5516,7 +5956,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 								local par = list[grid.Parent.Y][grid.Parent.X]
 								if Isaac_Tower.editor.GridTypes.Special[par.type] and Isaac_Tower.editor.GridTypes.Special[par.type].size then
 									for i,k in pairs(GetLinkedGrid(list, grid.Parent, Isaac_Tower.editor.GridTypes.Special[par.type].size)) do
-										list[k[1]][k[2]] = nil
+										list[k[1] ][k[2] ] = nil
 									end
 								end
 							end
@@ -5528,14 +5968,14 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 							------------------
 							for i,k in pairs(GetLinkedGrid(list, Vector(x,y), size, true)) do
 								if k[1] ~= y or k[2] ~= x then
-									--if not list[k[1]] then
-									--	list[k[1]] = {}
+									--if not list[k[1] ] then
+									--	list[k[1] ] = {}
 									--end
-									--if not list[k[1]][k[2]] then
-									--	list[k[1]][k[2]] = {}
+									--if not list[k[1] ][k[2] ] then
+									--	list[k[1] ][k[2] ] = {}
 									--end
 									SafePlacingTable(list,k[1],k[2])
-									list[k[1]][k[2]].Parent = Vector(x,y)
+									list[k[1] ][k[2] ].Parent = Vector(x,y)
 								end
 							end
 							Isaac_Tower.editor.MakeVersion()
@@ -5623,7 +6063,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 						
 					end
 				end
-			end
+			end]]
 		end
 		if Isaac_Tower.editor.SpecialSelectedTile == Linfo 
 		and not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" then
@@ -5653,12 +6093,16 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 			end
 		end
 	end
-	if Linfo and Linfo.type == "Room_Transition" then
-		Linfo.Size = Linfo.Size or Vector(1,1)
+	if Linfo then --and Linfo.type == "Room_Transition" then
+		if SpecialRenderFunc[Linfo.type] then
+			SpecialRenderFunc[Linfo.type](Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
+		end
+
+		--[[Linfo.Size = Linfo.Size or Vector(1,1)
 		local oldScale = Room_Transition_Spr.Scale*1
 		Room_Transition_Spr.Scale = Vector(0.5,0.5) * Gridscale * Vector(math.max(1,Linfo.Size.X*(1-2/28)), math.max(1,Linfo.Size.Y*(1-2/28)))
 		Room_Transition_Spr:Render(renderPos+(Linfo.ThitRenderOffset or Vector(0,0))+Room_Transition_Spr.Scale)
-		Room_Transition_Spr.Scale = oldScale
+		Room_Transition_Spr.Scale = oldScale]]
 	end
 end)
 

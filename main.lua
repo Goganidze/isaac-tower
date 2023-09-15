@@ -355,6 +355,129 @@ local function GetLinkedGrid(grid, pos, size, fill, sizeY)
 	end
 end
 
+do
+	Isaac_Tower.LevelHandler = {RoomData = {}}
+
+	function Isaac_Tower.LevelHandler.SpawnRoomEnemies(newRoom)
+		if newRoom.Enemy then
+			for i, k in pairs(newRoom.Enemy) do
+				local data = Isaac_Tower.EnemyHandlers.Enemies[k.name]
+				if data then
+					Isaac_Tower.Spawn(k.name, k.st, k.pos * 20 + Vector(-60, 80 - data.spawnOffset), Vector(0, 0))
+				end
+			end
+		end
+	end
+
+	function Isaac_Tower.LevelHandler.PlaceBonusPickup(data, pos, list)
+		local spr = GenSprite(data.gfx, data.anim)
+		spr.PlaybackSpeed = 0.5
+		local x, y = pos.X, pos.Y
+		local grid = SafePlacingTable(list.Grid, y) --[x]
+		local posi = pos * 20 + data.Size * 10 + Vector(-60, 80)
+		grid[x] = {
+			Sprite = spr,
+			XY = pos,
+			Position = posi,
+			RenderPos = (pos * 20 + Vector(-20, -20)) / Wtr, --+ Vector(-60,80)
+			Exists = true,
+			Type = data.Name,
+			CH = {},
+			Ref = #list.Ref + 1
+		}
+		for i, k in pairs(GetLinkedGrid(list.Grid, pos, data.Size, true)) do
+			SafePlacingTable(list.Grid, k.Y)[k.X] = { XY = k, Parent = grid[x] }
+			grid[x].CH[#grid[x].CH + 1] = k
+		end
+		list.Ref[#list.Ref + 1] = { pos, grid[x] }
+		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_INIT, data.Name, grid[x])
+	end
+
+	function Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
+		if not SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, roomName).seed then
+			Isaac_Tower.LevelHandler.RoomData[roomName].seed = Isaac_Tower.seeds:GetNextSeed()  --Isaac_Tower.seed
+			Isaac_Tower.LevelHandler.RoomData[roomName].rng = RNG()
+			Isaac_Tower.LevelHandler.RoomData[roomName].rng:SetSeed(Isaac_Tower.LevelHandler.RoomData[roomName].seed, 35)
+		end
+	end
+	function Isaac_Tower.LevelHandler.GetCurrentRoomData()
+		return SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, Isaac_Tower.CurrentRoom.Name)
+	end
+	function Isaac_Tower.LevelHandler.GetRoomData(roomName)
+		return SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, roomName)
+	end
+	local ignoreList = {Special=true, Evri=true}
+	function Isaac_Tower.LevelHandler.SaveCurrentGridList()
+		if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
+			local curData = Isaac_Tower.LevelHandler.GetCurrentRoomData()
+			curData.GridLists = {}
+			--curData.GridLists = Isaac_Tower.GridLists
+			for i,k in pairs(Isaac_Tower.GridLists) do
+				if not ignoreList[i] then
+					curData.GridLists[i] = k
+				end
+			end
+		end
+	end
+	function Isaac_Tower.LevelHandler.TryRestoreSavedGridList(roomName)
+		local curData = Isaac_Tower.LevelHandler.GetRoomData(roomName)
+		if curData.GridLists then
+			--Isaac_Tower.GridLists = {}
+			Isaac_Tower.GridLists = curData.GridLists
+			--for i,k in pairs(curData.GridLists) do
+			--	Isaac_Tower.GridLists[i] = k
+			--end
+			TSJDNHC_PT.GridsList[#TSJDNHC_PT.GridsList + 1] = Isaac_Tower.GridLists.Solid
+			TSJDNHC_PT.GridsList[#TSJDNHC_PT.GridsList + 1] = Isaac_Tower.GridLists.Obs
+		end
+	end
+	function Isaac_Tower.LevelHandler.SaveCurrentEnemies()
+		if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
+			local curData = Isaac_Tower.LevelHandler.GetCurrentRoomData()
+			curData.EnemiesList = {}
+			local enemyList = Isaac_Tower.EnemyHandlers.GetRoomEnemies()
+			for i=1, #enemyList do
+				local ent = enemyList[i]
+				local entData = ent:GetData().Isaac_Tower_Data
+				if not entData.NoPersist then
+					local result = Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_PRE_SAVE, entData.Type, ent, curData) 
+					if result ~= true then
+						curData.EnemiesList[#curData.EnemiesList+1] = {
+							type = entData.Type,
+							st = ent.SubType,
+							pos = ent.Position,
+							data = entData
+						}
+					end
+				end
+			end
+		end
+	end
+	function Isaac_Tower.LevelHandler.TryRestoreSavedtEnemies(roomName)
+		local curData = Isaac_Tower.LevelHandler.GetRoomData(roomName)
+		if curData.EnemiesList then
+			local zero = Vector(0,0)
+			for i=1,#curData.EnemiesList do
+				local entData = curData.EnemiesList[i]
+				local ent = Isaac_Tower.Spawn(entData.type, entData.st,entData.pos,zero,nil)
+				ent:GetData().Isaac_Tower_Data = entData.data
+				Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_POST_RESTORE, entData.type, ent, curData)
+			end
+		end
+	end
+	function Isaac_Tower.LevelHandler.HasSavedData(roomName)
+		if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
+			return  Isaac_Tower.LevelHandler.RoomData[roomName] and Isaac_Tower.LevelHandler.RoomData[roomName].GridLists
+		else
+			return false
+		end
+	end
+	function Isaac_Tower.LevelHandler.ClearRoomData()
+		Isaac_Tower.LevelHandler.RoomData = {}
+	end
+end
+
+
 local RemoveimmutyEnt = {[Isaac.GetEntityVariantByName('PIZTOW CamEnt')]=true}
 --Isaac_Tower.TransitionSpawnOffset
 function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
@@ -567,7 +690,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 						--for i,k in pairs(data) do
 						--	print(i,k)
 						--end
-						local spr = GenSprite(data.gfx, data.anim)
+						--[[local spr = GenSprite(data.gfx, data.anim)
 						spr.PlaybackSpeed = 0.5
 						local x, y = k.pos.X, k.pos.Y
 						local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y) --[x]
@@ -587,7 +710,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 							grid[x].CH[#grid[x].CH + 1] = k
 						end
 						Isaac_Tower.GridLists.Bonus.Ref[#Isaac_Tower.GridLists.Bonus.Ref + 1] = { k.pos, grid[x] }
-						Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_INIT, data.Name, grid[x])
+						Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_INIT, data.Name, grid[x])]]
+						Isaac_Tower.LevelHandler.PlaceBonusPickup(data, k.pos, Isaac_Tower.GridLists.Bonus)
 					end
 				end
 			end
@@ -1401,7 +1525,7 @@ do
 		end
 	end
 end
-do
+--[[do
 	Isaac_Tower.LevelHandler = {RoomData = {}}
 
 	function Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
@@ -1486,7 +1610,7 @@ do
 	function Isaac_Tower.LevelHandler.ClearRoomData()
 		Isaac_Tower.LevelHandler.RoomData = {}
 	end
-end
+end]]
 
 --.....................................................................................................
 
@@ -3539,8 +3663,9 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 								ignore[tab.Ref] = true
 							end
 						elseif tab.Parent then
+							tab = tab.Parent
 							if not ignore[tab.Ref] then
-								layer[#layer+1] = reftab[tab.Parent] --tab.Parent
+								layer[#layer+1] = reftab[tab] --tab.Parent
 								ignore[tab.Ref] = true
 							end
 						end
