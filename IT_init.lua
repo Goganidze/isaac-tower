@@ -6,6 +6,45 @@ local Isaac_Tower = Isaac_Tower
 
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
 
+local function TabDeepCopy(tbl)
+    local t = {}
+    for k, v in pairs(tbl) do
+        if type(v) == "table" then
+            t[k] = TabDeepCopy(v)
+        else
+            t[k] = v
+        end
+    end
+
+    return t
+end
+
+local sizecache = {}
+local function GetLinkedGrid(grid, pos, size, fill, sizeY)
+	if size and pos then
+		local tab = {}
+		local Sx,Sy = pos.X,pos.Y
+		for i=1, size.Y do
+			for j=1, size.X do
+				if i ~= 1 or j ~= 1 then
+					--local index = tostring(math.ceil(Sx+j-1)) .. "." .. tostring(math.ceil(Sy+i-1))
+					local index 
+					if sizeY then
+						index = (Sy+i-1) * sizeY + (Sx+j-1)
+					else
+						index = Vector(Sx+i-1, Sy+j-1)
+					end
+					local Hasgrid = grid[index]
+					if Hasgrid or fill then
+						tab[#tab+1] = index
+					end
+				end
+			end
+		end
+		return tab
+	end
+end
+
 local sprites = {}
 local function GenSprite(gfx,anim, scale, frame, offset)
   if gfx and anim then
@@ -549,7 +588,8 @@ local function Room_Transition_Collision(_, player, grid)
 		end
 	end
 end
-mod:AddCallback(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, Room_Transition_Collision, "Room_Transition")
+--mod:AddCallback(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, Room_Transition_Collision, "Room_Transition")
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, Room_Transition_Collision, "Room_Transition")
 
 mod:AddCallback(Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, function(_, ent)
 	local Fpos = ent:GetData().Isaac_Tower_Data.Position
@@ -667,9 +707,38 @@ nilSpr.Color = Color(1,1,1,0)
 Isaac_Tower.editor.AddSpecial("trigger", nil, 
 	GenSprite("gfx/editor/special_tiles.anm2","trigger"),
 	{TargetRoom = -1, Name = "", Size = Vector(1,1)},
-	nilSpr)
+	nilSpr,
+	function(solidTab, grid)
+		if grid.TargetName then
+			solidTab = solidTab.."TargetName='"..grid.TargetName.."',"
+		end
+		if grid.Name then
+			solidTab = solidTab.."Name='"..grid.Name.."',"
+		end
+		if grid.Mode then
+			solidTab = solidTab.."Mode='"..grid.Mode.."',"
+		end
+		if grid.FSize then
+			solidTab = solidTab.."FSize=Vector(".. math.ceil(grid.FSize.X) .. "," .. math.ceil(grid.FSize.Y) .. ")," 
+		end
+		return solidTab
+	end,
+	function(tab)
+		for idx, grid in pairs(tab) do
+			local Gtype = "trigger"
+			local x,y = math.ceil(grid.XY.X), math.ceil(grid.XY.Y)
+			--local size = grid.Size/1
+			--grid.Size = nil
+			Isaac_Tower.editor.PlaceSpecial(Gtype,x,y,grid)
+			local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype]
+			list[y][x].EditData = {name = {Text = grid.Name},
+				tarname = {Text = grid.TargetName},
+				mode = {Text = grid.Mode}, }
+			--list[y][x].Size = size
+		end
+	end)
 	
-Isaac_Tower.editor.AddSpecialEditData("trigger", "name", 1, {HintText = GetStr("Transition Name"), ResultCheck = function(info, result)
+Isaac_Tower.editor.AddSpecialEditData("trigger", "name", 1, {HintText = GetStr("special_obj_name"), ResultCheck = function(info, result)
 	if not result then
 		return true
 	else
@@ -680,22 +749,90 @@ Isaac_Tower.editor.AddSpecialEditData("trigger", "name", 1, {HintText = GetStr("
 		return true
 	end
 end})
-Isaac_Tower.editor.AddSpecialEditData("trigger", "mode", 2, {HintText = GetStr("Transition Target"), ResultCheck = function(info,result)
+Isaac_Tower.editor.AddSpecialEditData("trigger", "tarname", 1, {HintText = GetStr("nameTarget"), ResultCheck = function(info, result)
+	if not result then
+		return true
+	else
+		if #result < 1 or not string.find(result,"%S") then
+			return GetStr("emptyField")
+		end
+		info.TargetName = result
+		return true
+	end
+end})
+Isaac_Tower.editor.AddSpecialEditData("trigger", "mode", 2, {HintText = GetStr("collisionMode"), ResultCheck = function(info,result)
 	if not result then
 		return false
 	else
-		info.TargetRoom = result
+		info.Mode = result
 		return true
 	end
 end, Generation = function(info)
-	local tab = {}
-	for rnam, romdat in pairs(Isaac_Tower.Rooms) do
-		if rnam ~= Isaac_Tower.editor._EditorTestRoom then
-			tab[#tab+1] = rnam
-		end
-	end
+	local tab = {[GetStr("collisionMode1")]=0,[GetStr("collisionMode2")]=1}
 	return tab
 end})
+
+function Trigger_Collision(_, player, grid)
+	for i,k in pairs(grid) do
+		print(i,k)
+	end
+end
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, Trigger_Collision, "trigger")
+
+
+do
+	local ignoreTypes = {spawnpoint_def=true,[""]=true,Room_Transition=true,spawnpoint=true}
+	Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ROOM_LOADING, function(_,gridlist, newRoom, roomName, oldRoomName)
+		if newRoom.Special then
+			for gType, tab in pairs(newRoom.Special) do
+				if not ignoreTypes[gType] then
+					Isaac_Tower.GridLists.Special[gType] = {}
+					for i, grid in ipairs(tab) do
+						--local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
+						local index = (grid.XY.Y) * newRoom.Size.X + (grid.XY.X)
+						local Parents
+						if Isaac_Tower.GridLists.Special[gType][index] and Isaac_Tower.GridLists.Special[gType][index].Parents then
+							Parents = Isaac_Tower.GridLists.Special[gType][index].Parents
+						end
+						Isaac_Tower.GridLists.Special[gType][index] = TabDeepCopy(grid)
+						Isaac_Tower.GridLists.Special[gType][index].pos = grid.XY * 40 + Vector(-60, 80)
+						Isaac_Tower.GridLists.Special[gType][index].FrameCount = 0
+						if Parents then
+							Isaac_Tower.GridLists.Special[gType][index].Parents = Parents
+						end
+						if Isaac_Tower.GridLists.Special[gType][index].Size then
+							local gridtab = GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].Size, true, newRoom.Size.X)
+							for j=1, #gridtab do 
+								local k = gridtab[j]
+								Isaac_Tower.GridLists.Special[gType][k] = { Parent = index }
+							end
+							--for i, k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].Size, true, newRoom.Size.X)) do
+							--	Isaac_Tower.GridLists.Special[gType][k] = { Parent = index }
+							--end
+						end
+						if Isaac_Tower.GridLists.Special[gType][index].FSize then
+							--for i, k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].FSize, true, newRoom.Size.X)) do
+							local gridtab = GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].FSize, true, newRoom.Size.X)
+							for j=1, #gridtab do 
+								local k = gridtab[j]
+								Isaac_Tower.GridLists.Special[gType][k] = { Parent = index }
+								if not Isaac_Tower.GridLists.Special[gType][k] then
+									Isaac_Tower.GridLists.Special[gType][k] = {Parents = {index}}
+								else
+									if not Isaac_Tower.GridLists.Special[gType][k].Parents then
+										Isaac_Tower.GridLists.Special[gType][k].Parents = {index}
+									else
+										Isaac_Tower.GridLists.Special[gType][k].Parents[#Isaac_Tower.GridLists.Special[gType][k].Parents+1] = index
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+end
 
 ------------------------------------------------------------------ОКРУЖЕНИЕ---------------------------------------------
 

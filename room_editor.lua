@@ -674,9 +674,10 @@ function Isaac_Tower.editor.AddEnemies(name, sprite, Enemyname, subtype, ingridS
 	end
     --Isaac_Tower.editor.ObsAnimNames[animName] = true
 end
-function Isaac_Tower.editor.AddSpecial(name, animName, sprite, data, ingridSpr)
+function Isaac_Tower.editor.AddSpecial(name, animName, sprite, data, ingridSpr, compilationFunc, converterFunc)
 	if name and sprite and data then
-		Isaac_Tower.editor.GridTypes["Special"][name] = {spr = sprite, info = data, trueSpr = ingridSpr or sprite}
+		Isaac_Tower.editor.GridTypes["Special"][name] = {spr = sprite, info = data, 
+			trueSpr = ingridSpr or sprite, comp = compilationFunc, conv = converterFunc}
 	end
 	--Isaac_Tower.editor.SpecialAnimNames[animName] = true
 end
@@ -833,6 +834,12 @@ Isaac_Tower.editor.strings = {
 	["addEnviPivot"] = {en = "offset", ru = "смещение"},
 	["addEnviPos"] = {en = "position", ru = "позиция"},
 	["spawnpoint_name"] = {en = "The name of this spawn point", ru = "Имя данной точки спавна"},
+	["special_obj_name"] = {en = "name", ru = "Имя"},
+	["nameTarget"] = {en = "target name", ru = "Имя цели"},
+	["collisionMode"] = {en = "collision mode", ru = "режим коллизии"},
+	["collisionMode1"] = {en = "along the edges", ru = "по краям"},
+	["collisionMode2"] = {en = "only inside", ru = "только внутри"},
+	["Scriptname"] = {en = "Script name", ru = "название скрипта"},
 
 	["roomlist_hint"] = {en = nil, ru = "открывает список загруженных комнат"},
 }
@@ -3423,6 +3430,8 @@ end, function(str)
 							if grid.Size then
 								solidTab = solidTab.."Size=Vector(".. math.ceil(grid.Size.X) .. "," .. math.ceil(grid.Size.Y) .. ")," 
 							end
+						elseif Isaac_Tower.editor.GridTypes["Special"][typ] and Isaac_Tower.editor.GridTypes["Special"][typ].comp then
+							solidTab = Isaac_Tower.editor.GridTypes["Special"][typ].comp(solidTab, grid)
 						else
 							for param, dat in pairs(grid) do
 								if not ignore[param] then
@@ -5638,7 +5647,7 @@ local SelectedSpecialRenderFunc = {
 		end
 	end,
 	trigger = function(Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
-		local size = info.info().Size
+		local size = info.info().FSize
 		local Cenpos = renderPos + Vector(13/2.0*size.X,13/2.0*size.Y)*Gridscale
 		local addOffset = Linfo.ThitRenderOffset or Vector(0,0)
 		local renPos = Cenpos+Vector(13/2*size.X,13/2*size.Y)*Gridscale --+addOffset
@@ -5703,11 +5712,14 @@ local SelectedSpecialRenderFunc = {
 						elseif SpecialConstMem.NewSize.X>size.X then
 							SpecialConstMem.NewSize.X = SpecialConstMem.NewSize.X - 1
 						end
-						info.info().Size = SpecialConstMem.NewSize/1
+						info.info().FSize = SpecialConstMem.NewSize/1
 						Linfo.ThitRenderOffset = Vector(0,0) 
 					end
 				else
 					size = SpecialConstMem.NewSize and (SpecialConstMem.NewSize/1) or size
+					if SpecialConstMem.NewSize ~= SpecialConstMem.OldSize then
+						Isaac_Tower.editor.MakeVersion()
+					end
 					SpecialConstMem.NewSize = nil
 					SpecialConstMem.OldMousePos = nil
 					SpecialConstMem.OldSize = nil
@@ -6233,7 +6245,12 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, 
 						Name = {Text = grid.Name}
 					}
 			end
-
+		end
+		local shitpiss = {spawnpoint=1,Room_Transition=1}
+		for i,k in pairs(roomdata.Special) do
+			if not shitpiss[i] and Isaac_Tower.editor.GridTypes["Special"][i].conv then
+				Isaac_Tower.editor.GridTypes["Special"][i].conv(k,list)
+			end
 		end
 	end
 end)

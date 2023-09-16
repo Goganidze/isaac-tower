@@ -406,7 +406,7 @@ do
 	function Isaac_Tower.LevelHandler.GetRoomData(roomName)
 		return SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, roomName)
 	end
-	local ignoreList = {Special=true, Evri=true}
+	local ignoreList = {Special=true, Evri=true, UnSave=true}
 	function Isaac_Tower.LevelHandler.SaveCurrentGridList()
 		if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
 			local curData = Isaac_Tower.LevelHandler.GetCurrentRoomData()
@@ -423,10 +423,10 @@ do
 		local curData = Isaac_Tower.LevelHandler.GetRoomData(roomName)
 		if curData.GridLists then
 			--Isaac_Tower.GridLists = {}
-			Isaac_Tower.GridLists = curData.GridLists
-			--for i,k in pairs(curData.GridLists) do
-			--	Isaac_Tower.GridLists[i] = k
-			--end
+			--Isaac_Tower.GridLists = curData.GridLists
+			for i,k in pairs(curData.GridLists) do
+				Isaac_Tower.GridLists[i] = k
+			end
 			TSJDNHC_PT.GridsList[#TSJDNHC_PT.GridsList + 1] = Isaac_Tower.GridLists.Solid
 			TSJDNHC_PT.GridsList[#TSJDNHC_PT.GridsList + 1] = Isaac_Tower.GridLists.Obs
 		end
@@ -465,7 +465,7 @@ do
 			end
 		end
 	end
-	function Isaac_Tower.LevelHandler.HasSavedData(roomName)
+	function Isaac_Tower.LevelHandler.RoomHasSavedData(roomName)
 		if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
 			return  Isaac_Tower.LevelHandler.RoomData[roomName] and Isaac_Tower.LevelHandler.RoomData[roomName].GridLists
 		else
@@ -485,33 +485,13 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 	if Isaac_Tower.Rooms[roomName] then
 		local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
 		local newRoom = Isaac_Tower.Rooms[roomName]
-		if Isaac_Tower.LevelHandler.HasSavedData(roomName) then
-			for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
-				if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
-					ent:Remove()
-				end
-			end
-			TSJDNHC_PT.DeleteAllGridList()
-			Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
 
-			--Isaac_Tower.GridLists.Solid = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y, newRoom.Size.X, 40,40)
-			--Isaac_Tower.GridLists.Solid:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
-			--Isaac_Tower.GridLists.Solid:SetGridFromList(newRoom.SolidList)
-			--Isaac_Tower.GridLists.Solid:SetRenderMethod(1)
-			Isaac_Tower.GridLists = {}
-			Isaac_Tower.LevelHandler.TryRestoreSavedGridList(roomName)
-			Isaac_Tower.LevelHandler.TryRestoreSavedtEnemies(roomName)
-
-			Isaac_Tower.GridLists.Evri = {}
-			Isaac_Tower.GridLists.Special = {}
-		else
-			for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
-				if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
-					ent:Remove()
-				end
-			end
-
-			TSJDNHC_PT.DeleteAllGridList()
+		--if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
+		--	Isaac_Tower.CurrentRoom.Name = roomName
+		--else
+			Isaac_Tower.CurrentRoom = {Name = roomName}
+		--end
+		TSJDNHC_PT.DeleteAllGridList()
 			Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
 			--local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
 			--local newRoom = Isaac_Tower.Rooms[roomName]
@@ -522,7 +502,48 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				Evri = {},
 				Bonus = {},
 				--Fake = {},
+				UnSave = {},
 			}
+
+		print("waf", Isaac_Tower.LevelHandler.RoomHasSavedData(roomName))
+		if Isaac_Tower.LevelHandler.RoomHasSavedData(roomName) then
+			for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
+				if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+					ent:Remove()
+				end
+			end
+			--TSJDNHC_PT.DeleteAllGridList()
+			--Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
+
+			----Isaac_Tower.GridLists.Solid = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y, newRoom.Size.X, 40,40)
+			----Isaac_Tower.GridLists.Solid:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
+			----Isaac_Tower.GridLists.Solid:SetGridFromList(newRoom.SolidList)
+			----Isaac_Tower.GridLists.Solid:SetRenderMethod(1)
+			--Isaac_Tower.GridLists = {}
+			Isaac_Tower.LevelHandler.TryRestoreSavedGridList(roomName)
+			Isaac_Tower.LevelHandler.TryRestoreSavedtEnemies(roomName)
+
+			--Isaac_Tower.GridLists.Evri = {}
+			--Isaac_Tower.GridLists.Special = {}
+		else
+			for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
+				if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+					ent:Remove()
+				end
+			end
+
+			--TSJDNHC_PT.DeleteAllGridList()
+			--Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
+			----local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
+			----local newRoom = Isaac_Tower.Rooms[roomName]
+			--Isaac_Tower.GridLists = {
+			--	Solid = false,
+			--	Obs = false,
+			--	Special = {},
+			--	Evri = {},
+			--	Bonus = {},
+			--	--Fake = {},
+			--}
 			Isaac_Tower.GridLists.Solid = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y, newRoom.Size.X, 40,
 				40)
 			Isaac_Tower.GridLists.Obs = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y * 2, newRoom.Size.X * 2,
@@ -918,7 +939,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			end
 		end
 
-		Isaac.RunCallback(Isaac_Tower.Callbacks.ROOM_LOADING, newRoom, roomName, oldRoomName)
+		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ROOM_LOADING, nil, Isaac_Tower.GridLists, newRoom, roomName, oldRoomName)
 
 		Isaac_Tower.CurrentRoom = newRoom
 
@@ -2314,13 +2335,29 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 			end
 
 			for ia, k in pairs(indexs) do
+				local indexsignors = {}
 				for gtype, tab in pairs(Isaac_Tower.GridLists.Special) do
 					local spec = tab[ia]
 					if spec then
 						if spec.Parent then
 							spec = tab[spec.Parent]
 						end
-						Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spec)
+						if spec.Parents then
+							for iq=1,#spec.Parents do
+								--local spID = spec.Parents[iq]
+								local spid = tab[spec.Parents[iq]]
+								if not indexsignors[spid] then
+									indexsignors[spid] = true
+									--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+									Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+								end
+							end
+						end
+						if not indexsignors[spec] then
+							indexsignors[spec] = true
+							--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spec)
+							Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spec)
+						end
 					end
 				end
 			end
@@ -2331,7 +2368,16 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 						if spec.Parent then
 							spec = tab[spec.Parent]
 						end
-						Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spec)
+						if spec.Parents then
+							for iq=1,#spec.Parents do
+								--local spID = spec.Parents[iq]
+								local spid = tab[spec.Parents[iq]]
+								--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+								Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+							end
+						end
+						--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spec)
+						Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spec)
 					end
 				end
 			end
@@ -2719,8 +2765,6 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 		RenderPos = RenderPos-zeroOffset --+Vector(0,12*(Scale-1))
 	end
 
-
-	--print(RenderPos)
 	spr.Color = player:GetColor()
 
 	if fent.ShowSpeedEffect then
