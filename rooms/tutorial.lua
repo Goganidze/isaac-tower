@@ -1,4 +1,4 @@
-return function(mod, Isaac_Tower)
+return function(mod) --, Isaac_Tower)
 
 local Vector = Vector
 local V = Vector
@@ -1015,7 +1015,10 @@ ObsList={
 },
 Special={
  trigger={
-    {XY=Vector(28,24),TargetName='s1',Name='t1',Mode='1',Size=Vector(2,1),},
+    {XY=Vector(28,24),TargetName='s1',Name='t1',Mode='0',FSize=Vector(2,1),},
+ },
+ script={
+    {XY=Vector(26,24),TargetName='1',Name='s1',},
  },
  Room_Transition={
     {XY=Vector(1,16),TargetRoom='tutorial_2',Name='22',TargetName='22',Size=Vector(1,3),},
@@ -1805,6 +1808,18 @@ EnviList={
   {pos=Vector(831,920),name='t_hole1',l=0,chl={{34,31},{35,31},{34,32},{35,32},},},
 },
 } Isaac_Tower.AddRoom(roomdata)
+Isaac_Tower.ScriptHandler.AddLocalScript('tutorial_3', "1", 
+  function()
+    local roomdata = Isaac_Tower.LevelHandler.GetCurrentRoomData()
+    if not roomdata.___1 then
+      roomdata.___1 = true
+      local grid = Isaac_Tower.GridLists.Obs:GetGrid(Vector(1050,1040))
+      grid.HitAngle = 110
+			grid.HitPower = 4
+      grid.GridList:DestroyGrid(grid.XY)
+    end
+  end
+)
 
 local roomdata = {Name='tutorial_4',Size=V(85.0,42.0),DefSpawnPoint=V(60.0,1240.0),
 Special={
@@ -2285,6 +2300,33 @@ Bonus={
   {pos=V(109,64),name='ScoreUp2',[ET]='auto_ScoreUp2_2',},
   {pos=V(124,65),name='ScoreUp1',[ET]='auto_ScoreUp1_1',},
   {pos=V(125,65),name='ScoreUp1',[ET]='auto_ScoreUp1_1',},
+},
+} Isaac_Tower.AddRoom(roomdata)
+
+
+
+local roomdata = {Name='newroom',Size=Vector(25.0,15.0),DefSpawnPoint=Vector(500.0,440.0),
+Enemy={
+},
+Bonus={
+},
+ObsList={
+  gfx='gfx/fakegrid/tutorial.png',
+},
+SolidList={
+  gfx='gfx/fakegrid/tutorial.png',
+  extraAnim={'4','3','6','5','2','1','1_5x5','30r','8','7','45r','9','platform','platform2','1_2x2','half_up','platform3','platform1','45l','3_3x1','1_3x3','infis','30l',},
+  {pos=Vector(13,10),SpriteAnim=3,Collision=1,EditorType='3',},
+  {pos=Vector(14,10),SpriteAnim=3,Collision=1,EditorType='3',},
+  {pos=Vector(15,10),SpriteAnim=3,Collision=1,EditorType='3',},
+},
+SolidFakeList={
+  gfx='gfx/fakegrid/tutorial.png',
+  extraAnim={'4','3','6','5','2','1','1_5x5','30r','8','7','45r','9','platform','platform2','1_2x2','half_up','platform3','platform1','45l','3_3x1','1_3x3','infis','30l',},
+},
+EnviList={
+},
+Special={
 },
 } Isaac_Tower.AddRoom(roomdata)
 

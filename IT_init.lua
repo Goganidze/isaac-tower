@@ -770,14 +770,84 @@ Isaac_Tower.editor.AddSpecialEditData("trigger", "mode", 2, {HintText = GetStr("
 end, Generation = function(info)
 	local tab = {[GetStr("collisionMode1")]=0,[GetStr("collisionMode2")]=1}
 	return tab
+end, ParamInit = function(info)
+	info.EditData.mode.Text = 0
+	info.Mode = 0
 end})
 
-function Trigger_Collision(_, player, grid)
-	for i,k in pairs(grid) do
-		print(i,k)
+Isaac_Tower.editor.TriggerSignalFunc = {
+	Room_Transition = function (grid, target)
+		Isaac_Tower.RoomTransition(target.TargetRoom, false, nil, target.TargetName)
+	end,
+	spawnpoint = function (grid, target)
+		Isaac_Tower.SpawnPoint = target.pos - Vector(7, 7)
+	end,
+	script = function (grid, target)
+		Isaac_Tower.ScriptHandler.RunScript(target.TargetName)
+	end,
+}
+
+local function Trigger_Collision(_, player, grid)
+	local target = Isaac_Tower.GridLists.ObjByName and Isaac_Tower.GridLists.ObjByName[grid.TargetName]
+	if target then
+		if Isaac_Tower.editor.TriggerSignalFunc[target.Type] then
+			Isaac_Tower.editor.TriggerSignalFunc[target.Type](grid, target)
+		end
 	end
 end
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, Trigger_Collision, "trigger")
+
+-------------------------------------------------------------------------------------
+Isaac_Tower.editor.AddSpecial("script", nil, 
+	GenSprite("gfx/editor/special_tiles.anm2","script"),
+	{TargetRoom = -1, Name = "", Size = Vector(1,1)},
+	GenSprite("gfx/editor/special_tiles.anm2","script"),
+	function(solidTab, grid)
+		if grid.TargetName then
+			solidTab = solidTab.."TargetName='"..grid.TargetName.."',"
+		end
+		if grid.Name then
+			solidTab = solidTab.."Name='"..grid.Name.."',"
+		end
+		return solidTab
+	end,
+	function(tab)
+		for idx, grid in pairs(tab) do
+			local Gtype = "script"
+			local x,y = math.ceil(grid.XY.X), math.ceil(grid.XY.Y)
+			--local size = grid.Size/1
+			--grid.Size = nil
+			Isaac_Tower.editor.PlaceSpecial(Gtype,x,y,grid)
+			local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype]
+			list[y][x].EditData = {name = {Text = grid.Name},
+				tarname = {Text = grid.TargetName},}
+			--list[y][x].Size = size
+		end
+	end)
+	
+Isaac_Tower.editor.AddSpecialEditData("script", "name", 1, {HintText = GetStr("special_obj_name"), ResultCheck = function(info, result)
+	if not result then
+		return true
+	else
+		if #result < 1 or not string.find(result,"%S") then
+			return GetStr("emptyField")
+		end
+		info.Name = result
+		return true
+	end
+end})
+Isaac_Tower.editor.AddSpecialEditData("script", "tarname", 1, {HintText = GetStr("Scriptname"), ResultCheck = function(info, result)
+	if not result then
+		return true
+	else
+		if #result < 1 or not string.find(result,"%S") then
+			return GetStr("emptyField")
+		end
+		info.TargetName = result
+		return true
+	end
+end})
+
 
 
 do
@@ -797,6 +867,7 @@ do
 						Isaac_Tower.GridLists.Special[gType][index] = TabDeepCopy(grid)
 						Isaac_Tower.GridLists.Special[gType][index].pos = grid.XY * 40 + Vector(-60, 80)
 						Isaac_Tower.GridLists.Special[gType][index].FrameCount = 0
+						Isaac_Tower.GridLists.Special[gType][index].Type = gType
 						if Parents then
 							Isaac_Tower.GridLists.Special[gType][index].Parents = Parents
 						end
@@ -826,6 +897,9 @@ do
 									end
 								end
 							end
+						end
+						if Isaac_Tower.GridLists.Special[gType][index].Name then
+							Isaac_Tower.GridLists.ObjByName[Isaac_Tower.GridLists.Special[gType][index].Name] = Isaac_Tower.GridLists.Special[gType][index]
 						end
 					end
 				end

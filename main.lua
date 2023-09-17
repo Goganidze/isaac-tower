@@ -492,26 +492,32 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			Isaac_Tower.CurrentRoom = {Name = roomName}
 		--end
 		TSJDNHC_PT.DeleteAllGridList()
-			Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
-			--local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
-			--local newRoom = Isaac_Tower.Rooms[roomName]
-			Isaac_Tower.GridLists = {
-				Solid = false,
-				Obs = false,
-				Special = {},
-				Evri = {},
-				Bonus = {},
-				--Fake = {},
-				UnSave = {},
-			}
+		Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
+		--local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
+		--local newRoom = Isaac_Tower.Rooms[roomName]
+		Isaac_Tower.GridLists = {
+			Solid = false,
+			Obs = false,
+			Special = {},
+			Evri = {},
+			Bonus = {},
+			--Fake = {},
+			UnSave = {},
+			ObjByName = {},
+		}
 
-		print("waf", Isaac_Tower.LevelHandler.RoomHasSavedData(roomName))
-		if Isaac_Tower.LevelHandler.RoomHasSavedData(roomName) then
-			for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
-				if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
-					ent:Remove()
-				end
+		for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
+			if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+				ent:Remove()
 			end
+		end
+
+		if Isaac_Tower.LevelHandler.RoomHasSavedData(roomName) then
+			--for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
+			--	if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+			--		ent:Remove()
+			--	end
+			--end
 			--TSJDNHC_PT.DeleteAllGridList()
 			--Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
 
@@ -526,11 +532,11 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			--Isaac_Tower.GridLists.Evri = {}
 			--Isaac_Tower.GridLists.Special = {}
 		else
-			for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
-				if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
-					ent:Remove()
-				end
-			end
+			--for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
+			--	if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+			--		ent:Remove()
+			--	end
+			--end
 
 			--TSJDNHC_PT.DeleteAllGridList()
 			--Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
@@ -876,6 +882,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 						Isaac_Tower.GridLists.Special[gType][index] = TabDeepCopy(grid)
 						Isaac_Tower.GridLists.Special[gType][index].pos = grid.XY * 40 + Vector(-60, 80)
 						Isaac_Tower.GridLists.Special[gType][index].FrameCount = 0
+						Isaac_Tower.GridLists.Special[gType][index].Type = gType
 						if Isaac_Tower.GridLists.Special[gType][index].Size then
 							for i, k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Special[gType], grid.XY, Isaac_Tower.GridLists.Special[gType][index].Size, true, newRoom.Size.X)) do
 								Isaac_Tower.GridLists.Special[gType][k] = { Parent = index }
@@ -892,6 +899,9 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 								Name = grid.Name,
 								pos = Isaac_Tower.GridLists.Special[gType][index].pos
 							}
+						end
+						if Isaac_Tower.GridLists.Special[gType][index].Name then
+							Isaac_Tower.GridLists.ObjByName[Isaac_Tower.GridLists.Special[gType][index].Name] = Isaac_Tower.GridLists.Special[gType][index]
 						end
 					end
 				end
@@ -1632,6 +1642,41 @@ end
 		Isaac_Tower.LevelHandler.RoomData = {}
 	end
 end]]
+
+do
+	Isaac_Tower.ScriptHandler = {Scripts = {}, RoomLocal = {}}
+
+	function Isaac_Tower.ScriptHandler.AddScript(name, funcAsString)
+		if name == nil then error("[1] is a nil",2) end
+		if not type(funcAsString) == "string" or not type(funcAsString) == "function" then error("[2] is not a function or a string",2) end
+		if type(funcAsString) == "string" then
+			funcAsString = load(funcAsString)()
+		end
+		Isaac_Tower.ScriptHandler.Scripts[name] = funcAsString
+	end
+
+	function Isaac_Tower.ScriptHandler.AddLocalScript(roomName, name, funcAsString)
+		if roomName == nil then error("[1] is a nil",2) end
+		if name == nil then error("[2] is a nil",2) end
+		if not type(funcAsString) == "string" or not type(funcAsString) == "function" then error("[3] is not a function or a string",2) end
+		if type(funcAsString) == "string" then
+			funcAsString = load(funcAsString)()
+		end
+		Isaac_Tower.ScriptHandler.RoomLocal[roomName] = Isaac_Tower.ScriptHandler.RoomLocal[roomName] or {}
+		Isaac_Tower.ScriptHandler.RoomLocal[roomName][name] = funcAsString
+	end
+
+	function Isaac_Tower.ScriptHandler.RunScript(name, onlyGlobal)
+		if not onlyGlobal and Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
+			if Isaac_Tower.ScriptHandler.RoomLocal[Isaac_Tower.CurrentRoom.Name] then
+				Isaac_Tower.ScriptHandler.RoomLocal[Isaac_Tower.CurrentRoom.Name][name]()
+			end
+		end
+		if Isaac_Tower.ScriptHandler.Scripts[name] then
+			Isaac_Tower.ScriptHandler.Scripts[name]()
+		end
+	end
+end
 
 --.....................................................................................................
 

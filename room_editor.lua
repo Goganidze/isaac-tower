@@ -618,10 +618,11 @@ function Isaac_Tower.editor.PreGenEmptyRoom()
 		Solid = {},
 		Obs = {},
 		Enemies = {},
+		Bonus = {},
 		Special = {},
 		SpecialSpriteTab = {},
 		Envi = {},
-		EnviList = {},
+		Enemy = {},
 		SolidFake = {},
 	}
 end
@@ -1454,6 +1455,10 @@ function Isaac_Tower.editor.OpenSpecialEditMenu(name, grid)
 	end
 	for i,k in pairs(Isaac_Tower.editor.SpecialEditingData[name]) do
 		grid.EditData[k.ParamName] = grid.EditData[k.ParamName] or {}
+		if not grid.EditData[k.ParamName].Inited and k.ParamInit then
+			k.ParamInit(grid)
+			grid.EditData[k.ParamName].Inited = true
+		end
 		if k.Type == 1 then
 			local knum = num+0
 			local Rpos = centerPos+Vector(0,32*knum+16-Isaac_Tower.editor.SpecialEditMenu.numParam*16)
@@ -5738,9 +5743,9 @@ local SpecialRenderFunc = {
 		Isaac_Tower.sprites.Room_Transition_Spr.Scale = oldScale
 	end,
 	trigger = function(Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
-		Linfo.Size = Linfo.Size or Vector(1,1)
+		Linfo.FSize = Linfo.FSize or Vector(1,1)
 		local oldScale = Isaac_Tower.sprites.Trigger_Spr.Scale*1
-		Isaac_Tower.sprites.Trigger_Spr.Scale = Vector(0.5,0.5) * Gridscale * Linfo.Size --  * Vector(math.max(1,Linfo.Size.X*(1-2/28)), math.max(1,Linfo.Size.Y*(1-2/28)))
+		Isaac_Tower.sprites.Trigger_Spr.Scale = Vector(0.5,0.5) * Gridscale * Linfo.FSize --  * Vector(math.max(1,Linfo.Size.X*(1-2/28)), math.max(1,Linfo.Size.Y*(1-2/28)))
 		Isaac_Tower.sprites.Trigger_Spr:Render(renderPos+(Linfo.ThitRenderOffset or Vector(0,0))+Isaac_Tower.sprites.Room_Transition_Spr.Scale)
 		Isaac_Tower.sprites.Trigger_Spr.Scale = oldScale
 	end,
