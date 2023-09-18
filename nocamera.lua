@@ -241,6 +241,12 @@ function TSJDNHC.ConditionUpdate()
 		if d.IsEnable and d.renderlist then --and not d.IsCamRender then
 			DoubleRenderCondition = true
 		end
+
+		if d.CurrentCameraScale > 1 then
+			fastUpdate = true
+		else
+			fastUpdate = false
+		end
 	end
 	--print(DoubleRenderCondition)
 end
@@ -1354,8 +1360,8 @@ function TSJDNHC:MakeGridList(pos,y,x,xs,ys) --y = столбцы, x = ячей�
 					tab.Grid[i][j].GridList = tab
 					tab.Grid[i][j].Index = (i - 1) * x + j + MaxIndex
 					tab.Grid[i][j].Position = Vector(tab.Xsize * (j - 1), tab.Ysize * (i - 1)) + pos
-					--tab.Grid[i][j].RenderPos = Vector(tab.Xsize * (j - 1) / Wtr, tab.Ysize * (i - 1) / Wtr)
-					tab.Grid[i][j].RenderPos = Isaac.WorldToScreenDistance (tab.Grid[i][j].Position-pos)
+					tab.Grid[i][j].RenderPos = Vector(tab.Xsize * (j - 1) / Wtr, tab.Ysize * (i - 1) / Wtr)
+					--tab.Grid[i][j].RenderPos = Vector(math.floor(tab.Xsize*(j-1)/Wtr), math.floor(tab.Ysize*(i-1)/Wtr)) --Isaac.WorldToScreenDistance (tab.Grid[i][j].Position-pos)
 					tab.Grid[i][j].Half = Vector(tab.Xsize / 2, tab.Ysize / 2)
 					tab.Grid[i][j].CenterPos = tab.Grid[i][j].Position + tab.Grid[i][j].Half
 					tab.Grid[i][j].Collision = 0
@@ -1419,6 +1425,7 @@ function TSJDNHC.Grid.SetDefaultGridAnim(self, gfx, animNum)
 		end
 		self.GridSprites[i]:LoadGraphics()
 		self.GridSprites[i]:Play(tostring(i))
+		self.GridSprites[i]:PlayOverlay(tostring(i).."_o")
 	end
 end
 function TSJDNHC.Grid.SetGridAnim(self, anm, animNum)
@@ -1437,6 +1444,7 @@ function TSJDNHC.Grid.SetGridAnim(self, anm, animNum)
 				self.GridSprites[i]:LoadGraphics()
 			end
 			self.GridSprites[i]:Play(tostring(i))
+			self.GridSprites[i]:PlayOverlay(tostring(i).."_o")
 		end
 	end
 end
@@ -1451,6 +1459,7 @@ function TSJDNHC.Grid.AddGridAnim(self, anim)
 	end
 	self.GridSprites[tostring(anim)]:LoadGraphics()
 	self.GridSprites[tostring(anim)]:Play(anim)
+	self.GridSprites[tostring(anim)]:PlayOverlay(anim.."_o")
 end
 
 function TSJDNHC.Grid.UpdateGridSprites(self)
@@ -1522,12 +1531,13 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 		local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(self.Xsize/Wtr*modScale)), math.ceil(startPosRender.Y/(self.Ysize/Wtr*modScale)))
 		local EndPosRender = modZer + Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())*(math.max(1,modScale)) -- + Vector(26*2,26*2)
 		local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(self.Xsize/Wtr*modScale)), math.ceil(EndPosRender.Y/(self.Ysize/Wtr*modScale)))
-
+		
 		local startPos = -zer --Isaac.WorldToRenderPosition(self.StartPos) + vec
 
 		local ignoreList = {}
 		local revScale = scale-1 -- math.floor((scale-1)*4)/4
 		local vScale = scale -- math.floor((scale)*10000)/10000
+		local scaleComp = scale --+0.01*Options.MaxRenderScale
 
 		--local Xsize, Ysize
 		--if scale ~= 1 then
@@ -1550,9 +1560,16 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 						--renderPos = Vector(math.floor(renderPos.X), math.floor(renderPos.Y))
 						--print(y,x, renderPos, revScale,vScale)
 					end
-
+					
 					if tab.Sprite then
-						tab.Sprite:Render(renderPos)
+						if scale ~= 1 then
+							local preScale = tab.Sprite.Scale/1
+							tab.Sprite.Scale = tab.Sprite.Scale*scale
+							tab.Sprite:Render(renderPos)
+							tab.Sprite.Scale = preScale
+						else
+							tab.Sprite:Render(renderPos)
+						end
 						ignoreList[tab] = true
 					end
 					
@@ -1560,10 +1577,13 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 					if anim then
 						if scale ~= 1 then
 							local preScale = anim.Scale/1
-							anim.Scale = anim.Scale*scale
-							print(anim.Scale)
+							anim.Scale = anim.Scale*(scaleComp)
+							--print(anim.Scale)
 							--anim.Scale = Vector(math.ceil(anim.Scale.X*20)/20,math.ceil(anim.Scale.Y*20)/20)
 							anim:Render(renderPos)
+							--if scale>1 then
+							--	anim:Render(renderPos+Vector(0.5*scale,0.5*scale))
+							--end
 							anim.Scale = preScale
 						else
 							anim:Render(renderPos)
@@ -1575,7 +1595,7 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 						if tab.Parent.Sprite then
 							if scale ~= 1 then
 								local preScale = tab.Parent.Sprite.Scale/1
-								tab.Parent.Sprite.Scale = anim.Scale*scale
+								tab.Parent.Sprite.Scale = tab.Parent.Sprite.Scale*scale
 								tab.Parent.Sprite:Render(renderPos)
 								tab.Parent.Sprite.Scale = preScale
 							else

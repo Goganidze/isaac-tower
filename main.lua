@@ -2934,6 +2934,14 @@ function Isaac_Tower.GameRenderUpdate()
 		--Isaac_Tower.ScoreHandler.RenderTextArray(Isaac_Tower.ScoreHandler.RenderPos)
 	--	Isaac_Tower.ScoreHandler.UpdateTextArray()
 	--end
+
+	if Input.IsButtonTriggered(Keyboard.KEY_O,0) then
+		Isaac_Tower.SetScale()
+	elseif Input.IsButtonTriggered(Keyboard.KEY_L,0) then
+		Isaac_Tower.SetScale(1.41)
+	elseif Input.IsButtonTriggered(Keyboard.KEY_K,0) then
+		Isaac_Tower.SetScale(2.05)
+	end
 end
 
 function Isaac_Tower.GetFlayer(num)
@@ -3697,8 +3705,8 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 	for layer, gridlist in pairs(list) do  --Спрайты с эффектом параллакса не оптимизируются, мне лень
 		if layer ~= "List" then
 			if type(layer) == "string" or layer>-2 and layer<2 then
-				for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y), math.max(1,StartPosRenderGrid.Y),-1 do
-					for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X) do
+				for y=math.min(EndPosRenderGrid.Y-1, Isaac_Tower.GridLists.Solid.Y-1), math.max(0,StartPosRenderGrid.Y-1),-1 do
+					for x=math.max(0,StartPosRenderGrid.X-1), math.min(EndPosRenderGrid.X-1, Isaac_Tower.GridLists.Solid.X-1) do
 						local tab = gridlist[y] and gridlist[y][x]
 						if tab and tab.Ps then
 							RenderList[layer] = RenderList[layer] or {}
@@ -3741,8 +3749,8 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 			local layer = Bonuslist
 			local max = 0
 			local ignore = {}
-			for y=math.min(EndPosRenderGrid.Y, Isaac_Tower.GridLists.Solid.Y*2), math.max(1,StartPosRenderGrid.Y),-1 do
-				for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, Isaac_Tower.GridLists.Solid.X*2) do
+			for y=math.min(EndPosRenderGrid.Y-1, Isaac_Tower.GridLists.Solid.Y*2-1), math.max(0,StartPosRenderGrid.Y),-1 do
+				for x=math.max(0,StartPosRenderGrid.X-1), math.min(EndPosRenderGrid.X-1, Isaac_Tower.GridLists.Solid.X*2+1) do
 					local tab = gridlist[y] and gridlist[y][x]
 					if tab then
 						if tab.Sprite then
@@ -3795,12 +3803,16 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 					local k = gridlist[i]
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj then
-						local pos = obj.pos*Scale + startPos
+						local pos -- = obj.pos*Scale + startPos
 						if Scale ~= 1 then
 							--local scaledOffset = ((Scale-1)*obj.pos) or Vector(0,0) ---obj.pos
-							pos = pos -zeroOffset --+ vec
+							pos = obj.pos*Scale + startPos -zeroOffset --+ vec
+
+						else
+							pos = obj.pos + startPos
 						end
 						if Scale ~= 1 then
+							--print(obj.pos, pos)print(obj.pos, pos)
 							local preScale = obj.spr.Scale/1
 							obj.spr.Scale = obj.spr.Scale*Scale
 							obj.spr:Render(pos)
@@ -3869,8 +3881,8 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 					if Scale ~= 1 then
 						--local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
 						pos = pos -zeroOffset --+ vec + scaledOffset
-					end
-					if Scale ~= 1 then
+					--end
+					--if Scale ~= 1 then
 						local preScale = obj.spr.Scale/1
 						obj.spr.Scale = obj.spr.Scale*Scale
 						obj.spr:Render(pos)
@@ -3890,7 +3902,18 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 		for i=1,#bonuslist do    --,k in pairs(bonuslist) do
 			local k = bonuslist[i]
 			local grid = k[2]
-			grid.Sprite:Render(grid.RenderPos*Scale + startPos)
+			if Scale ~= 1 then
+				--local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
+				local pos = grid.RenderPos*Scale + startPos -zeroOffset --+ vec + scaledOffset
+			--end
+			--if Scale ~= 1 then
+				local preScale = grid.Sprite.Scale/1
+				grid.Sprite.Scale = grid.Sprite.Scale*Scale
+				grid.Sprite:Render(pos)
+				grid.Sprite.Scale = preScale
+			else
+				grid.Sprite:Render(grid.RenderPos*Scale + startPos)
+			end
 			grid.Sprite:Update()
 			Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_RENDER, grid.Type, grid)
 		end
