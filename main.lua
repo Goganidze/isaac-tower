@@ -4072,6 +4072,7 @@ function Isaac_Tower.Renders.backgroung_render(_, Pos, Offset, Scale)
 	for i=0, x do
 		for j=0, y do
 			local rpos = Vector(i*background.size.X, j*background.size.Y) + off - background.size --Vector(background.size,background.size)
+			rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
 			background.spr:Render(rpos)
 		end
 	end
