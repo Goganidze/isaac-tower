@@ -554,7 +554,12 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				40)
 			Isaac_Tower.GridLists.Obs = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y * 2, newRoom.Size.X * 2,
 				20, 20)
-			Isaac_Tower.GridLists.Solid:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
+			if newRoom.SolidList.anm2 then
+				Isaac_Tower.GridLists.Solid:SetGridAnim(newRoom.SolidList.anm2, 9)
+			else
+				Isaac_Tower.GridLists.Solid:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
+			end
+			--Isaac_Tower.GridLists.Solid:SetTileStyle(1, "map_", Vector(3,3),{"1","2","3","4","5","6","7","8","9"})
 			Isaac_Tower.GridLists.Solid:SetGridFromList(newRoom.SolidList)
 			Isaac_Tower.GridLists.Obs:SetGridFromList(newRoom.ObsList or {})
 			Isaac_Tower.GridLists.Solid:SetRenderMethod(1)
@@ -752,9 +757,10 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			Isaac_Tower.GridLists.Fake = {}
 			Isaac_Tower.GridLists.Fake.Sorted = {}
 			--Isaac_Tower.GridLists.FakeList = {}
-			local gfx = Isaac_Tower.GridLists.Solid.SpriteSheep
-			local anim = Isaac_Tower.GridLists.Solid.Anm2File
-			local function makeSprite(gridlist, Gtype)
+			local solid = Isaac_Tower.GridLists.Solid
+			local gfx = solid.SpriteSheep
+			local anim = solid.Anm2File
+			local function makeSprite(gridlist, Gtype, pos)
 				local spr = Sprite()
 				spr:Load(anim, false)
 				if gfx then
@@ -764,6 +770,14 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				end
 				spr:LoadGraphics()
 				spr:Play(tostring(Gtype))
+				if solid.MapStyle and (solid.MapStyle.affl[Gtype] or solid.MapStyle.affl[tostring(Gtype)]) then
+					local id = (pos.X%solid.MapStyle.size.X)+((pos.Y-1)%solid.MapStyle.size.Y)*solid.MapStyle.size.Y
+					--local mapSpr = solid.MapStyle.sprs[id]
+					spr:Play(solid.MapStyle.animName .. math.ceil(id), true)
+					--spr:SetFrame(id)
+					spr:PlayOverlay(tostring(Gtype))
+					print(pos, id, spr:GetFrame())
+				end
 				return spr
 			end
 
@@ -777,7 +791,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 						local nextindex = #fakelist + 1
 						fakelist[nextindex] = {
 							pos = grid.RenderPos,
-							spr = makeSprite(nil, grid.SpriteAnim),
+							spr = makeSprite(nil, grid.SpriteAnim, Vector(j,i)),
 							chl = grid.chl,
 						}
 						setGrids = true

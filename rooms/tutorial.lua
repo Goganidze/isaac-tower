@@ -998,6 +998,74 @@ Special={
 
 Isaac_Tower.AddRoom(roomdata)
 
+local roomdata = {Name='newroom 1',Size=Vector(25.0,15.0),DefSpawnPoint=Vector(380.0,400.0),
+SolidList={
+  anm2 = "gfx/fakegrid/grid2cellar.anm2",
+  gfx='gfx/fakegrid/cellar.png',
+  extraAnim={'9','7','8','5','6','3','4','45l','platform3','platform2','platform1','platform','1_5x5','1_3x3','half_up','1','2','3_3x1','45r','infis','30r','1_2x2','30l',},
+  {pos=Vector(16,6),SpriteAnim=2,Collision=1,EditorType='2',},
+  {pos=Vector(17,6),SpriteAnim=3,Collision=1,EditorType='3',},
+  {pos=Vector(18,6),SpriteAnim=3,Collision=1,EditorType='3',},
+  {pos=Vector(19,6),SpriteAnim=4,Collision=1,EditorType='4',},
+  {pos=Vector(16,7),SpriteAnim=5,Collision=1,EditorType='5',},
+  {pos=Vector(17,7),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(18,7),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(19,7),SpriteAnim=6,Collision=1,EditorType='6',},
+  {pos=Vector(16,8),SpriteAnim=5,Collision=1,EditorType='5',},
+  {pos=Vector(17,8),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(18,8),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(19,8),SpriteAnim=6,Collision=1,EditorType='6',},
+  {pos=Vector(7,9),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(8,9),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(9,9),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(10,9),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(11,9),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(12,9),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(13,9),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(16,9),SpriteAnim=7,Collision=1,EditorType='7',},
+  {pos=Vector(17,9),SpriteAnim=8,Collision=1,EditorType='8',},
+  {pos=Vector(18,9),SpriteAnim=8,Collision=1,EditorType='8',},
+  {pos=Vector(19,9),SpriteAnim=9,Collision=1,EditorType='9',},
+  {pos=Vector(7,10),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(8,10),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(9,10),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(10,10),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(11,10),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(12,10),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(13,10),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(7,11),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(8,11),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(9,11),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(10,11),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(11,11),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(12,11),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(13,11),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(7,12),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(8,12),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(9,12),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(10,12),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(11,12),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(12,12),SpriteAnim=1,Collision=1,EditorType='1',},
+  {pos=Vector(13,12),SpriteAnim=1,Collision=1,EditorType='1',},
+},
+SolidFakeList={
+  gfx='gfx/fakegrid/tutorial.png',
+  extraAnim={'9','7','8','5','6','3','4','45l','platform3','platform2','platform1','platform','1_5x5','1_3x3','half_up','1','2','3_3x1','45r','infis','30r','1_2x2','30l',},
+},
+Special={
+},
+Enemy={
+},
+Bonus={
+},
+EnviList={
+},
+ObsList={
+  gfx='gfx/fakegrid/tutorial.png',
+},
+} Isaac_Tower.AddRoom(roomdata)
+
+
 local roomdata = {Name='tutorial_3',Size=Vector(67.0,41.0),DefSpawnPoint=Vector(100.0,800.0),
 ObsList={
   gfx='gfx/fakegrid/tutorial.png',

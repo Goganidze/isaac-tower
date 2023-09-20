@@ -1282,6 +1282,13 @@ local DeepPrint = function(...)
 	end
 end
 
+---@class mapStyle
+---@field size Vector
+---@field animName string
+---@field affl table
+---@field sprs table
+
+
 TSJDNHC.GridsList = {}
 TSJDNHC.IndexsList = {}
 TSJDNHC.Frid_Is_Active = false
@@ -1304,6 +1311,8 @@ TSJDNHC.FGrid = {}
 ---@field RenderMethod integer
 ---@field ManualRender boolean
 ---@field ListID integer
+---@field TileStyle integer
+---@field MapStyle mapStyle
 TSJDNHC.Grid = {}
 local MaxIndex = 0
 
@@ -1406,7 +1415,18 @@ function TSJDNHC.Grid.SetGridGfxImage(self, gfx, animNum)
 		for i,k in pairs(self.GridSprites) do
 			for layer = 0, k:GetLayerCount()-1 do
 				k:ReplaceSpritesheet(layer, gfx)
+			end
+			k:LoadGraphics()
+		end
+		if self.MapStyle then
+			for i,k in pairs(self.MapStyle.sprs) do
+				for layer = 0, k:GetLayerCount()-1 do
+					k:ReplaceSpritesheet(layer, gfx)
+				end
 				k:LoadGraphics()
+			end
+			if self.GridSprites[self.MapStyle.animName] then
+				self.GridSprites[self.MapStyle.animName].Color = Color(1,1,1,0)
 			end
 		end
 	end
@@ -1425,7 +1445,9 @@ function TSJDNHC.Grid.SetDefaultGridAnim(self, gfx, animNum)
 		end
 		self.GridSprites[i]:LoadGraphics()
 		self.GridSprites[i]:Play(tostring(i))
-		self.GridSprites[i]:PlayOverlay(tostring(i).."_o")
+		if self.TileStyle == 0 then
+			self.GridSprites[i]:PlayOverlay(tostring(i).."_o")
+		end
 	end
 end
 function TSJDNHC.Grid.SetGridAnim(self, anm, animNum)
@@ -1444,7 +1466,9 @@ function TSJDNHC.Grid.SetGridAnim(self, anm, animNum)
 				self.GridSprites[i]:LoadGraphics()
 			end
 			self.GridSprites[i]:Play(tostring(i))
-			self.GridSprites[i]:PlayOverlay(tostring(i).."_o")
+			if self.TileStyle == 0 then
+				self.GridSprites[i]:PlayOverlay(tostring(i).."_o")
+			end
 		end
 	end
 end
@@ -1459,7 +1483,48 @@ function TSJDNHC.Grid.AddGridAnim(self, anim)
 	end
 	self.GridSprites[tostring(anim)]:LoadGraphics()
 	self.GridSprites[tostring(anim)]:Play(anim)
-	self.GridSprites[tostring(anim)]:PlayOverlay(anim.."_o")
+	if self.TileStyle == 0 then
+		self.GridSprites[tostring(anim)]:PlayOverlay(anim.."_o")
+	end
+end
+
+-- 0: standard, 1: Em? Map?
+-- [3] это имя анимации, [4] это размер, [5] это список из влияющих анимации
+---@param self GridList
+---@param num 0|1
+---@param ... unknown
+function TSJDNHC.Grid.SetTileStyle(self, num, ...)
+	local tab = {...}
+	self.TileStyle = num
+	if num == 1 then
+		self.MapStyle = {
+			animName = tab[1],
+			size = tab[2],
+			affl = tab[3],
+			sprs = {},
+		}
+		if self.GridSprites[tab[1]] then
+			self.GridSprites[tab[1]].Color = Color(1,1,1,0)
+		end
+		for i=1, tab[2].X do
+			for j=1, tab[2].Y do
+				local spr = Sprite()
+				spr:Load(self.Anm2File, true)
+				if self.SpriteSheep then
+					for layer = 0, spr:GetLayerCount()-1 do
+						spr:ReplaceSpritesheet(layer, self.SpriteSheep)
+					end
+				end
+				--spr:Play(tab[1])
+				local id = (i-1)*(tab[2].Y)+j-1
+				spr:Play(tab[1]..math.ceil(id))
+				--spr:SetFrame(id)
+				self.MapStyle.sprs[id] = spr
+			end
+		end
+	else
+		self.MapStyle = nil
+	end
 end
 
 function TSJDNHC.Grid.UpdateGridSprites(self)
@@ -1543,6 +1608,20 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 		--if scale ~= 1 then
 		--	Xsize, Ysize =  math.floor((self.Xsize*vScale/Wtr)*1000)/1000, math.floor((self.Ysize*vScale/Wtr)*1000)/1000
 		--end
+		local backscale = {}
+		local mbackscale = {}
+		if scale ~= 1 then
+			for i,l in pairs(self.GridSprites) do
+				backscale[l] = l.Scale/1
+				l.Scale = l.Scale*(scaleComp)
+			end
+			if self.MapStyle then
+				for i,l in pairs(self.MapStyle.sprs) do
+					mbackscale[l] = l.Scale/1
+					l.Scale = l.Scale*(scaleComp)
+				end
+			end
+		end
 
 		--for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, self.Y) do
 		for y=math.min(EndPosRenderGrid.Y, self.Y), math.max(1,StartPosRenderGrid.Y),-1 do
@@ -1574,20 +1653,23 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 					end
 					
 					local anim = tab.SpriteAnim and (self.GridSprites[tab.SpriteAnim] or self.GridSprites[tostring(tab.SpriteAnim)])
+					if tab.Mapspr then
+						tab.Mapspr:Render(renderPos)
+					end
 					if anim then
-						if scale ~= 1 then
-							local preScale = anim.Scale/1
-							anim.Scale = anim.Scale*(scaleComp)
-							--print(anim.Scale)
-							--anim.Scale = Vector(math.ceil(anim.Scale.X*20)/20,math.ceil(anim.Scale.Y*20)/20)
+						--if scale ~= 1 then
+						--	local preScale = anim.Scale/1
+						--	anim.Scale = anim.Scale*(scaleComp)
+						--	--print(anim.Scale)
+						--	--anim.Scale = Vector(math.ceil(anim.Scale.X*20)/20,math.ceil(anim.Scale.Y*20)/20)
+						--	anim:Render(renderPos)
+						--	--if scale>1 then
+						--	--	anim:Render(renderPos+Vector(0.5*scale,0.5*scale))
+						--	--end
+						--	anim.Scale = preScale
+						--else
 							anim:Render(renderPos)
-							--if scale>1 then
-							--	anim:Render(renderPos+Vector(0.5*scale,0.5*scale))
-							--end
-							anim.Scale = preScale
-						else
-							anim:Render(renderPos)
-						end
+						--end
 						ignoreList[tab] = true
 					end
 					if tab.Parent and not ignoreList[tab.Parent] then
@@ -1617,6 +1699,17 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 							end
 						end
 					end
+				end
+			end
+		end
+
+		if scale ~= 1 then
+			for i,l in pairs(self.GridSprites) do
+				l.Scale = backscale[l]
+			end
+			if self.MapStyle then
+				for i,l in pairs(self.MapStyle.sprs) do
+					l.Scale = mbackscale[l]
 				end
 			end
 		end
@@ -1801,9 +1894,15 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 	if list.gfx then
 		self:SetGridGfxImage(list.gfx) --, list.animNum or 1)
 	end
+	--if self.MapStyle then
+	--	if self.GridSprites[self.MapStyle.animName] then
+	--		self.GridSprites[self.MapStyle.animName].Color = Color(1,1,1,0)
+	--	end
+	--end
 
 	local toInit = {}
 	for i, tab in ipairs(list) do
+		---@type Frid
 		local grid
 		if list.useWorldPos then
 			grid = self:GetGrid(tab.pos)
@@ -1817,6 +1916,11 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 				if k ~= "pos" then
 					grid[k] = dat
 				end
+			end
+			if self.MapStyle and grid.SpriteAnim and self.MapStyle.affl[grid.SpriteAnim] then
+				local id = (grid.XY.X%self.MapStyle.size.X)+((grid.XY.Y-1)%self.MapStyle.size.Y)*self.MapStyle.size.Y
+				local mapSpr = self.MapStyle.sprs[id]
+				grid.Mapspr = mapSpr
 			end
 		end
 		--grid.SpriteAnim = tab.SpriteAnim or grid.SpriteAnim
