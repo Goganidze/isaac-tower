@@ -1287,6 +1287,7 @@ end
 ---@field animName string
 ---@field affl table
 ---@field sprs table
+---@field bigs table
 
 
 TSJDNHC.GridsList = {}
@@ -1474,6 +1475,7 @@ function TSJDNHC.Grid.SetGridAnim(self, anm, animNum)
 end
 
 function TSJDNHC.Grid.AddGridAnim(self, anim)
+	--if not self.GridSprites[tostring(anim)] then error("[2] is not a string",2) end
 	self.GridSprites[tostring(anim)] = Sprite()
 	self.GridSprites[tostring(anim)]:Load(self.Anm2File, true)
 	if self.SpriteSheep then
@@ -1501,6 +1503,7 @@ function TSJDNHC.Grid.SetTileStyle(self, num, ...)
 			animName = tab[1],
 			size = tab[2],
 			affl = tab[3],
+			bigs = {}, --tab[4],
 			sprs = {},
 		}
 		if self.GridSprites[tab[1]] then
@@ -1520,6 +1523,22 @@ function TSJDNHC.Grid.SetTileStyle(self, num, ...)
 				spr:Play(tab[1]..math.ceil(id))
 				--spr:SetFrame(id)
 				self.MapStyle.sprs[id] = spr
+				for ha=1,#tab[4] do
+					local name = tab[4][ha]
+					self.MapStyle.bigs[name] = true
+
+					local spr = Sprite()
+					spr:Load(self.Anm2File, true)
+					if self.SpriteSheep then
+						for layer = 0, spr:GetLayerCount()-1 do
+							spr:ReplaceSpritesheet(layer, self.SpriteSheep)
+						end
+					end
+					local id = (i-1)*(tab[2].Y)+j-1
+					local ani = name .. "_" .. math.ceil(id)
+					spr:Play(ani)
+					self.MapStyle.sprs[ani] = spr
+				end
 			end
 		end
 	else
@@ -1883,9 +1902,9 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 	if list.dgfx then
 		self:SetDefaultGridAnim(list.dgfx, list.animNum or 1)
 	end
-	--if list.gfx then
-	--	self:SetGridGfxImage(list.gfx) --, list.animNum or 1)
-	--end
+	if list.anm2 then
+		self:SetGridAnim(list.anm2, self.GridSprites and #self.GridSprites or 0)
+	end
 	if list.extraAnim then
 		for i, anim in ipairs(list.extraAnim) do
 			self:AddGridAnim(anim)
@@ -1894,11 +1913,9 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 	if list.gfx then
 		self:SetGridGfxImage(list.gfx) --, list.animNum or 1)
 	end
-	--if self.MapStyle then
-	--	if self.GridSprites[self.MapStyle.animName] then
-	--		self.GridSprites[self.MapStyle.animName].Color = Color(1,1,1,0)
-	--	end
-	--end
+	if list.TileMap then
+		self:SetTileStyle(1, list.TileMap[1], list.TileMap[2], list.TileMap[3], list.TileMap[4])
+	end
 
 	local toInit = {}
 	for i, tab in ipairs(list) do
@@ -1917,11 +1934,15 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 					grid[k] = dat
 				end
 			end
-			if self.MapStyle and grid.SpriteAnim and self.MapStyle.affl[grid.SpriteAnim] then
+			--[[if self.MapStyle and grid.SpriteAnim and self.MapStyle.affl[grid.SpriteAnim] then
 				local id = (grid.XY.X%self.MapStyle.size.X)+((grid.XY.Y-1)%self.MapStyle.size.Y)*self.MapStyle.size.Y
 				local mapSpr = self.MapStyle.sprs[id]
 				grid.Mapspr = mapSpr
-			end
+				print(grid.SpriteAnim, grid.SpriteAnim .. "_" .. id)
+				if self.MapStyle.bigs[grid.SpriteAnim] then
+					grid.Mapspr = self.MapStyle.sprs[grid.SpriteAnim .. "_" .. id]
+				end
+			end]]
 		end
 		--grid.SpriteAnim = tab.SpriteAnim or grid.SpriteAnim
 		--grid.Sprite = tab.Sprite or grid.Sprite
@@ -1933,6 +1954,14 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 		local gtype = grid.Type and TSJDNHC.GridTypes[grid.Type]
 		if gtype and gtype.Init then
 			gtype.Init(grid, self)
+		end
+		if self.MapStyle and grid.SpriteAnim and (self.MapStyle.affl[grid.SpriteAnim] or self.MapStyle.bigs[grid.SpriteAnim]) then
+			local id = (grid.XY.X%self.MapStyle.size.X)+((grid.XY.Y-1)%self.MapStyle.size.Y)*self.MapStyle.size.Y
+			local mapSpr = self.MapStyle.sprs[id]
+			grid.Mapspr = mapSpr
+			if self.MapStyle.bigs[grid.SpriteAnim] then
+				grid.Mapspr = self.MapStyle.sprs[grid.SpriteAnim .. "_" .. math.ceil(id)]
+			end
 		end
 	end
 end

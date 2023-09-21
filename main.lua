@@ -555,7 +555,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			Isaac_Tower.GridLists.Obs = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y * 2, newRoom.Size.X * 2,
 				20, 20)
 			if newRoom.SolidList.anm2 then
-				Isaac_Tower.GridLists.Solid:SetGridAnim(newRoom.SolidList.anm2, 9)
+				--Isaac_Tower.GridLists.Solid:SetGridAnim(newRoom.SolidList.anm2, 9)
 			else
 				Isaac_Tower.GridLists.Solid:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
 			end

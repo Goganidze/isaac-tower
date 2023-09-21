@@ -1072,11 +1072,11 @@ function Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, target)
 end
 function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 	local data = ent:GetData().Isaac_Tower_Data
-	if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
+	--if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
 	if not ent:GetData().Isaac_Tower_Data.Flags.Invincibility
 	and (not fent.DamageSource or fent.DamageSource.Index and fent.DamageSource.Index ~= ent.Index) then
-
-		if fent.OnGround and data.State == Isaac_Tower.EnemyHandlers.EnemyState.STUN then
+		if not (fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0) and
+		fent.OnGround and data.State == Isaac_Tower.EnemyHandlers.EnemyState.STUN then
 			if fent.Position.X < ent.Position.X then
 				ent.Velocity = Vector(ent.Velocity.X*0.8 - sign(fent.Position.X-ent.Position.X)*(dist/20), ent.Velocity.Y )
 			else
@@ -1088,6 +1088,7 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 				data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
 				data.StateFrame = 0
 			end
+			if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
 			if fent.Position.X < ent.Position.X then
 				ent.Velocity =  Vector(ent.Velocity.X*0.8 - sign(fent.Position.X-ent.Position.X)*(40-dist)/2, ent.Velocity.Y )
 			else
@@ -1395,6 +1396,7 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 					--fent.NextState = 1
 					spr:Play("grab_down_landing")
 					if fent.Velocity.Y > 8 then
+						Isaac_Tower.game:ShakeScreen(10)
 						local ents = Isaac_Tower.EnemyHandlers.GetRoomEnemies()
 						local power = math.min(10, 5+fent.Velocity.Y-8)
 						for i=1,#ents do
