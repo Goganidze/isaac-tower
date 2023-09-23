@@ -1000,6 +1000,7 @@ Isaac_Tower.AddRoom(roomdata)
 
 local roomdata = {Name='newroom 1',Size=Vector(25.0,15.0),DefSpawnPoint=Vector(380.0,400.0),
 SolidList={
+  TileSet="cellar",
   TileMap={"map_",Vector(3,3),{"1","2","3","4","5","6","7","8","9"},{"1_3x3"}},
   anm2='gfx/fakegrid/grid2cellar.anm2',
   gfx='gfx/fakegrid/cellar.png',

@@ -4100,6 +4100,34 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.PRE_BACKDROP_RENDER, Isaac_Tower.Renders.ba
 --end
 
 
+do  --Конец файла, хорошее место для этого
+	Isaac_Tower.TileData = { TileSets = {}, EditorData = {}}
+	function Isaac_Tower.TileData.AddTileSet(name, data)
+		if not name then error("[1] is not a string",2) end
+		if type(data) ~= "table" then error("[2] is not a table",2) end
+		if not data.Anm2 then error('"Anm2" field is empty',2) end
+
+		local tab = {}
+		tab.name_1x1 = data.MainMapGridSuffix
+		tab.size = data.Size or Vector(1,1)
+		tab.affected = data.AffectedAnimaions or {"1","2","3","4","5","6","7","8","9"}
+		tab.extra = data.ExtraAnimSuffix or {}
+		tab.anm2 = data.Anm2 --or 'gfx/fakegrid/grid2.anm2'
+		tab.gfx = data.Gfx
+
+		Isaac_Tower.TileData.TileSets[name] = tab
+
+		local tab = {}
+		tab.EditorImage = data.EditorImage
+
+		Isaac_Tower.TileData.EditorData[name] = tab
+	end
+
+	function Isaac_Tower.TileData.GetTileSetData(name)
+		return Isaac_Tower.TileData.TileSets[name]
+	end
+end
+
 -----------------------------------------------------------------------------------------------------
 
 local Col0Grid = Sprite()

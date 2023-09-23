@@ -187,6 +187,28 @@ Isaac_Tower.editor.AddGrid("platform3", "platform3", GenSprite("gfx/fakegrid/gri
 ---==================================================================================================================================
 ---==================================================================================================================================
 
+
+
+Isaac_Tower.TileData.AddTileSet("tutorial", {
+	Anm2 ='gfx/fakegrid/grid2.anm2',
+	Gfx = 'gfx/fakegrid/tutorial.png',
+	EditorImage = "gfx/editor/tileset_basement.png",
+})
+Isaac_Tower.TileData.AddTileSet("cellar", {
+	Anm2 = 'gfx/fakegrid/grid2cellar.anm2',
+	Gfx = 'gfx/fakegrid/cellar.png',
+	MainMapGridSuffix = "map_",
+	Size = Vector(3,3),
+	ExtraAnimSuffix = {"1_3x3"},
+	EditorImage = "gfx/editor/tileset_cellar.png",
+})
+
+
+---==================================================================================================================================
+---==================================================================================================================================
+---==================================================================================================================================
+---==================================================================================================================================
+
 local function poopObsLogic(ent, grid)
 	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
 	if fent and fent.CanBreakPoop then

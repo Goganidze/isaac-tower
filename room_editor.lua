@@ -450,6 +450,15 @@ function Isaac_Tower.editor.ConvertRoomToEditor(RoomName)
 
 	Isaac_Tower.editor.MenuData.grid = nil
 
+	Isaac_Tower.editor.Memory.CurrentRoom.TileSet = {}
+	if not roomdata.SolidList.TileSet then
+		Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name = "tutorial"
+		Isaac_Tower.editor.SettingMenu.SetTileSetMenu("tutorial")
+	else
+		Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name = roomdata.SolidList.TileSet
+		Isaac_Tower.editor.SettingMenu.SetTileSetMenu(roomdata.SolidList.TileSet)
+	end
+
 	Isaac.RunCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, Isaac_Tower.editor.Memory, roomdata, RoomName) -- Isaac_Tower.GridLists)
 end
 
@@ -464,6 +473,8 @@ function Isaac_Tower.editor.ChangeRoom(roomName)
 		if Isaac_Tower.editor.Memory.Changes[roomName] then
 			Isaac_Tower.editor.Memory.CurrentRoom = TabDeepCopy(Isaac_Tower.editor.Memory.Changes[roomName])
 			Isaac_Tower.editor.GridStartPos = roomGridStartPoses[roomName] or Vector(50,50)
+
+			Isaac_Tower.editor.SettingMenu.SetTileSetMenu(Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name)
 		else
 			Isaac_Tower.editor.GridStartPos = Vector(50,50)
 			--Isaac_Tower.SetRoom(roomName)
@@ -512,7 +523,7 @@ function Isaac_Tower.editor.GetConvertedEditorRoomForDebug()
 	str = str .. "Name='" .. Isaac_Tower.editor.Memory.CurrentRoom.Name .. "',"
 	str = str .. "Size=Vector(" .. Isaac_Tower.editor.Memory.CurrentRoom.Size.X .. "," .. Isaac_Tower.editor.Memory.CurrentRoom.Size.Y .. "),"
 	str = str .. "DefSpawnPoint=Vector(".. Isaac_Tower.editor.Memory.CurrentRoom.DefSpawnPoint.X .. "," .. Isaac_Tower.editor.Memory.CurrentRoom.DefSpawnPoint.Y .. "),"
-	
+
 	--[[str = str .. "\nSolidList={\n"
 	local solidTab = "  dgfx='gfx/fakegrid/basement.png',\n"
 	solidTab = solidTab .. "  extraAnim={" .. GetGridListAnimNamesStr() .. "},\n"
@@ -1732,48 +1743,63 @@ function Isaac_Tower.editor.RenderMenuButtons(menuName)
 	end
 end
 
+local DetectSelectedButtonBuffer = {}
+local DetectSelectedButtonBufferRef = {}
 function Isaac_Tower.editor.DetectSelectedButton(menu)
-  if type(Isaac_Tower.editor.MenuData[menu]) == "table" then
+	if not DetectSelectedButtonBufferRef[menu] then
+		DetectSelectedButtonBuffer[#DetectSelectedButtonBuffer+1] = menu
+		DetectSelectedButtonBufferRef[menu] = true
+	end
+end
+function Isaac_Tower.editor.DetectSelectedButtonActuale()
 	local mousePos = Isaac_Tower.editor.MousePos
-	
 	local onceTouch = false
-	for i,dt in pairs(Isaac_Tower.editor.MenuData[menu].sortList) do
-		local k = Isaac_Tower.editor.MenuData[menu].Buttons[dt.btn]
-		if not k then
-			print("Not exist Button ",k, menu, dt.btn)
-		end
-		if k.canPressed then
-			if not onceTouch and mousePos.X>=k.pos.X and mousePos.Y>=k.pos.Y 
-			and mousePos.X<(k.pos.X+k.x) and mousePos.Y<(k.pos.Y+k.y) then
-				onceTouch = true
-				if not k.IsSelected then
-					k.IsSelected = 0
-					k.spr:SetFrame(1)
-				else
-					k.IsSelected = k.IsSelected + 1
+	for ahhoh=1,#DetectSelectedButtonBuffer do
+		local menu = DetectSelectedButtonBuffer[ahhoh]
+		if type(Isaac_Tower.editor.MenuData[menu]) == "table" then
+			--local mousePos = Isaac_Tower.editor.MousePos
+
+			--local onceTouch = false
+			for i, dt in pairs(Isaac_Tower.editor.MenuData[menu].sortList) do
+				local k = Isaac_Tower.editor.MenuData[menu].Buttons[dt.btn]
+				if not k then
+					print("Not exist Button ", k, menu, dt.btn)
 				end
-				if IsMouseBtnTriggered(0) and not Isaac_Tower.editor.MouseDoNotPressOnButtons then
-					k.func(0)
-					break
-				elseif IsMouseBtnTriggered(1) and not Isaac_Tower.editor.MouseDoNotPressOnButtons then
-					k.func(1)
-					break
+				if k.canPressed then
+					if not onceTouch and mousePos.X >= k.pos.X and mousePos.Y >= k.pos.Y
+						and mousePos.X < (k.pos.X + k.x) and mousePos.Y < (k.pos.Y + k.y) then
+						onceTouch = true
+						if not k.IsSelected then
+							k.IsSelected = 0
+							k.spr:SetFrame(1)
+						else
+							k.IsSelected = k.IsSelected + 1
+						end
+						if IsMouseBtnTriggered(0) and not Isaac_Tower.editor.MouseDoNotPressOnButtons then
+							k.func(0)
+							break
+						elseif IsMouseBtnTriggered(1) and not Isaac_Tower.editor.MouseDoNotPressOnButtons then
+							k.func(1)
+							break
+						end
+					else
+						if k.IsSelected then
+							k.IsSelected = nil
+							k.spr:SetFrame(0)
+						end
+					end
 				end
-			else
-				if k.IsSelected then
-					k.IsSelected = nil
-					k.spr:SetFrame(0)
+				if k.hintText and k.IsSelected and k.IsSelected > 10 then
+					Isaac_Tower.editor.MouseHintText = k.hintText
 				end
 			end
 		end
-		if k.hintText and k.IsSelected and k.IsSelected > 10 then
-			Isaac_Tower.editor.MouseHintText = k.hintText
-		end
+		--if Isaac_Tower.editor.MouseDoNotPressOnButtons then
+		Isaac_Tower.editor.MouseDoNotPressOnButtons = nil
+		--end
 	end
-  end
-  --if Isaac_Tower.editor.MouseDoNotPressOnButtons then
-	Isaac_Tower.editor.MouseDoNotPressOnButtons = nil
-  --end
+	DetectSelectedButtonBuffer = {}
+	DetectSelectedButtonBufferRef = {}
 end
 
 
@@ -1910,6 +1936,8 @@ function Isaac_Tower.editor.MoveControl()
 	end
 	Isaac_Tower.editor.MouseHintText = nil
 	Isaac_Tower.editor.DetectSelectedButton(Isaac_Tower.editor.SelectedMenu)
+
+	Isaac_Tower.editor.DetectSelectedButtonActuale()
 end
 
 
@@ -2055,9 +2083,14 @@ end, function(pos)
 	font:DrawStringScaledUTF8(GetStr("TestRun2"),pos.X+16,pos.Y+10,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true) 
 end)
 
-Isaac_Tower.editor.SettingMenu = {Name = "Menu_setting", Frame = 0, StartPos = Vector(0,0), SubMenu = "setmenu_tileset"}
-Isaac_Tower.editor.AddButton("menuUp", "setting", Vector(368,12), 32, 32, UIs.Setting, function(button) 
-	if button ~= 0 then return end
+Isaac_Tower.editor.SettingMenu = {Name = "Menu_setting", Frame = 0, StartPos = Vector(0,0), CurSubMenu = "_setmenu_tileset", submenus = {{"_setmenu_tileset","tileset"}} }
+function Isaac_Tower.editor.SettingMenu.AddSubMenu(Menuname, tabName)
+	if Menuname and type(Menuname) == "string" then
+		Isaac_Tower.editor.SettingMenu.submenus[#Isaac_Tower.editor.SettingMenu.submenus+1] = {"_setmenu_"..Menuname,tabName}
+	end
+end
+Isaac_Tower.editor.SettingMenu.AddSubMenu("test", "test")
+function Isaac_Tower.editor.SettingMenu.CreateSettingMenu()
 	local Menuname = Isaac_Tower.editor.SettingMenu.Name
 	Isaac_Tower.editor.SelectedMenu = Menuname
 	Isaac_Tower.editor.IsStickyMenu = true
@@ -2066,15 +2099,29 @@ Isaac_Tower.editor.AddButton("menuUp", "setting", Vector(368,12), 32, 32, UIs.Se
 
 	local center = Vector(Isaac.GetScreenWidth()/2, Isaac.GetScreenHeight()/2)
 	local Menustart = center + Vector(-210,-120)
-	local self
+	--[[local self
 	self = Isaac_Tower.editor.AddButton(Menuname, "setmenu_tileset", Menustart + Vector(7,7), 80, 16, UIs.TextBoxSmol(), function(button) 
 		if button ~= 0 then return end
-		Isaac_Tower.editor.SettingMenu.SubMenu = "setmenu_tileset"
+		Isaac_Tower.editor.SettingMenu.CurSubMenu = "setmenu_tileset"
 	end, function(pos) 
 		font:DrawStringScaledUTF8(GetStr("tileset"),pos.X+40,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true)
 		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(7,7)
-	end)
+	end)]]
 
+	local off = 0
+	for i=1,#Isaac_Tower.editor.SettingMenu.submenus do
+		local sub = Isaac_Tower.editor.SettingMenu.submenus[i]
+		local offq = off
+		local self
+		self = Isaac_Tower.editor.AddButton(Menuname, sub[1], Menustart + Vector(7+offq,7), 79, 16, UIs.TextBoxSmol(), function(button) 
+			if button ~= 0 then return end
+			Isaac_Tower.editor.SettingMenu.CurSubMenu = sub[1]
+		end, function(pos) 
+			font:DrawStringScaledUTF8(GetStr(sub[2]),pos.X+40,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true)
+			self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(7+offq,7)
+		end)
+		off = off + 80
+	end
 
 
 	local closeColor = Color(1,1,1,0)
@@ -2084,7 +2131,7 @@ Isaac_Tower.editor.AddButton("menuUp", "setting", Vector(368,12), 32, 32, UIs.Se
 	local self
 	self = Isaac_Tower.editor.AddButton(Menuname, "close", Menustart + Vector(420-20,6), 16, 8, UIs.CloseBtn(), function(button) 
 		if button ~= 0 then return end
-		
+		Isaac_Tower.editor.IsStickyMenu = false
 	end, function(pos)
 		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(420-20,6)
 		if self.IsSelected then
@@ -2096,6 +2143,10 @@ Isaac_Tower.editor.AddButton("menuUp", "setting", Vector(368,12), 32, 32, UIs.Se
 		closeSpr.Color = closeColor
 		closeSpr:Render(pos)
 	end)
+end
+Isaac_Tower.editor.AddButton("menuUp", "setting", Vector(368,12), 32, 32, UIs.Setting, function(button) 
+	if button ~= 0 then return end
+	Isaac_Tower.editor.SettingMenu.CreateSettingMenu()
 end, function(pos)
 end)
 function Isaac_Tower.editor.SettingMenu:onRender(menu)
@@ -2110,8 +2161,8 @@ function Isaac_Tower.editor.SettingMenu:onRender(menu)
 		UIs.HintTextBG1.Scale = Vector(1,1)
 
 		Isaac_Tower.editor.RenderMenuButtons(menu)
-		Isaac_Tower.editor.DetectSelectedButton(Isaac_Tower.editor.SettingMenu.SubMenu)
-		Isaac_Tower.editor.RenderMenuButtons(Isaac_Tower.editor.SettingMenu.SubMenu)
+		Isaac_Tower.editor.DetectSelectedButton(Isaac_Tower.editor.SettingMenu.CurSubMenu)
+		Isaac_Tower.editor.RenderMenuButtons(Isaac_Tower.editor.SettingMenu.CurSubMenu)
 	end
 end
 mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_POST_MENUS_RENDER, Isaac_Tower.editor.SettingMenu.onRender)
@@ -2563,8 +2614,38 @@ end, function(tab)
 	end
 end, function(str)
 	str = str .. "\nSolidList={\n"
-	local solidTab = "  gfx='gfx/fakegrid/tutorial.png',\n"
-	solidTab = solidTab .. "  extraAnim={" .. GetGridListAnimNamesStr() .. "},\n"
+	if Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name then
+		str = str ..  "  TileSet='".. Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name .. "',\n"
+	end
+	local tilesetdata = Isaac_Tower.TileData.GetTileSetData(Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name)
+	if tilesetdata then
+		if tilesetdata.name_1x1 then
+			str = str.."  TileMap={'"..tilesetdata.name_1x1.."',"
+			str = str.."Vector("..math.ceil(tilesetdata.size.X)..","..math.ceil(tilesetdata.size.Y).."),"
+			str = str.."{"
+			for ha, gu in pairs(tilesetdata.affected) do
+				str = str.."'"..gu.."',"
+			end
+			str = str.."},{"
+			for ha, gu in pairs(tilesetdata.extra) do
+				str = str.."'"..gu.."',"
+			end
+			str = str.."}},\n"
+		end
+		str = str .. "  anm2='" .. tilesetdata.anm2 .. "',\n"
+		str = str .. "  gfx='" .. tilesetdata.gfx .. "',\n"
+	else
+		str = str .. "  gfx='gfx/fakegrid/tutorial.png',\n"
+	end
+	
+
+	local solidTab = "  extraAnim={" .. GetGridListAnimNamesStr() .. "},\n"
+	--tab.name_1x1 = data.MainMapGridSuffix
+	--tab.size = data.Size or Vector(1,1)
+	--tab.affected = data.AffectedAnimaions or {"1","2","3","4","5","6","7","8","9"}
+	--tab.extra = data.ExtraAnimSuffix or {}
+	--tab.anm2 = data.Anm2 --or 'gfx/fakegrid/grid2.anm2'
+	--tab.gfx
 	--solidTab = solidTab .. "  useWorldPos = true,"
 	
 	local startPos = Vector(-40,100)
@@ -6340,14 +6421,45 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, 
 	end
 end)
 
+do
+	local menuName = "_setmenu_tileset"
+	Isaac_Tower.sprites.TileSetImage = GenSprite("gfx/editor/tilesetImage.anm2", "main")
+	function Isaac_Tower.editor.SettingMenu.SetTileSetMenu(name)
+		Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name = name
+		local img = Isaac_Tower.TileData.EditorData[name] and  Isaac_Tower.TileData.EditorData[name].EditorImage
+		if img then
+			Isaac_Tower.sprites.TileSetImage:ReplaceSpritesheet(0, img)
+			Isaac_Tower.sprites.TileSetImage:LoadGraphics()
+		end
+	end
 
-local self
-self = Isaac_Tower.editor.AddButton("setmenu_tileset", "changeList", Vector(12,42), 175, 16, UIs.TextBox(), function(button) 
+	local self
+	self = Isaac_Tower.editor.AddButton(menuName, "changeList", Vector(12,42), 175, 16, UIs.TextBox(), function(button) 
+		if button ~= 0 then return end
+		local list = {}
+		for i,k in pairs(Isaac_Tower.TileData.TileSets) do
+			list[#list+1] = i
+		end
+		Isaac_Tower.editor.FastCreatelist(menuName, Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,36),
+			175, list, function(btn, par1, par2)
+				if btn ~= 0 then return end
+				Isaac_Tower.editor.SettingMenu.SetTileSetMenu(par2)
+			end)
+	end, function(pos)
+		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,36)
+		local str = Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name
+		font:DrawStringScaledUTF8(GetStr(str),pos.X+4,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
 
-end, function(pos)
-	self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,36)
-end)
+		local RenderPos = pos + Vector(350,1)
+		UIs.HintTextBG1.Scale = Vector(26,26)
+		UIs.HintTextBG1:Render(RenderPos + Vector(-2,-2))
+		Isaac_Tower.sprites.TileSetImage:Render(RenderPos)
+	end)
 
+
+
+
+end
 --[[local toRender = nil
 mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
 	toRender = nil
