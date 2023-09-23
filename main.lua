@@ -776,7 +776,6 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 					spr:Play(solid.MapStyle.animName .. math.ceil(id), true)
 					--spr:SetFrame(id)
 					spr:PlayOverlay(tostring(Gtype))
-					print(pos, id, spr:GetFrame())
 				end
 				return spr
 			end
