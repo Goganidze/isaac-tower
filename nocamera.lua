@@ -555,7 +555,7 @@ local maxTime = 0
 local t = 0
 function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
   local d = e:GetData()
-  t = Isaac.GetTime()
+  --t = Isaac.GetTime()
   if e.SubType == 2 and e:Exists() and d.renderlist and d.WallSprite and d.IsEnable then
 	local s = e:GetSprite()
 	local d = e:GetData()
@@ -879,13 +879,13 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 	end
 	d.IsCamRender = false
 
-	--local time = Isaac.GetTime()-t
-	--font:DrawStringUTF8(time,100,20,KColor(1,1,1,1),1,true)
-	--maxTime = maxTime*0.8+time*0.2   --math.max(maxTime, time)
-	--font:DrawStringUTF8(math.ceil(maxTime),70,20,KColor(1,1,1,1),1,true)
-	--if Isaac.GetFrameCount()%200 == 0 then
-	--	maxTime = 0
-	--end
+	--[[local time = Isaac.GetTime()-t
+	font:DrawStringUTF8(time,100,20,KColor(1,1,1,1),1,true)
+	maxTime = maxTime*0.8+time*0.2   --math.max(maxTime, time)
+	font:DrawStringUTF8(math.ceil(maxTime),70,20,KColor(1,1,1,1),1,true)
+	if Isaac.GetFrameCount()%200 == 0 then
+		maxTime = 0
+	end]]
 	--t = Isaac.GetTime()
   elseif e.SubType == 2 and e:Exists() and d.renderlist and d.WallSprite and not d.IsEnable then
 	if d.State then
@@ -1671,6 +1671,9 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 			end
 		end
 
+		local toRender = {} ---Что за?
+		local toRenderNum = 1
+
 		--for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, self.Y) do
 		for y=math.min(EndPosRenderGrid.Y, self.Y), math.max(1,StartPosRenderGrid.Y),-1 do
 			for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, self.X) do
@@ -1695,10 +1698,12 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 						end
 						if tab.Sprite then
 							if scale ~= 1 then
-								local preScale = tab.Sprite.Scale/1
-								tab.Sprite.Scale = tab.Sprite.Scale*scale
-								tab.Sprite:Render(renderPos)
-								tab.Sprite.Scale = preScale
+								--local preScale = tab.Sprite.Scale/1
+								--tab.Sprite.Scale = tab.Sprite.Scale*scale
+								--tab.Sprite:Render(renderPos)
+								--tab.Sprite.Scale = preScale
+								toRender[toRenderNum] = {tab.Sprite,renderPos,true}
+								toRenderNum = toRenderNum + 1
 							else
 								tab.Sprite:Render(renderPos)
 							end
@@ -1717,7 +1722,9 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 							--	--end
 							--	anim.Scale = preScale
 							--else
-								anim:Render(renderPos)
+								--anim:Render(renderPos)
+								toRender[toRenderNum] = {anim,renderPos}
+								toRenderNum = toRenderNum + 1
 							--end
 							ignoreList[tab] = true
 						end
@@ -1731,10 +1738,13 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 						ignoreList[tab.Parent] = true
 						if tab.Parent.Sprite then
 							if scale ~= 1 then
-								local preScale = tab.Parent.Sprite.Scale/1
-								tab.Parent.Sprite.Scale = tab.Parent.Sprite.Scale*scale
-								tab.Parent.Sprite:Render(renderPos)
-								tab.Parent.Sprite.Scale = preScale
+								--local preScale = tab.Parent.Sprite.Scale/1
+								--tab.Parent.Sprite.Scale = tab.Parent.Sprite.Scale*scale
+								--tab.Parent.Sprite:Render(renderPos)
+								--tab.Parent.Sprite.Scale = preScale
+
+								toRender[toRenderNum] = {tab.Parent.Sprite,renderPos,true}
+								toRenderNum = toRenderNum + 1
 							else
 								tab.Parent.Sprite:Render(renderPos)
 							end
@@ -1745,19 +1755,35 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 						local anim = tab.Parent.SpriteAnim and (self.GridSprites[tab.Parent.SpriteAnim] or self.GridSprites[tostring(tab.Parent.SpriteAnim)])
 						if anim then
 							if scale ~= 1 then
-								local preScale = anim.Scale/1
-								anim.Scale = anim.Scale*scale
+								--local preScale = anim.Scale/1
+								--anim.Scale = anim.Scale*scale
 								local renderPos = tab.Parent.RenderPos + startPos
 								local scaledOffset = (scale*tab.Parent.RenderPos-tab.Parent.RenderPos) or Vector(0,0)
 								renderPos = renderPos + scaledOffset-zeroOffset
-								anim:Render(renderPos)
-								anim.Scale = preScale
+								--anim:Render(renderPos)
+
+								toRender[toRenderNum] = {anim,renderPos}
+								toRenderNum = toRenderNum + 1
+								--anim.Scale = preScale
 							else
 								anim:Render((tab.Parent.RenderPos + startPos)*scale)
 							end
 						end
 					end
 				end
+			end
+		end
+		for i=1, toRenderNum-1 do
+			local k = toRender[i]
+			local spr= k[1]
+			local renderPos = k[2]
+			if k[3] then
+				local preScale = spr.Scale/1
+				spr.Scale = spr.Scale*scale
+				spr:Render(renderPos)
+				spr.Scale = preScale
+			else
+				spr:Render(renderPos)
 			end
 		end
 

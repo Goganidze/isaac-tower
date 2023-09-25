@@ -181,24 +181,27 @@ end
 
 function Isaac_Tower.RunDirectCallbacks(callId, param, ...)
 	local ctab = Isaac_Tower.DirectCallback[callId]
+	local result
 	if ctab then
 		if param and ctab.Params then
 			local tab = ctab.Params[param]
 			if tab and #tab>0 then
 				for i=1,#tab do
-					tab[i].Func(tab[i].Mod,...)
+					result = tab[i].Func(tab[i].Mod,...) or result
 				end
 			end
 			if #ctab>0 then
 				for i=1,#ctab do
-					ctab[i].Func(ctab[i].Mod,...)
+					result = ctab[i].Func(ctab[i].Mod,...) or result
 				end
 			end
 		elseif #ctab>0 then
 			for i=1,#ctab do
-				ctab[i].Func(ctab[i].Mod,...)
+				result = ctab[i].Func(ctab[i].Mod,...) or result
 			end
 		end
+		--if result then print(result) end
+		return result
 	end
 end
 mod:AddCallback(ModCallbacks.MC_PRE_MOD_UNLOAD, function(_, mod)
@@ -393,6 +396,10 @@ do
 		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_INIT, data.Name, grid[x])
 	end
 
+	function Isaac_Tower.LevelHandler.RemoveInGridBonusPickup(bonus)
+		Isaac_Tower.FlayerHandlers.RemoveInGridBonusPickup(bonus)
+	end
+
 	function Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
 		if not SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, roomName).seed then
 			Isaac_Tower.LevelHandler.RoomData[roomName].seed = Isaac_Tower.seeds:GetNextSeed()  --Isaac_Tower.seed
@@ -508,6 +515,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 
 		for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
 			if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
+				Isaac_Tower.EnemyHandlers.RemoveEnemyFromArray(ent)
 				ent:Remove()
 			end
 		end
@@ -1184,6 +1192,14 @@ mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
 			UpdatesInThatFrame = UpdatesInThatFrame + 1
 		end
 	end
+	updateframe30 = updateframe30 + Isaac_Tower.UpdateSpeed/2
+	UpdatesInThatFrame30 = 0
+	if updateframe30 >= 1 then
+		for i=1, math.floor(updateframe30) do
+			updateframe30 = updateframe30 - 1
+			UpdatesInThatFrame30 = UpdatesInThatFrame30 + 1
+		end
+	end
 	Isaac_Tower.GameRenderUpdate()
 
 	--Isaac_Tower.font:DrawStringUTF8(rta,130,40,KColor(1,1,1,1),1,true)
@@ -1198,14 +1214,14 @@ mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
 	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
 	UpdateZeroPoint()
 
-	updateframe30 = updateframe30 + Isaac_Tower.UpdateSpeed
+	--[[updateframe30 = updateframe30 + Isaac_Tower.UpdateSpeed
 	UpdatesInThatFrame30 = 0
 	if updateframe30 >= 1 then
 		for i=1, math.floor(updateframe30) do
 			updateframe30 = updateframe30 - 1
 			UpdatesInThatFrame30 = UpdatesInThatFrame30 + 1
 		end
-	end
+	end]]
 	--rta = Isaac.GetFrameCount()-ta
 	--ta = Isaac.GetFrameCount()
 	Isaac_Tower.GameUpdate()
@@ -1268,6 +1284,9 @@ Isaac_Tower.EnemyHandlers.FlayerCollision = {}
 
 Isaac_Tower.EnemyHandlers.Enemies = {}
 Isaac_Tower.EnemyHandlers.Projectiles = {}
+
+Isaac_Tower.EnemyHandlers.EnemyArray = {}
+
 ---@param name string
 ---@param gfx string
 ---@param size Vector
@@ -1336,6 +1355,7 @@ function Isaac_Tower.Spawn(name, subtype, pos, vec, spawner)
 
 	--d.RNG = RNG()
 	--d.RNG:SetSeed(ent.GetDropRNG)
+	Isaac_Tower.EnemyHandlers.EnemyArray[#Isaac_Tower.EnemyHandlers.EnemyArray+1] = ent
 
 	Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.ENEMY_POST_INIT, name, ent)
 	return ent
@@ -1434,6 +1454,23 @@ function Isaac_Tower.EnemyHandlers.GetRoomEnemies(cache)
 		end
 	end
 	return tab
+end
+
+function Isaac_Tower.EnemyHandlers.RemoveEnemyFromArray(ent)
+	if ent then
+		::check::
+		local array = Isaac_Tower.EnemyHandlers.EnemyArray
+		for i=1,#array do
+			if not array[i]:Exists() then
+				table.remove(Isaac_Tower.EnemyHandlers.EnemyArray,i)
+				goto check
+			end
+			if array[i].Index == ent.Index then
+				table.remove(Isaac_Tower.EnemyHandlers.EnemyArray,i)
+				break
+			end
+		end
+	end
 end
 
 function Isaac_Tower.GerNearestFlayer(pos)
@@ -2320,7 +2357,8 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		--d.TSJDNHC_fallspeed = d.TSJDNHC_fallspeed or 0
 
 		if not Isaac_Tower.GridLists.Solid:GetGrid(fent.Position) then
-			local result = Isaac.RunCallback(Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, ent)
+			local result = Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, nil, ent)
+			print(result)
 			if type(result) == "userdata" and result.X then
 				Isaac_Tower.SetPlayerPos(ent, result)
 			elseif result ~= true then
@@ -2948,7 +2986,35 @@ function Isaac_Tower.GameRenderUpdate()
 	--	Isaac_Tower.ScoreHandler.UpdateTextArray()
 	--end
 
-	if Input.IsButtonTriggered(Keyboard.KEY_O,0) then
+
+	local array = Isaac_Tower.EnemyHandlers.EnemyArray
+	local arrayProj = Isaac.FindByType(1000,Isaac_Tower.ENT.Proj.VAR,-1)
+	local updatePos = false
+	Isaac_Tower.UpdateSpeedHandler30(function()
+		for i=1,#array do
+			local ent = array[i]
+			if ent then
+				Isaac_Tower.EnemyUpdate(nil,ent)
+				if updatePos then
+					ent.Position = ent.Position + ent.Velocity
+				end
+			end
+		end
+		for i=1,#arrayProj do
+			local ent = arrayProj[i]
+			if ent then
+				Isaac_Tower.ProjectileUpdate(nil,ent)
+				if updatePos then
+					ent.Position = ent.Position + ent.Velocity
+				end
+			end
+		end
+		updatePos = true
+	end)
+	--Isaac_Tower.EnemyUpdate
+
+
+	if Input.IsButtonTriggered(Keyboard.KEY_O,0) then --TODO
 		Isaac_Tower.SetScale()
 	elseif Input.IsButtonTriggered(Keyboard.KEY_L,0) then
 		Isaac_Tower.SetScale(1.41)
@@ -3078,6 +3144,7 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 	[Isaac_Tower.EnemyHandlers.EnemyState.DEAD] = function(ent)
 		local data = ent:GetData().Isaac_Tower_Data
 		if not data.Deaded then
+			Isaac_Tower.EnemyHandlers.RemoveEnemyFromArray(ent)
 			ent:GetSprite():Play("stun")
 			data.Deaded = true
 			local rng = RNG()
@@ -3113,7 +3180,7 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 	if ent.FrameCount > 0 then
 		ent.Velocity = ent.Velocity/Isaac_Tower.UpdateSpeed
 	end
-	Isaac_Tower.UpdateSpeedHandler30(function()
+	--Isaac_Tower.UpdateSpeedHandler30(function()
 		ent:GetSprite():Update()
 		local typ = ent:GetData().Isaac_Tower_Data and ent:GetData().Isaac_Tower_Data.Type
 		local data = ent:GetData().Isaac_Tower_Data
@@ -3277,14 +3344,14 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, typ, ent)
 		--ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
 		data.LastPosition = ent.Position/1
-	end)
+	--end)
 	ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
 	
 	if not Isaac_Tower.GridLists.Solid:GetGrid(ent.Position) then
 		ent:Remove()
 	end
 end
-mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, Isaac_Tower.EnemyUpdate, IsaacTower_Enemy)
+--mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, Isaac_Tower.EnemyUpdate, IsaacTower_Enemy)
 
 function Isaac_Tower.EnemyPostRender(_, ent, Pos, Offset, Scale)
 	if ent.Variant ~= IsaacTower_Enemy then return end
@@ -4321,6 +4388,7 @@ for _, room in pairs(rooms) do
 	module(mod, Isaac_Tower)
 end
 
+print("Isaac Tower: v.Dev Loaded")
 
 if reloadData then
 	if Isaac.GetPlayer() then

@@ -613,7 +613,8 @@ end
 --mod:AddCallback(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, Room_Transition_Collision, "Room_Transition")
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, Room_Transition_Collision, "Room_Transition")
 
-mod:AddCallback(Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, function(_, ent)
+--mod:AddCallback(Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, function(_, ent)
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, function(_, ent)
 	local Fpos = ent:GetData().Isaac_Tower_Data.Position
 	if Isaac_Tower.GridLists.Special.Room_Transition then
 		for index, grid in pairs(Isaac_Tower.GridLists.Special.Room_Transition) do

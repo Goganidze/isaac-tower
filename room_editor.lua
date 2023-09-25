@@ -635,7 +635,9 @@ function Isaac_Tower.editor.PreGenEmptyRoom()
 		Envi = {},
 		Enemy = {},
 		SolidFake = {},
+		TileSet = {Name = "tutorial"},
 	}
+	Isaac_Tower.editor.SettingMenu.SetTileSetMenu("tutorial")
 end
 
 function Isaac_Tower.editor.MakeVersion()
@@ -2640,12 +2642,6 @@ end, function(str)
 	
 
 	local solidTab = "  extraAnim={" .. GetGridListAnimNamesStr() .. "},\n"
-	--tab.name_1x1 = data.MainMapGridSuffix
-	--tab.size = data.Size or Vector(1,1)
-	--tab.affected = data.AffectedAnimaions or {"1","2","3","4","5","6","7","8","9"}
-	--tab.extra = data.ExtraAnimSuffix or {}
-	--tab.anm2 = data.Anm2 --or 'gfx/fakegrid/grid2.anm2'
-	--tab.gfx
 	--solidTab = solidTab .. "  useWorldPos = true,"
 	
 	local startPos = Vector(-40,100)
