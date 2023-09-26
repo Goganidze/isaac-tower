@@ -85,6 +85,10 @@ end
 for i=1,9 do
 	Isaac_Tower.editor.AddGrid(tostring(i), tostring(i), GenSprite("gfx/fakegrid/grid2.anm2",tostring(i)), {Collision = 1, SpriteAnim = i })
 end
+--for i=1,9 do
+--	local name = "black"..i
+--	Isaac_Tower.editor.AddGrid(name, name, GenSprite("gfx/fakegrid/grid2.anm2",name), {Collision = 1, SpriteAnim = name })
+--end
 
 Isaac_Tower.editor.AddGrid("infis", "infis", GenSprite("gfx/fakegrid/grid2.anm2","infis",nil,1), {Collision = 1, SpriteAnim = "infis" })
 
@@ -1134,6 +1138,8 @@ for i=2,3 do
 		Vector(13,17))
 end
 
+
+
 do
 	local EnviList = {
 		{"t_","hint7",Vector(21,31),Vector(10,15),Vector(1.0,1.0),Vector(11,10)},
@@ -1155,6 +1161,27 @@ do
 			GenSprite("gfx/evrom/tutorial.anm2",tab[2],scale,nil,off), 
 			function() return GenSprite("gfx/evrom/tutorial.anm2",tab[2]) end, 
 			GenSprite("gfx/evrom/tutorial.anm2",tab[2], Vector(.5,.5)), 
+			tab[3],
+			tab[4])
+	end
+
+	local EnviList = {
+	}
+
+	for i=1,9 do
+		local name = "black"..i
+		--Isaac_Tower.editor.AddGrid(name, name, GenSprite("gfx/fakegrid/grid2.anm2",name), {Collision = 1, SpriteAnim = name })
+		EnviList[#EnviList+1] = {"cel_",name,Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(0,0)}
+	end
+
+	for i, tab in ipairs(EnviList) do
+		local name = tab[1] .. tab[2]
+		local scale = tab[5] or Vector(1,1)
+		local off = tab[6] or Vector(10,10)
+		Isaac_Tower.editor.AddEnvironment(name, 
+			GenSprite("gfx/fakegrid/grid2cellar.anm2",tab[2],scale,nil,off), 
+			function() return GenSprite("gfx/fakegrid/grid2cellar.anm2",tab[2]) end, 
+			GenSprite("gfx/fakegrid/grid2cellar.anm2",tab[2], Vector(.5,.5)), 
 			tab[3],
 			tab[4])
 	end

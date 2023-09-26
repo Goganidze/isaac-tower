@@ -4040,13 +4040,13 @@ end, nil, function(str)
 									max[2] = id[2]
 								end
 							end
-							solidTab = solidTab .. "{"..(min[1]+0)..","..(min[2]+0).."},"
-							solidTab = solidTab .. "{"..(min[1]+0)..","..(max[2]+0).."},"
-							solidTab = solidTab .. "{"..(max[1]+0)..","..(min[2]+0).."},"
-							solidTab = solidTab .. "{"..(max[1]+0)..","..(max[2]+0).."},"
+							solidTab = solidTab .. "{"..math.max(0,min[1]+0)..","..(min[2]+0).."},"
+							solidTab = solidTab .. "{"..math.max(0,min[1]+0)..","..(max[2]+0).."},"
+							solidTab = solidTab .. "{"..math.max(0,max[1]+0)..","..(min[2]+0).."},"
+							solidTab = solidTab .. "{"..math.max(0,max[1]+0)..","..(max[2]+0).."},"
 						else
 							for _, id in pairs(grid.childs) do
-								solidTab = solidTab .. "{"..(id[1]+0)..","..(id[2]+0).."},"
+								solidTab = solidTab .. "{"..math.max(0,id[1]+0)..","..math.max(0,id[2]+0).."},"
 							end
 						end
 
@@ -4075,13 +4075,13 @@ end, nil, function(str)
 									max[2] = id[2]
 								end
 							end
-							solidTab = solidTab .. "{"..math.ceil(min[1]+0)..","..math.ceil(min[2]+0).."},"
-							solidTab = solidTab .. "{"..math.ceil(min[1]+0)..","..math.ceil(max[2]+0).."},"
-							solidTab = solidTab .. "{"..math.ceil(max[1]+0)..","..math.ceil(min[2]+0).."},"
-							solidTab = solidTab .. "{"..math.ceil(max[1]+0)..","..math.ceil(max[2]+0).."},"
+							solidTab = solidTab .. "{"..math.ceil(math.max(0,min[1]+0))..","..math.ceil(min[2]+0).."},"
+							solidTab = solidTab .. "{"..math.ceil(math.max(0,min[1]+0))..","..math.ceil(max[2]+0).."},"
+							solidTab = solidTab .. "{"..math.ceil(math.max(0,max[1]+0))..","..math.ceil(min[2]+0).."},"
+							solidTab = solidTab .. "{"..math.ceil(math.max(0,max[1]+0))..","..math.ceil(max[2]+0).."},"
 						else
 							for _, id in pairs(grid.childs) do
-								solidTab = solidTab .. "{"..math.ceil(id[1]+0)..","..math.ceil(id[2]+0).."},"
+								solidTab = solidTab .. "{"..math.ceil(math.max(0,id[1]+0))..","..math.ceil(id[2]+0).."},"
 							end
 						end
 						solidTab = solidTab .. "},},\n"
@@ -5224,8 +5224,14 @@ function Isaac_Tower.editor.PreGenerateGridListMenu(menuName)
 		else
 			Isaac_Tower.editor.TilesListMenus[menuName] = {}
 			local num = 0
+			local names = {}
 			for i,k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
-					
+				names[#names+1] = i
+			end
+			table.sort(names)
+			--for i,k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
+			for i=1,#names do
+				local k = Isaac_Tower.editor.GridTypes[menuName][names[i] ]
 				num = num + 1
 				local page = math.ceil(num/15)
 				Isaac_Tower.editor.TilesListMenus[menuName][page] = Isaac_Tower.editor.TilesListMenus[menuName][page] or {}
@@ -5233,7 +5239,7 @@ function Isaac_Tower.editor.PreGenerateGridListMenu(menuName)
 				Isaac_Tower.editor.TilesListMenus[menuName][page][(num-1)%15+1] = {
 					pos = Vector(60*xpos, 60*ypos), --Vector(52*xpos, 49*ypos),
 					sprite = k.spr,
-					type = i,
+					type = names[i],
 				}
 			end
 		end
@@ -5245,8 +5251,15 @@ function Isaac_Tower.editor.PreGenerateGridListMenu(menuName)
 			else
 				Isaac_Tower.editor.TilesListMenus[name] = {}
 				local num = 0
+
+				--for i,k in pairs(Isaac_Tower.editor.GridTypes[name]) do
+				local names = {}
 				for i,k in pairs(Isaac_Tower.editor.GridTypes[name]) do
-					
+					names[#names+1] = i
+				end
+				table.sort(names)
+				for i=1,#names do
+					local k = Isaac_Tower.editor.GridTypes[name][names[i] ]
 					num = num + 1
 					local page = math.ceil(num/15)
 					Isaac_Tower.editor.TilesListMenus[name][page] = Isaac_Tower.editor.TilesListMenus[name][page] or {}
@@ -5254,7 +5267,7 @@ function Isaac_Tower.editor.PreGenerateGridListMenu(menuName)
 					Isaac_Tower.editor.TilesListMenus[name][page][(num-1)%15+1] = {
 						pos = Vector(60*xpos, 60*ypos), --Vector(52*xpos, 49*ypos),
 						sprite = k.spr,
-						type = i,
+						type = names[i],
 					}
 				end
 			end

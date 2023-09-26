@@ -4144,15 +4144,27 @@ function Isaac_Tower.Renders.SetBGVisible(bol)
 	background.visible = bol
 end
 
+local bSe = 2
 function Isaac_Tower.Renders.backgroung_render(_, Pos, Offset, Scale)
+	--local zero = Isaac.WorldToRenderPosition(v40100)
+	--local startPos = (Offset + zero)
+	--local zeroOffset = BDCenter*(Scale-1) +GridListStartPos*(1-Scale) ---BDCenter
+	--print(Offset, startPos, zeroOffset, Offset + zeroOffset)
+	--Offset = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition + Isaac.WorldToRenderPosition(v40100)*(Scale-1)
+	Scale = 1/bSe + Scale/bSe
+
 	local w,h = ScrenX,ScrenY   --Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
-	
-	local x, y = math.ceil(w/background.size.X) + 0, math.ceil(h/background.size.Y) + 0
-	local off = Vector(Offset.X%(background.size.X*2), Offset.Y%(background.size.Y*2))/2
+	local start = Vector(ScrenX,ScrenY)*(Scale-1)
+	Offset = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition -- Vector(ScrenX,ScrenY)*(Scale-1)
+	print( start )
+
+	local x, y = math.ceil(w/background.size.X/Scale) + 0, math.ceil(h/background.size.Y/Scale) + 0
+	local off = Vector(Offset.X%(background.size.X*bSe), Offset.Y%(background.size.Y*bSe))/bSe * Scale
 	for i=0, x do
 		for j=0, y do
-			local rpos = Vector(i*background.size.X, j*background.size.Y) + off - background.size --Vector(background.size,background.size)
+			local rpos = Vector(i*background.size.X-1, j*background.size.Y-1)*Scale + off - background.size/Scale - start  --Vector(background.size,background.size)
 			rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
+			background.spr.Scale = Vector(Scale, Scale)
 			background.spr:Render(rpos)
 		end
 	end
