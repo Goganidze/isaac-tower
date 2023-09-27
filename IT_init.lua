@@ -197,6 +197,8 @@ Isaac_Tower.TileData.AddTileSet("tutorial", {
 	Anm2 ='gfx/fakegrid/grid2.anm2',
 	Gfx = 'gfx/fakegrid/tutorial.png',
 	EditorImage = "gfx/editor/tileset_basement.png",
+	EditorAnm2 = "gfx/fakegrid/grid2.anm2",
+	EditorGridTypesList = {'8','9','1_3x3','45l','half_up','30l','1_5x5','3_3x1','platform1','1_2x2','30r','platform3','infis','platform2','platform','7','1','2','3','4','5','6','45r',},
 })
 Isaac_Tower.TileData.AddTileSet("cellar", {
 	Anm2 = 'gfx/fakegrid/grid2cellar.anm2',
@@ -205,6 +207,8 @@ Isaac_Tower.TileData.AddTileSet("cellar", {
 	Size = Vector(3,3),
 	ExtraAnimSuffix = {"1_3x3"},
 	EditorImage = "gfx/editor/tileset_cellar.png",
+	EditorAnm2 = "gfx/fakegrid/grid2cellar_editor.anm2",
+	EditorGridTypesList = {'30l','half_up','45l','1_3x3','3','4','5','6','platform3','1','45r','7','8','9','30r','platform','3_3x1','platform2','platform1','2','infis',},
 })
 
 
@@ -533,6 +537,46 @@ Isaac_Tower.editor.AddObstacle("kick_breakable", "kick_breakable1",
 	GenSprite("gfx/fakegrid/grid2.anm2","kick_breakable1"), 
 	{Collision = 1, Type = "kick_breakable" }, 
 	GenSprite("gfx/fakegrid/grid2.anm2","kick_breakable1"), Vector(2,2))
+
+
+
+TSJDNHC_PT.AddGridType("runaway_switch_block", function(self, gridList)
+	local rng = Isaac_Tower.LevelHandler.GetCurrentRoomData().deco_rng
+	local suffix = rng:RandomInt(5)==0 and "2" or "1"
+	self.Sprite = GenSprite("gfx/fakegrid/switch.anm2","выкл_" .. suffix)
+	self.extrasuffix = suffix
+	gridList:MakeMegaGrid(self.Index, 2, 2)
+end,
+function(self, gridList)
+	if not self.Updated and Isaac_Tower.LevelHandler.GetLevelData().IsRunAway then
+		self.Updated = true
+		self.Collision = 1
+		self.Sprite:Play("вкл_" .. self.extrasuffix)
+	end
+end)
+Isaac_Tower.editor.AddObstacle("runaway_switch_block", "выкл_1", 
+	GenSprite("gfx/fakegrid/switch.anm2","выкл_1"), 
+	{Collision = 0, Type = "runaway_switch_block" }, 
+	GenSprite("gfx/fakegrid/switch.anm2","выкл_1"), Vector(2,2))
+
+TSJDNHC_PT.AddGridType("runaway_switch_block_rev", function(self, gridList)
+		local rng = Isaac_Tower.LevelHandler.GetCurrentRoomData().deco_rng
+		local suffix = rng:RandomInt(5)==0 and "2" or "1"
+		self.Sprite = GenSprite("gfx/fakegrid/switch.anm2","вкл_" .. suffix)
+		self.extrasuffix = suffix
+		gridList:MakeMegaGrid(self.Index, 2, 2)
+	end,
+	function(self, gridList)
+		if not self.Updated and Isaac_Tower.LevelHandler.GetLevelData().IsRunAway then
+			self.Updated = true
+			self.Collision = 0
+			self.Sprite:Play("выкл_" .. self.extrasuffix)
+		end
+	end)
+Isaac_Tower.editor.AddObstacle("runaway_switch_block_rev", "вкл_1", 
+	GenSprite("gfx/fakegrid/switch.anm2","вкл_1"), 
+	{Collision = 1, Type = "runaway_switch_block_rev" }, 
+	GenSprite("gfx/fakegrid/switch.anm2","вкл_1"), Vector(2,2))
 
 
 ---==================================================================================================================================
@@ -1166,12 +1210,15 @@ do
 	end
 
 	local EnviList = {
+		{"cel_","black3_3",Vector(78,78),Vector(39,39),Vector(0.4,0.4),Vector(13,13)},
+		{"cel_","black5_5",Vector(130,130),Vector(65,65),Vector(0.3,0.3),Vector(13,13)},
+		{"cel_","1_1x3",Vector(86,32),Vector(3,4),Vector(0.5,0.5),Vector(-8,5)},
 	}
 
-	for i=1,9 do
+	for i=1,13 do
 		local name = "black"..i
 		--Isaac_Tower.editor.AddGrid(name, name, GenSprite("gfx/fakegrid/grid2.anm2",name), {Collision = 1, SpriteAnim = name })
-		EnviList[#EnviList+1] = {"cel_",name,Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(0,0)}
+		EnviList[#EnviList+1] = {"cel_",name,Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(13,13)}
 	end
 
 	for i, tab in ipairs(EnviList) do
@@ -1179,9 +1226,9 @@ do
 		local scale = tab[5] or Vector(1,1)
 		local off = tab[6] or Vector(10,10)
 		Isaac_Tower.editor.AddEnvironment(name, 
-			GenSprite("gfx/fakegrid/grid2cellar.anm2",tab[2],scale,nil,off), 
-			function() return GenSprite("gfx/fakegrid/grid2cellar.anm2",tab[2]) end, 
-			GenSprite("gfx/fakegrid/grid2cellar.anm2",tab[2], Vector(.5,.5)), 
+			GenSprite("gfx/evrom/cellar.anm2",tab[2],scale,nil,off), 
+			function() return GenSprite("gfx/evrom/cellar.anm2",tab[2]) end, 
+			GenSprite("gfx/evrom/cellar.anm2",tab[2], Vector(.5,.5)), 
 			tab[3],
 			tab[4])
 	end

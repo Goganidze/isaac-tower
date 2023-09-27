@@ -485,6 +485,7 @@ function Isaac_Tower.editor.ChangeRoom(roomName)
 			Isaac_Tower.editor.MakeVersion()
 		end
 		Isaac_Tower.editor.MenuData.grid = nil
+		Isaac_Tower.editor.PreGenerateGridListMenu("Grid")
 	end
 	
 end
@@ -769,6 +770,8 @@ function Isaac_Tower.OpenEditor()
 		Isaac_Tower.Rooms[Isaac_Tower.editor.Memory.CurrentRoom.Name] = Isaac_Tower.editor.GetConvertedEditorRoom()
 	end
 	Isaac_Tower.LevelHandler.ClearRoomData()
+	Isaac_Tower.LevelHandler.ClearLevelData()
+	Isaac_Tower.editor.PreGenerateGridListMenu("Grid")
 
 	if Isaac_Tower.editor.InEditorTestRoom then
 		Isaac_Tower.editor.InEditorTestRoom = nil
@@ -4982,6 +4985,41 @@ do
 				end
 			end
 		end)
+	end
+
+	--Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name
+	--	local img = Isaac_Tower.TileData.EditorData[name] and  Isaac_Tower.TileData.EditorData[name].EditorImage
+	Solidmenu.CustomPreGenTileList = function(menuName)
+		local tilesetNaem = Isaac_Tower.editor.Memory.CurrentRoom.TileSet and Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name
+		local tilesetList = Isaac_Tower.TileData.EditorData[tilesetNaem] and  Isaac_Tower.TileData.EditorData[tilesetNaem].GridTypesList
+
+		Isaac_Tower.editor.TilesListMenus[menuName] = {}
+		local num = 0
+		local names = {}
+		for i,k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
+			names[#names+1] = i
+		end
+		table.sort(names)
+		--for i,k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
+		for i=1,#names do
+			if not tilesetList or tilesetList[ names[i] ] then
+				local k = Isaac_Tower.editor.GridTypes[menuName][names[i] ]
+				num = num + 1
+				local page = math.ceil(num/15)
+				local index = (num - 1) % 15 + 1
+				local xpos, ypos = (num-1)%5+1, math.ceil( ((num-1)%15+1)/5 )
+				SafePlacingTable(Isaac_Tower.editor.TilesListMenus,menuName,page)[index] = {
+					pos = Vector(60*xpos, 60*ypos), --Vector(52*xpos, 49*ypos),
+					sprite = k.spr,
+					type = names[i],
+				}
+				local TileListAnm = Isaac_Tower.TileData.EditorData[tilesetNaem] and  Isaac_Tower.TileData.EditorData[tilesetNaem].Anm2
+				if TileListAnm then
+					Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite = GenSprite(TileListAnm, k.spr:GetAnimation(),k.spr:GetFrame())
+					Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite.Scale = k.spr.Scale
+				end
+			end
+		end
 	end
 end
 do

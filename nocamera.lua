@@ -1303,6 +1303,7 @@ TSJDNHC.FGrid = {}
 ---@field SpriteSheep string|nil
 ---@field Anm2File string
 ---@field RenderGridList table
+---@field ToUpdateGridList table
 ---@field StartPos Vector
 ---@field CenterPos Vector
 ---@field CornerPos Vector
@@ -1330,6 +1331,7 @@ end
 ---@field Half Vector
 ---@field CenterPos Vector
 ---@field Collision integer
+---@field Type any
 
 ---@param pos Vector
 ---@param y number 
@@ -1543,6 +1545,29 @@ function TSJDNHC.Grid.SetTileStyle(self, num, ...)
 		end
 	else
 		self.MapStyle = nil
+	end
+end
+
+function TSJDNHC.Grid.UpdateUpdateTab(self)
+	self.ToUpdateGridList = {}
+	--local startPos = Isaac.WorldToRenderPosition(self.StartPos)
+	for i=self.Y, 1,-1 do
+		for j=self.X, 1,-1 do
+			---@type Frid
+			local grid = self.Grid[i][j]
+			if grid.Type and TSJDNHC.GridTypes[grid.Type].Update then
+				self.ToUpdateGridList[#self.ToUpdateGridList+1] = {self.Grid[i][j], TSJDNHC.GridTypes[grid.Type].Update}
+			end
+		end
+	end
+end
+
+function TSJDNHC.Grid.CallGridUpdate(self)
+	if type(self.ToUpdateGridList) == "table" then
+		for i=1, #self.ToUpdateGridList do
+			local tab = self.ToUpdateGridList[i]
+			tab[2](tab[1], self)
+		end
 	end
 end
 
@@ -1889,6 +1914,7 @@ function TSJDNHC.Grid.DestroyGrid(self, x, y)
 		clearGridData(self.Grid[grid.XY.Y][grid.XY.X])
 
 		self:UpdateRenderTab()
+		self:UpdateUpdateTab()
 	end
 end
 
@@ -2029,6 +2055,7 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 			end
 		end
 	end
+	self:UpdateUpdateTab()
 end
 
 function TSJDNHC.DeleteAllGridList()

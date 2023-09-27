@@ -359,7 +359,16 @@ local function GetLinkedGrid(grid, pos, size, fill, sizeY)
 end
 
 do
-	Isaac_Tower.LevelHandler = {RoomData = {}}
+	Isaac_Tower.LevelHandler = {RoomData = {}, LevelData = {}}
+
+	function Isaac_Tower.LevelHandler.GetLevelData(name)
+		return SafePlacingTable(Isaac_Tower.LevelHandler.LevelData, name or Isaac_Tower.CurrentRoom.Name)
+	end
+	function Isaac_Tower.LevelHandler.ClearLevelData(name)
+		if Isaac_Tower.LevelHandler.LevelData[name or Isaac_Tower.CurrentRoom.Name] then
+			Isaac_Tower.LevelHandler.LevelData[name or Isaac_Tower.CurrentRoom.Name] = {}
+		end
+	end
 
 	function Isaac_Tower.LevelHandler.SpawnRoomEnemies(newRoom)
 		if newRoom.Enemy then
@@ -405,6 +414,8 @@ do
 			Isaac_Tower.LevelHandler.RoomData[roomName].seed = Isaac_Tower.seeds:GetNextSeed()  --Isaac_Tower.seed
 			Isaac_Tower.LevelHandler.RoomData[roomName].rng = RNG()
 			Isaac_Tower.LevelHandler.RoomData[roomName].rng:SetSeed(Isaac_Tower.LevelHandler.RoomData[roomName].seed, 35)
+			Isaac_Tower.LevelHandler.RoomData[roomName].deco_rng = RNG()
+			Isaac_Tower.LevelHandler.RoomData[roomName].deco_rng:SetSeed(Isaac_Tower.LevelHandler.RoomData[roomName].seed, 35)
 		end
 	end
 	function Isaac_Tower.LevelHandler.GetCurrentRoomData()
@@ -969,6 +980,16 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				end
 			end
 		end
+
+		if newRoom.bg then
+			if newRoom.bg.bg then
+				Isaac_Tower.Renders.SetBGGfx(newRoom.bg.bg[1], newRoom.bg.bg[2])
+			end
+		else
+			Isaac_Tower.Renders.SetBGGfx("gfx/backgrounds/basement_bg.png", Vector(100,100))
+		end
+		
+
 
 		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ROOM_LOADING, nil, Isaac_Tower.GridLists, newRoom, roomName, oldRoomName)
 
@@ -2923,6 +2944,8 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.ENTITY_POSTRENDER, Isaac_Tower.FlayerRender
 
 local flayerList = {}
 function Isaac_Tower.GameUpdate()
+	Isaac_Tower.GridLists.Obs:CallGridUpdate()
+
 	local fakegroup = {}
 	for i=0, Game():GetNumPlayers() do
 		flayerList[i] = Isaac_Tower.GetFlayer(i)  --Isaac_Tower.GetFlayer(i)
@@ -3014,12 +3037,14 @@ function Isaac_Tower.GameRenderUpdate()
 	--Isaac_Tower.EnemyUpdate
 
 
-	if Input.IsButtonTriggered(Keyboard.KEY_O,0) then --TODO
+	if Input.IsButtonTriggered(Keyboard.KEY_1,0) then --TODO
 		Isaac_Tower.SetScale()
-	elseif Input.IsButtonTriggered(Keyboard.KEY_L,0) then
+	elseif Input.IsButtonTriggered(Keyboard.KEY_2,0) then
 		Isaac_Tower.SetScale(1.41)
-	elseif Input.IsButtonTriggered(Keyboard.KEY_K,0) then
+	elseif Input.IsButtonTriggered(Keyboard.KEY_3,0) then
 		Isaac_Tower.SetScale(2.05)
+	elseif Input.IsButtonTriggered(Keyboard.KEY_4,0) then
+		Isaac_Tower.SetScale(.7)
 	end
 end
 
@@ -3797,8 +3822,8 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 					end
 				end
 			else
-				for y=Isaac_Tower.GridLists.Solid.Y, 1, -1 do
-					for x=1, Isaac_Tower.GridLists.Solid.X do
+				for y=Isaac_Tower.GridLists.Solid.Y, 0, -1 do
+					for x=0, Isaac_Tower.GridLists.Solid.X do
 						local tab = gridlist[y] and gridlist[y][x]
 						if tab and tab.Ps then
 							RenderList[layer] = RenderList[layer] or {}
@@ -3879,7 +3904,7 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 			local gridlist = tab[layer]
 			if gridlist then
 				--for i,k in pairs(gridlist) do
-				for i=1,#gridlist do
+				for i=0,#gridlist do
 					local k = gridlist[i]
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj then
@@ -3953,7 +3978,7 @@ function Isaac_Tower.Renders.PostGridRender(_, Pos, Offset, Scale)
 	local gridlist = Isaac_Tower.Renders.EnviRender[0]
 	if gridlist then
 		--if layer==0 then
-			for i=1,#gridlist do --,k in pairs(gridlist) do
+			for i=0,#gridlist do --,k in pairs(gridlist) do
 				local k = gridlist[i]
 				local obj = Isaac_Tower.GridLists.Evri.List[k]
 				if obj then
@@ -4015,7 +4040,7 @@ function Isaac_Tower.Renders.FakeLayerRender(_, Pos, Offset, Scale)
 			local gridlist = Isaac_Tower.Renders.EnviRender["fake"]
 			if gridlist then
 				--for i,k in pairs(gridlist) do
-				for i=1,#gridlist do
+				for i=0,#gridlist do
 					local k = gridlist[i]
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj and obj.spr.Color.A>0 then
@@ -4040,7 +4065,7 @@ function Isaac_Tower.Renders.FakeLayerRender(_, Pos, Offset, Scale)
 	local gridlist = Isaac_Tower.Renders.EnviRender[1]
 	if gridlist then
 		--if layer==0 then
-			for i=1,#gridlist do --,k in pairs(gridlist) do
+			for i=0,#gridlist do --,k in pairs(gridlist) do
 				local k = gridlist[i]
 				local obj = Isaac_Tower.GridLists.Evri.List[k]
 				if obj then
@@ -4081,7 +4106,7 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 			local gridlist = Isaac_Tower.Renders.EnviRender[layer]
 			if gridlist then
 				--for i,k in pairs(gridlist) do
-				for i=1,#gridlist do
+				for i=0,#gridlist do
 					local k = gridlist[i]
 					local obj = Isaac_Tower.GridLists.Evri.List[k]
 					if obj then
@@ -4130,7 +4155,7 @@ local background = {
 	size = Vector(100,100),
 	visible = true,
 }
-background.spr:Load("gfx/fakegrid/background.anm2",true)
+background.spr:Load("gfx/backgrounds/background.anm2",true)
 background.spr:Play(1)
 
 function Isaac_Tower.Renders.SetBGGfx(gfx, size)
@@ -4151,18 +4176,20 @@ function Isaac_Tower.Renders.backgroung_render(_, Pos, Offset, Scale)
 	--local zeroOffset = BDCenter*(Scale-1) +GridListStartPos*(1-Scale) ---BDCenter
 	--print(Offset, startPos, zeroOffset, Offset + zeroOffset)
 	--Offset = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition + Isaac.WorldToRenderPosition(v40100)*(Scale-1)
+	local BScale = Scale
 	Scale = 1/bSe + Scale/bSe
 
 	local w,h = ScrenX,ScrenY   --Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
-	local start = Vector(ScrenX,ScrenY)*(Scale-1)
+	local start = Vector(ScrenX,ScrenY)/2*(Scale-1)
+	--print( Vector(ScrenX,ScrenY), start, Scale, BScale )
 	Offset = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition -- Vector(ScrenX,ScrenY)*(Scale-1)
 
 
-	local x, y = math.ceil(w/background.size.X/Scale) + 0, math.ceil(h/background.size.Y/Scale) + 0
+	local x, y = math.ceil(w/background.size.X/Scale) + 1, math.ceil(h/background.size.Y/Scale) + 1
 	local off = Vector(Offset.X%(background.size.X*bSe), Offset.Y%(background.size.Y*bSe))/bSe * Scale
 	for i=0, x do
 		for j=0, y do
-			local rpos = Vector(i*background.size.X-1, j*background.size.Y-1)*Scale + off - background.size/Scale - start  --Vector(background.size,background.size)
+			local rpos = Vector(i*background.size.X-1, j*background.size.Y-1)*Scale + off - background.size*Scale - start  --Vector(background.size,background.size)
 			rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
 			background.spr.Scale = Vector(Scale, Scale)
 			background.spr:Render(rpos)
@@ -4197,6 +4224,12 @@ do  --Конец файла, хорошее место для этого
 
 		local tab = {}
 		tab.EditorImage = data.EditorImage
+		tab.Anm2 = data.EditorAnm2
+		local GridTypesList = {}
+		for i=1,#data.EditorGridTypesList do
+			GridTypesList[data.EditorGridTypesList[i]] = true
+		end
+		tab.GridTypesList = GridTypesList --data.EditorGridTypesList
 
 		Isaac_Tower.TileData.EditorData[name] = tab
 	end
