@@ -4156,7 +4156,7 @@ function Isaac_Tower.Renders.backgroung_render(_, Pos, Offset, Scale)
 	local w,h = ScrenX,ScrenY   --Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 	local start = Vector(ScrenX,ScrenY)*(Scale-1)
 	Offset = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition -- Vector(ScrenX,ScrenY)*(Scale-1)
-	print( start )
+
 
 	local x, y = math.ceil(w/background.size.X/Scale) + 0, math.ceil(h/background.size.Y/Scale) + 0
 	local off = Vector(Offset.X%(background.size.X*bSe), Offset.Y%(background.size.Y*bSe))/bSe * Scale
