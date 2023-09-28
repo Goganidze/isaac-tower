@@ -1091,6 +1091,7 @@ function TSJDNHC:SpawnCamera(bool)
     end
 end
 
+---@return Entity|nil
 function TSJDNHC:GetCameraEnt()
 	if CameraEntity and CameraEntity.Ref then
 		return CameraEntity.Ref
@@ -1099,33 +1100,33 @@ end
 
 function TSJDNHC:EnableCamera(bool,force)
     if CameraEntity and CameraEntity.Ref then
-	if bool == true then
-		if not force then
-			CameraEntity.Ref:GetData().State = 1
-		else
-			CameraEntity.Ref:GetData().IsEnable = true
-			CameraEntity.Ref:GetData().State = nil
+		if bool == true then
+			if not force then
+				CameraEntity.Ref:GetData().State = 1
+			else
+				CameraEntity.Ref:GetData().IsEnable = true
+				CameraEntity.Ref:GetData().State = nil
+			end
+		elseif bool == false then
+			if not force then
+				CameraEntity.Ref:GetData().State = 3
+			else
+				CameraEntity.Ref:GetData().IsEnable = false
+				CameraEntity.Ref:GetData().State = nil
+			end
 		end
-	elseif bool == false then
-		if not force then
-			CameraEntity.Ref:GetData().State = 3
-		else
-			CameraEntity.Ref:GetData().IsEnable = false
-			CameraEntity.Ref:GetData().State = nil
-		end
-	end
     end
 end
 
 function TSJDNHC:SetFocusMode(arg)
-	 if arg and CameraEntity and CameraEntity.Ref then
+	if arg and CameraEntity and CameraEntity.Ref then
 		local d = CameraEntity.Ref:GetData()
 		d.FocusMode = arg
 	end
 end
 
 function TSJDNHC:SetFocusPosition(pos, lerp)
-	 if pos and CameraEntity and CameraEntity.Ref then
+	if pos and CameraEntity and CameraEntity.Ref then
 		local d = CameraEntity.Ref:GetData()
 		d.FocusLerp = lerp or 0.05
 		d.FocusMode = d.FocusMode~= 1 and d.FocusMode or 0
@@ -1137,7 +1138,7 @@ function TSJDNHC:SetFocusPosition(pos, lerp)
 end
 
 function TSJDNHC:ClearFocus()
-	 if CameraEntity and CameraEntity.Ref then
+	if CameraEntity and CameraEntity.Ref then
 		local d = CameraEntity.Ref:GetData()
 		d.FocusMode = 1
 		d.CameraPosition = Vector(0,0)
@@ -1148,7 +1149,7 @@ function TSJDNHC:ClearFocus()
 end
 
 function TSJDNHC:SetFocusEntity(ent, focus)
-	 if ent and CameraEntity and CameraEntity.Ref then
+	if ent and CameraEntity and CameraEntity.Ref then
 		local d = CameraEntity.Ref:GetData()
 		d.FocusMode = d.FocusMode ~= 1 and d.FocusMode or focus or 2
 		d.TargetEntity = ent
@@ -1156,7 +1157,7 @@ function TSJDNHC:SetFocusEntity(ent, focus)
 end
 
 function TSJDNHC:AddFocusEntity(ent)
-	 if ent and CameraEntity and CameraEntity.Ref then
+	if ent and CameraEntity and CameraEntity.Ref then
 		local d = CameraEntity.Ref:GetData()
 		d.FocusMode = d.FocusMode~= 1 and d.FocusMode or 2
 		if type(d.TargetEntity) ~= 'table' then
@@ -1187,7 +1188,7 @@ end
 
 --d.SpecialRender = {igronelist = {}, stein = {}, creep = {}, rock = {}, entity = {} }
 function TSJDNHC:AddToGridRender(ent)
-	 if ent and CameraEntity and CameraEntity.Ref then
+	if ent and CameraEntity and CameraEntity.Ref then
 		local d = CameraEntity.Ref:GetData()
 		d.SpecialRender.igronelist[ent.Index] = true
 		d.SpecialRender.rock[#d.SpecialRender.rock+1] = ent
@@ -1216,7 +1217,7 @@ function TSJDNHC:SetStainVisible(bol)
 end
 
 function TSJDNHC:AddRoomRender(tab)
-	 if tab and CameraEntity and CameraEntity.Ref then
+	if tab and CameraEntity and CameraEntity.Ref then
 		local d = CameraEntity.Ref:GetData()
 		local id = #d.SpecialRender.room+1
 		d.SpecialRender.room[id] = {Wall = tab.Wall, Floor = tab.Floor, Shading = tab.Shading, Overlay = tab.Overlay, Offset = tab.Offset}

@@ -2396,10 +2396,7 @@ Bonus={
 },
 } Isaac_Tower.AddRoom(roomdata)
 
-local roomdata = {Name='tutorial_5',Size=Vector(88.0,47.0),DefSpawnPoint=Vector(900.0,520.0),
-bg={
-  bg={"gfx/backgrounds/cellar_bg.png",V(200,200)},
-},
+local roomdata = {Name='tutorial_5',Size=Vector(88.0,47.0),DefSpawnPoint=Vector(900.0,520.0),bg="cellar",
 Enemy={
 },
 Bonus={

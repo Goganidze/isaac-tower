@@ -1257,7 +1257,8 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 		fent.GrabTarget:GetData().Isaac_Tower_Data.CanBreakPoop = true
 		fent.GrabTarget:GetData().Isaac_Tower_Data.prePosition = fent.GrabTarget.Position/1
 		fent.GrabTarget:GetData().Isaac_Tower_Data.StateFrame = 0
-		fent.GrabTarget:Update()
+		--fent.GrabTarget:Update()
+		Isaac_Tower.EnemyUpdate(nil,fent.GrabTarget)
 		fent.GrabTarget = nil
 		fent.PunchRot = nil
 

@@ -6507,6 +6507,36 @@ do
 
 
 end
+
+do
+	Isaac_Tower.editor.DebugMenu = {}
+
+	local offset = 0
+	function Isaac_Tower.editor.DebugMenu.Render(off, mousepos)
+		offset = off
+		local MenuUpPos = Vector(Isaac.GetScreenWidth()/2, -50 + off)
+		UIs.MenuUp.Color = Color(1,1,1,0.5)
+		UIs.MenuUp:Render(MenuUpPos)
+		UIs.MenuUp.Color = Color(1,1,1,1)
+
+		Isaac_Tower.editor.MousePos = mousepos
+		Isaac_Tower.editor.DetectSelectedButton("__debug_menu")
+		Isaac_Tower.editor.DetectSelectedButtonActuale()
+		Isaac_Tower.editor.RenderMenuButtons("__debug_menu")
+	end
+
+	local self
+	self = Isaac_Tower.editor.AddButton("__debug_menu", "open_editor", Vector(12,5), 32, 32, UIs.TestRun, function(button) 
+		if button ~= 0 then return end
+		Isaac_Tower.OpenEditor()
+	end, function(pos)
+		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,5+offset)
+		
+	end)
+end
+
+
+
 --[[local toRender = nil
 mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
 	toRender = nil

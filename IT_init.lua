@@ -1235,20 +1235,48 @@ do
 end
 
 
---Isaac_Tower.editor.AddEnvironment("testpoop1", 
---	GenSprite("gfx/fakegrid/poop.anm2","2x2",Vector(0.8,0.8),nil,Vector(9,0)), 
---	function() return GenSprite("gfx/fakegrid/poop.anm2","2x2") end, 
---	GenSprite("gfx/fakegrid/poop.anm2","2x2", Vector(.5,.5)), 
---	Vector(57,96),
---	Vector(11,8))
+do
 
---Isaac_Tower.editor.AddEnvironment("fisaac", 
---	GenSprite("gfx/fakePlayer/flayer.anm2","holding_move",Vector(0.8,0.8),nil,Vector(9,24)), 
---	function() return GenSprite("gfx/fakePlayer/flayer.anm2","holding_move") end, 
---	GenSprite("gfx/fakePlayer/flayer.anm2","holding_move", Vector(.5,.5)), 
---	Vector(40,50),
---	Vector(18,40))
+	Isaac_Tower.Backgroung.AddBackgroung("tutorial", {{
+		spr = GenSprite("gfx/backgrounds/basement_bg.anm2", "1"),
+		size = Vector(100,100),
+		visible = true,
+		scrollX = true,
+		scrollY = true,
+		distancing = 2,
+	}})
+	local spr = GenSprite("gfx/backgrounds/cellar_bg.anm2", "1", Vector(0.5,.5))
+	local spr2 = GenSprite("gfx/backgrounds/cellar_bg.anm2", "2", Vector(0.5,.5))
+	local spr3 = GenSprite("gfx/backgrounds/cellar_bg.anm2", "4", Vector(1,1))
+	--spr:ReplaceSpritesheet(0, "gfx/backgrounds/cellar_bg.png")
+	--spr:LoadGraphics()
+	Isaac_Tower.Backgroung.AddBackgroung("cellar", {
+	{
+		spr = spr,
+		size = Vector(100,100),
+		visible = true,
+		scrollX = true,
+		scrollY = true,
+		distancing = 4,
+	},
+	--[[{
+		spr = spr2,
+		size = Vector(100,100),
+		visible = true,
+		updown = {1,2},
+		distancing = 1,
+	}]]
+	{
+		spr = spr3,
+		size = Vector(200,200),
+		visible = true,
+		scrollX = true,
+		scrollY = true,
+		distancing = 2,
+	},
+	})
 
+end
 
 -------------------------------------------------------------------ВРАГИ------------------------------------------------
 
