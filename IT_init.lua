@@ -1323,16 +1323,16 @@ function Isaac_Tower.ENT.LOGIC.EnemySignRender(_,ent)
 	end
 end
 
-Isaac_Tower.RegisterEnemy("sign", "gfx/enemies/sign.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY, NoStun = true})
-Isaac_Tower.RegisterEnemy("signp", "gfx/enemies/sign.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY, NoStun = true})
+Isaac_Tower.RegisterEnemy("sign", "gfx/it_enemies/sign.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY, NoStun = true})
+Isaac_Tower.RegisterEnemy("signp", "gfx/it_enemies/sign.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY, NoStun = true})
 Isaac_Tower.editor.AddEnemies("sign", 
-	GenSprite("gfx/enemies/sign.anm2","TrashCo w",nil,nil,Vector(13,13)), 
+	GenSprite("gfx/it_enemies/sign.anm2","TrashCo w",nil,nil,Vector(13,13)), 
 	"sign",0,  
-	GenSprite("gfx/enemies/sign.anm2","TrashCo w",nil,nil,Vector(13/2,13/2)))
+	GenSprite("gfx/it_enemies/sign.anm2","TrashCo w",nil,nil,Vector(13/2,13/2)))
 Isaac_Tower.editor.AddEnemies("signp", 
-	GenSprite("gfx/enemies/sign.anm2","pooo",nil,nil,Vector(13,13)), 
+	GenSprite("gfx/it_enemies/sign.anm2","pooo",nil,nil,Vector(13,13)), 
 	"signp",0,  
-	GenSprite("gfx/enemies/sign.anm2","pooo",nil,nil,Vector(13/2,13/2)))
+	GenSprite("gfx/it_enemies/sign.anm2","pooo",nil,nil,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent:GetSprite():Play("pooo")
@@ -1348,11 +1348,11 @@ mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, Isaac_Tower.ENT.LOGIC.E
 
 ---------------------------------------КЛОТТИГ--------------------------------------------
 
-Isaac_Tower.RegisterEnemy("clottig", "gfx/enemies/clottig.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
+Isaac_Tower.RegisterEnemy("clottig", "gfx/it_enemies/clottig.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
 Isaac_Tower.editor.AddEnemies("clottig", 
-	GenSprite("gfx/enemies/clottig.anm2","idle",nil,nil,Vector(13,13)), 
+	GenSprite("gfx/it_enemies/clottig.anm2","idle",nil,nil,Vector(13,13)), 
 	"clottig",0,  
-	GenSprite("gfx/enemies/clottig.anm2","idle",nil,nil,Vector(13/2,13/2)))
+	GenSprite("gfx/it_enemies/clottig.anm2","idle",nil,nil,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,5)
@@ -1409,11 +1409,11 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaa
 
 ---------------------------------------СРЕДНЕРОСТНЫЙ ПОРТАЛ--------------------------------------------
 
-Isaac_Tower.RegisterEnemy("mid portal", "gfx/enemies/mid_portal.anm2", Vector(15,15), {EntityCollision = 0})
+Isaac_Tower.RegisterEnemy("mid portal", "gfx/it_enemies/mid_portal.anm2", Vector(15,15), {EntityCollision = 0})
 Isaac_Tower.editor.AddEnemies("mid portal", 
-	GenSprite("gfx/enemies/mid_portal.anm2","editor",nil,nil,Vector(13,13)), 
+	GenSprite("gfx/it_enemies/mid_portal.anm2","editor",nil,nil,Vector(13,13)), 
 	"mid portal",0,  
-	GenSprite("gfx/enemies/mid_portal.anm2","editor",nil,nil,Vector(13/2,13/2)))
+	GenSprite("gfx/it_enemies/mid_portal.anm2","editor",nil,nil,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,25)
@@ -1489,11 +1489,11 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_RESTORE, Isa
 
 ---------------------------------------ЗЕВАКА--------------------------------------------
 
-Isaac_Tower.RegisterEnemy("gaper", "gfx/enemies/it_gaper.anm2", Vector(20,25), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
+Isaac_Tower.RegisterEnemy("gaper", "gfx/it_enemies/it_gaper.anm2", Vector(20,25), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
 Isaac_Tower.editor.AddEnemies("gaper", 
-	GenSprite("gfx/enemies/it_gaper.anm2","idle",nil,nil,Vector(13,13)), 
+	GenSprite("gfx/it_enemies/it_gaper.anm2","idle",nil,nil,Vector(13,13)), 
 	"gaper",0,  
-	GenSprite("gfx/enemies/it_gaper.anm2","idle",nil,nil,Vector(13/2,13/2)))
+	GenSprite("gfx/it_enemies/it_gaper.anm2","idle",nil,nil,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,3)
@@ -1612,11 +1612,11 @@ end
 
 ---------------------------------------ХОРХ--------------------------------------------
 
-Isaac_Tower.RegisterEnemy("horh", "gfx/enemies/horh.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
+Isaac_Tower.RegisterEnemy("horh", "gfx/it_enemies/horh.anm2", Vector(20,20), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
 Isaac_Tower.editor.AddEnemies("horh",
-	GenSprite("gfx/enemies/horh.anm2","чего",nil,2,Vector(13,13)),
+	GenSprite("gfx/it_enemies/horh.anm2","чего",nil,2,Vector(13,13)),
 	"horh",0,
-	GenSprite("gfx/enemies/horh.anm2","чего",nil,2,Vector(13/2,13/2)))
+	GenSprite("gfx/it_enemies/horh.anm2","чего",nil,2,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
 	ent.PositionOffset = Vector(0,5)

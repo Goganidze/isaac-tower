@@ -458,6 +458,15 @@ function Isaac_Tower.editor.ConvertRoomToEditor(RoomName)
 		Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name = roomdata.SolidList.TileSet
 		Isaac_Tower.editor.SettingMenu.SetTileSetMenu(roomdata.SolidList.TileSet)
 	end
+	--Isaac_Tower.editor.Memory.CurrentRoom.backgroungName
+	if not roomdata.bg then
+		Isaac_Tower.editor.Memory.CurrentRoom.backgroungName = "tutorial"
+		Isaac_Tower.editor.SettingMenu.SetbackgroungMenu("tutorial")
+	else
+		Isaac_Tower.editor.Memory.CurrentRoom.backgroungName = roomdata.bg
+		Isaac_Tower.editor.SettingMenu.SetbackgroungMenu(roomdata.bg)
+	end
+
 
 	Isaac.RunCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, Isaac_Tower.editor.Memory, roomdata, RoomName) -- Isaac_Tower.GridLists)
 end
@@ -524,6 +533,10 @@ function Isaac_Tower.editor.GetConvertedEditorRoomForDebug()
 	str = str .. "Name='" .. Isaac_Tower.editor.Memory.CurrentRoom.Name .. "',"
 	str = str .. "Size=Vector(" .. Isaac_Tower.editor.Memory.CurrentRoom.Size.X .. "," .. Isaac_Tower.editor.Memory.CurrentRoom.Size.Y .. "),"
 	str = str .. "DefSpawnPoint=Vector(".. Isaac_Tower.editor.Memory.CurrentRoom.DefSpawnPoint.X .. "," .. Isaac_Tower.editor.Memory.CurrentRoom.DefSpawnPoint.Y .. "),"
+
+	if Isaac_Tower.editor.Memory.CurrentRoom.backgroungName then
+		str = str .. "bg='" .. Isaac_Tower.editor.Memory.CurrentRoom.backgroungName .. "',"
+	end
 
 	--[[str = str .. "\nSolidList={\n"
 	local solidTab = "  dgfx='gfx/fakegrid/basement.png',\n"
@@ -2088,7 +2101,7 @@ end, function(pos)
 	font:DrawStringScaledUTF8(GetStr("TestRun2"),pos.X+16,pos.Y+10,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true) 
 end)
 
-Isaac_Tower.editor.SettingMenu = {Name = "Menu_setting", Frame = 0, StartPos = Vector(0,0), CurSubMenu = "_setmenu_tileset", submenus = {{"_setmenu_tileset","tileset"}} }
+Isaac_Tower.editor.SettingMenu = {Name = "Menu_setting", Frame = 0, StartPos = Vector(0,0), CurSubMenu = "_current_room", submenus = {{"_current_room","tileset"}} }
 function Isaac_Tower.editor.SettingMenu.AddSubMenu(Menuname, tabName)
 	if Menuname and type(Menuname) == "string" then
 		Isaac_Tower.editor.SettingMenu.submenus[#Isaac_Tower.editor.SettingMenu.submenus+1] = {"_setmenu_"..Menuname,tabName}
@@ -6469,7 +6482,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, 
 end)
 
 do
-	local menuName = "_setmenu_tileset"
+	local menuName = "_current_room"  --"_setmenu_tileset"
 	Isaac_Tower.sprites.TileSetImage = GenSprite("gfx/editor/tilesetImage.anm2", "main")
 	function Isaac_Tower.editor.SettingMenu.SetTileSetMenu(name)
 		Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name = name
@@ -6477,6 +6490,17 @@ do
 		if img then
 			Isaac_Tower.sprites.TileSetImage:ReplaceSpritesheet(0, img)
 			Isaac_Tower.sprites.TileSetImage:LoadGraphics()
+		end
+	end
+	local rendercrop = Vector(0,0)
+	Isaac_Tower.sprites.bagroundImage = GenSprite("gfx/editor/tilesetImage.anm2", "main")
+	function Isaac_Tower.editor.SettingMenu.SetbackgroungMenu(name)
+		Isaac_Tower.editor.Memory.CurrentRoom.backgroungName = name
+		local img = Isaac_Tower.Backgroung.types[name] and  Isaac_Tower.Backgroung.types[name][1].spr
+		if img then
+			Isaac_Tower.sprites.bagroundImage = img
+			rendercrop = Isaac_Tower.Backgroung.types[name][1].size/img.Scale - Vector(48,48)/img.Scale
+			rendercrop = Vector(math.max(0,rendercrop.X), math.max(0,rendercrop.Y))
 		end
 	end
 
@@ -6501,6 +6525,29 @@ do
 		UIs.HintTextBG1.Scale = Vector(26,26)
 		UIs.HintTextBG1:Render(RenderPos + Vector(-2,-2))
 		Isaac_Tower.sprites.TileSetImage:Render(RenderPos)
+	end)
+
+	local self
+	self = Isaac_Tower.editor.AddButton(menuName, "changeList2", Vector(12,60), 175, 16, UIs.TextBox(), function(button) 
+		if button ~= 0 then return end
+		local list = {}
+		for i,k in pairs(Isaac_Tower.Backgroung.types) do
+			list[#list+1] = i
+		end
+		Isaac_Tower.editor.FastCreatelist(menuName, self.pos, --Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,36),
+			175, list, function(btn, par1, par2)
+				if btn ~= 0 then return end
+				Isaac_Tower.editor.SettingMenu.SetbackgroungMenu(par2)
+			end)
+	end, function(pos)
+		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,54)
+		local str = Isaac_Tower.editor.Memory.CurrentRoom.backgroungName
+		font:DrawStringScaledUTF8(GetStr(str),pos.X+4,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
+
+		local RenderPos = pos + Vector(350,32)
+		UIs.HintTextBG1.Scale = Vector(26,26)
+		UIs.HintTextBG1:Render(RenderPos + Vector(-2,-2))
+		Isaac_Tower.sprites.bagroundImage:Render(RenderPos, nil, rendercrop)
 	end)
 
 

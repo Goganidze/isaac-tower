@@ -1192,7 +1192,7 @@ function Isaac_Tower.RoomPostCompilator()
 end
 
 local updateframe = 0
-local updateframe30 = 0
+local updateframe30 --= 0
 local UpdatesInThatFrame = 0
 local UpdatesInThatFrame30 = 0
 
@@ -1205,6 +1205,14 @@ mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
 	if Isaac_Tower.GridLists.Solid and ScrenX ~= Isaac.GetScreenWidth() and ScrenY ~= Isaac.GetScreenHeight() then
 		ScrenX,ScrenY = ScrenXX,ScrenYY --Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
+	end
+
+	if not updateframe30 then
+		if Isaac.GetFrameCount()%2 == 0 then
+			updateframe30 = 0.0
+		else
+			updateframe30 = 0.5
+		end
 	end
 
 	updateframe = updateframe + Isaac_Tower.UpdateSpeed
@@ -2988,6 +2996,7 @@ function Isaac_Tower.GameUpdate()
 			end
 		end
 	end
+	--print("Is update", Isaac.GetFrameCount())
 end
 function Isaac_Tower.GameRenderUpdate()
 	if Game():IsPaused() then return end
@@ -3023,6 +3032,7 @@ function Isaac_Tower.GameRenderUpdate()
 				if updatePos then
 					ent.Position = ent.Position + ent.Velocity
 				end
+				--print(4, ent.Position, Isaac.GetFrameCount())
 			end
 		end
 		for i=1,#arrayProj do
@@ -3369,6 +3379,7 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 		--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, typ, ent)
 		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, typ, ent)
 		--ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
+
 		data.LastPosition = ent.Position/1
 	--end)
 	ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
