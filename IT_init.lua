@@ -3,6 +3,7 @@ return function(mod) --, Isaac_Tower)
 local Isaac = Isaac
 local Vector = Vector
 local Isaac_Tower = Isaac_Tower
+local Wtr = 20/13
 
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
 
@@ -1289,35 +1290,35 @@ function Isaac_Tower.ENT.LOGIC.EnemySignLogic(_,ent)
 	if data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
 		
 		if data.OnGround then
-			if ent.Velocity.Y>5 then
+			if data.Velocity.Y>5 then
 				data.grounding = -1
 				data.OnGround = nil
-				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(ent.Velocity.Y*-0.4,ent.Velocity.Y))
+				data.Velocity = Vector(data.Velocity.X*0.8, math.min(data.Velocity.Y*-0.4,data.Velocity.Y))
 				--ent.Position = Vector(ent.Position.X ,ent.Position.Y + ent.Velocity.Y)
-				ent:GetSprite().Rotation = -math.abs(ent.Velocity.X*ent.Velocity.Y/5)
+				ent:GetSprite().Rotation = -math.abs(data.Velocity.X*data.Velocity.Y/5)
 				ent:GetSprite().Offset = Vector(ent:GetSprite().Rotation*.2,0)
 			else
-				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(0,ent.Velocity.Y))
+				data.Velocity = Vector(data.Velocity.X*0.8, math.min(0,data.Velocity.Y))
 			end
 		else
-			ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+0.8))) or ent.Velocity
+			data.Velocity = data.Velocity.Y<12 and (Vector(data.Velocity.X, math.min(12, data.Velocity.Y+0.8))) or data.Velocity
 		end
-		if data.CollideCeiling and ent.Velocity.Y<0 then
-			ent.Velocity = Vector(ent.Velocity.X, 0)
+		if data.CollideCeiling and data.Velocity.Y<0 then
+			data.Velocity = Vector(data.Velocity.X, 0)
 		end
 	end
 end
 
 function Isaac_Tower.ENT.LOGIC.EnemySignRender(_,ent)
 	if not Isaac_Tower.game:IsPaused() then
-		local data = ent:GetData()
-		if data.Isaac_Tower_Data.State >= 1 then
-			if data.Isaac_Tower_Data.OnGround then
-				ent:GetSprite().Rotation = -math.abs(ent.Velocity.X)
+		local data = ent:GetData().Isaac_Tower_Data
+		if data.State >= 1 then
+			if data.OnGround then
+				ent:GetSprite().Rotation = -math.abs(data.Velocity.X)
 				ent:GetSprite().Offset = Vector(ent:GetSprite().Rotation*.2,0)
 			else
-				ent:GetSprite().Rotation = ent:GetSprite().Rotation * 0.9 + ent.Velocity.X*.1
-				ent:GetSprite().Offset = Vector(ent.Velocity.X*.2,0)
+				ent:GetSprite().Rotation = ent:GetSprite().Rotation * 0.9 + data.Velocity.X*.1
+				ent:GetSprite().Offset = Vector(data.Velocity.X*.2,0)
 			end
 		end
 	end
@@ -1355,7 +1356,8 @@ Isaac_Tower.editor.AddEnemies("clottig",
 	GenSprite("gfx/it_enemies/clottig.anm2","idle",nil,nil,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
-	ent.PositionOffset = Vector(0,5)
+	--ent.PositionOffset = Vector(0,5)
+	ent:GetSprite().Offset = Vector(0,5) / Wtr
 end, "clottig")
 
 function Isaac_Tower.ENT.LOGIC.EnemyClottigLogic(_,ent)
@@ -1364,19 +1366,19 @@ function Isaac_Tower.ENT.LOGIC.EnemyClottigLogic(_,ent)
 	if data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
 		
 		if data.OnGround then
-			if ent.Velocity.Y>5 then
+			if data.Velocity.Y>5 then
 				data.grounding = -1
 				data.OnGround = nil
-				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(ent.Velocity.Y*-0.4,ent.Velocity.Y))
+				data.Velocity = Vector(data.Velocity.X*0.8, math.min(data.Velocity.Y*-0.4,data.Velocity.Y))
 				--ent.Position = Vector(ent.Position.X ,ent.Position.Y + ent.Velocity.Y)
 			else
-				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(0,ent.Velocity.Y))
+				data.Velocity = Vector(data.Velocity.X*0.8, math.min(0,data.Velocity.Y))
 			end
 		else
-			ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+0.8))) or ent.Velocity
+			data.Velocity = data.Velocity.Y<12 and (Vector(data.Velocity.X, math.min(12, data.Velocity.Y+0.8))) or data.Velocity
 		end
-		if data.CollideCeiling and ent.Velocity.Y<0 then
-			ent.Velocity = Vector(ent.Velocity.X, 0)
+		if data.CollideCeiling and data.Velocity.Y<0 then
+			data.Velocity = Vector(data.Velocity.X, 0)
 		end
 
 		if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
@@ -1395,11 +1397,11 @@ function Isaac_Tower.ENT.LOGIC.EnemyClottigLogic(_,ent)
 				spr:Play("move")
 			elseif spr:IsPlaying("move") and spr:GetFrame()>10 and spr:GetFrame()<20 then
 				local targetVel = ent.FlipX and Vector(-5,0) or Vector(5,0)
-				ent.Velocity = ent.Velocity * 0.8 + targetVel * 0.2
+				data.Velocity = data.Velocity * 0.8 + targetVel * 0.2
 			end
 			if data.CollideWall then
 				ent.FlipX = not ent.FlipX
-				ent.Velocity = Vector(-ent.Velocity.X, ent.Velocity.Y)
+				data.Velocity = Vector(-data.Velocity.X, data.Velocity.Y)
 			end
 		end
 	end
@@ -1416,7 +1418,8 @@ Isaac_Tower.editor.AddEnemies("mid portal",
 	GenSprite("gfx/it_enemies/mid_portal.anm2","editor",nil,nil,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
-	ent.PositionOffset = Vector(0,25)
+	--ent.PositionOffset = Vector(0,25)
+	ent:GetSprite().Offset = Vector(0,25) / Wtr
 	ent.DepthOffset = -70  -- -13
 	local d = ent:GetData().Isaac_Tower_Data
 	local x,y = d.SpawnXY.X, d.SpawnXY.Y
@@ -1453,7 +1456,7 @@ function Isaac_Tower.ENT.LOGIC.midportalLogic(_,ent)
 		elseif spr:IsFinished("spawn") then
 			spr:Play("spawn_loop")
 		elseif spr:IsEventTriggered("spawn") then
-			ent.Target = Isaac_Tower.Spawn(data.SpawnTarget.Name,data.SpawnTarget.ST,ent.Position+Vector(0,data.SpawnTarget.Off),Vector(0,0),ent)
+			ent.Target = Isaac_Tower.Spawn(data.SpawnTarget.Name,data.SpawnTarget.ST,data.Position+Vector(0,data.SpawnTarget.Off),Vector(0,0),ent)
 			ent:Update()
 			ent.Target:SetColor(Color(118/255,71/255,173/255,1,117/255,71/255,173/255),20,-1,true,true)
 			ent.Target:GetData().Isaac_Tower_Data.NoPersist = true
@@ -1472,7 +1475,7 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaa
 function Isaac_Tower.ENT.LOGIC.midportalSave(_,ent)
 	if ent.Target and ent.Target.Variant == Isaac_Tower.ENT.Enemy.VAR then
 		local data = ent:GetData().Isaac_Tower_Data
-		data.Restore_enemy = ent.Target.Position/1
+		data.Restore_enemy = ent.Target:GetData().Isaac_Tower_Data.Position/1
 	end
 end
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_PRE_SAVE, Isaac_Tower.ENT.LOGIC.midportalSave, "mid portal")
@@ -1496,7 +1499,8 @@ Isaac_Tower.editor.AddEnemies("gaper",
 	GenSprite("gfx/it_enemies/it_gaper.anm2","idle",nil,nil,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
-	ent.PositionOffset = Vector(0,3)
+	--ent.PositionOffset = Vector(0,3)
+	ent:GetSprite().Offset = Vector(0,3) / Wtr
 	ent:GetSprite().FlipX = ent:GetDropRNG():RandomInt(2)>0
 end, "gaper")
 
@@ -1508,12 +1512,12 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 		
 		if data.OnGround  then
 			if data.State ~= 4 then
-				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(0,ent.Velocity.Y))
+				data.Velocity = Vector(data.Velocity.X*0.8, math.min(0,data.Velocity.Y))
 			else
-				ent.Velocity = Vector(ent.Velocity.X, math.min(0,ent.Velocity.Y))
+				data.Velocity = Vector(data.Velocity.X, math.min(0,data.Velocity.Y))
 			end
 		else
-			ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+0.8))) or ent.Velocity
+			data.Velocity = data.Velocity.Y<12 and (Vector(data.Velocity.X, math.min(12, data.Velocity.Y+0.8))) or data.Velocity
 		end
 		
 		if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
@@ -1531,7 +1535,7 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 
 			for i=0, Isaac_Tower.game:GetNumPlayers() do
 				local flayer = Isaac_Tower.GetFlayer(i)
-				if flayer.Position:Distance(ent.Position) < 200 then
+				if flayer.Position:Distance(data.Position) < 200 then
 					spr:Play("pre_attack")
 					SetState(data,4) --data.State = 4
 				end
@@ -1551,7 +1555,7 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 
 			for i=0, Isaac_Tower.game:GetNumPlayers() do
 				local flayer = Isaac_Tower.GetFlayer(i)
-				if flayer.Position:Distance(ent.Position) < 200 then
+				if flayer.Position:Distance(data.Position) < 200 then
 					spr:Play("pre_attack")
 					SetState(data,4) --data.State = 4
 				end
@@ -1571,11 +1575,11 @@ function Isaac_Tower.ENT.LOGIC.EnemyGaperLogic(_,ent)
 				spr:Play("attack", true)
 			elseif spr:IsPlaying("attack") then
 				spr:Play("attack")
-				local targetVel = Isaac_Tower.GerNearestFlayer(ent.Position).Position.X<ent.Position.X and lvec or rvec
+				local targetVel = Isaac_Tower.GerNearestFlayer(data.Position).Position.X<data.Position.X and lvec or rvec
 				if ent.FrameCount%2==0 then
-					ent.Velocity = Vector(ent.Velocity.X * 0.8, ent.Velocity.Y) + targetVel * 0.2
+					data.Velocity = Vector(data.Velocity.X * 0.8, data.Velocity.Y) + targetVel * 0.2
 				end
-				local needRotate = math.abs(ent.Velocity.X) < 0.001 and spr.FlipX or (ent.Velocity.X < 0)
+				local needRotate = math.abs(data.Velocity.X) < 0.001 and spr.FlipX or (data.Velocity.X < 0)
 				if spr.FlipX ~= needRotate then
 					spr:Play("rotat", true)
 				end
@@ -1595,14 +1599,15 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaa
 
 Isaac_Tower.EnemyHandlers.FlayerCollision["gaper"] = function(fent, ent, EntData)
 	local spr = ent:GetSprite()
+	local data = ent:GetData().Isaac_Tower_Data
 	if spr:IsPlaying("attack") then
 		local check
 		if spr.FlipX then
-			check = (ent.Position.X-10) > fent.Position.X
+			check = (data.Position.X-10) > fent.Position.X
 		else
-			check = (ent.Position.X+10) < fent.Position.X
+			check = (data.Position.X+10) < fent.Position.X
 		end
-		if check or ((ent.Position.Y-5+6) < fent.Position.Y and (ent.Position.Y+5+6) > fent.Position.Y) then
+		if check or ((data.Position.Y-5+6) < fent.Position.Y and (data.Position.Y+5+6) > fent.Position.Y) then
 			if Isaac_Tower.FlayerHandlers.TryTakeDamage(fent, 0, 0, ent) then
 				return true
 			end
@@ -1619,7 +1624,8 @@ Isaac_Tower.editor.AddEnemies("horh",
 	GenSprite("gfx/it_enemies/horh.anm2","чего",nil,2,Vector(13/2,13/2)))
 
 mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
-	ent.PositionOffset = Vector(0,5)
+	--ent.PositionOffset = Vector(0,5)
+	ent:GetSprite().Offset = Vector(0,5) / Wtr
 end, "horh")
 
 function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
@@ -1629,11 +1635,11 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 		local target = Isaac_Tower.GerNearestFlayer(ent.Position)
 		if data.State == Isaac_Tower.EnemyHandlers.EnemyState.STUN then
 			if data.OnGround then
-				ent.Velocity = Vector(ent.Velocity.X*0.8, math.min(0,ent.Velocity.Y))
+				data.Velocity = Vector(data.Velocity.X*0.8, math.min(0,data.Velocity.Y))
 			else
-				ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+1.8))) or ent.Velocity
+				data.Velocity = data.Velocity.Y<12 and (Vector(data.Velocity.X, math.min(12, data.Velocity.Y+1.8))) or data.Velocity
 				if data.StateFrame == 0 then
-					ent.Velocity = ent.Velocity * Vector(.1,1)
+					data.Velocity = data.Velocity * Vector(.1,1)
 				end
 			end
 		elseif data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
@@ -1645,8 +1651,8 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 			if spr:GetAnimation() ~= "idle" and not spr:IsPlaying("ничего") then
 				spr:Play("idle", true)
 			end
-			if target.Position:Distance(ent.Position) < 300 and (target.Position:Distance(ent.Position) < 200
-			or Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1)) then
+			if target.Position:Distance(data.Position) < 300 and (target.Position:Distance(data.Position) < 200
+			or Isaac_Tower.lineOnlyCheck(data.Position, target.Position, 40, 1)) then
 				SetState(data,2)
 			end
 		elseif data.State == 2 then
@@ -1661,13 +1667,13 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 				spr:Play("чего кого", true)
 			end
 
-			local dist = target.Position:Distance(ent.Position)
+			local dist = target.Position:Distance(data.Position)
 			if (dist > 300 )--or not Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1)) 
 			and data.StateFrame > 30 then
 				SetState(data,1)
 				spr:Play("ничего", true)
 			elseif dist < 250 
-			and Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1)  then
+			and Isaac_Tower.lineOnlyCheck(data.Position, target.Position, 40, 1)  then
 				SetState(data,3)
 			end
 		elseif data.State == 3 then
@@ -1679,31 +1685,31 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 			if spr:IsFinished("shoot") then
 				spr:Play("чего")
 			end
-			local dist = target.Position:Distance(ent.Position)
-			if data.delay <= 0 and dist < 400 and Isaac_Tower.lineOnlyCheck(ent.Position, target.Position, 40, 1) then
+			local dist = target.Position:Distance(data.Position)
+			if data.delay <= 0 and dist < 400 and Isaac_Tower.lineOnlyCheck(data.Position, target.Position, 40, 1) then
 				data.delay = ent:GetDropRNG():RandomInt(41)+40
 				spr:Play("shoot")
 			end
 			data.delay = data.delay - 1
 		end
 		local tarVel = Vector(0,0)
-		local grid = Isaac_Tower.rayCast(ent.Position,Vector(0,1),20,3)
+		local grid = Isaac_Tower.rayCast(data.Position,Vector(0,1),20,3)
 		if grid then
-			tarVel.Y = (((grid.Position+Vector(0,-45))-ent.Position)/20).Y
+			tarVel.Y = (((grid.Position+Vector(0,-45))-data.Position)/20).Y
 		end
-		ent.Velocity = ent.Velocity * 0.9 + tarVel * 0.1
+		data.Velocity = data.Velocity * 0.9 + tarVel * 0.1
 
 		if ent.FrameCount%10==0 then
 			local sw = Isaac.Spawn(Isaac_Tower.ENT.GIB.ID,Isaac_Tower.ENT.GIB.VAR,Isaac_Tower.ENT.GibSubType.BLOOD,
-				ent.Position+Vector(0,10),Vector((ent:GetDropRNG():RandomInt(21)-10)/10,0), ent)
+			data.Position+Vector(0,10),Vector((ent:GetDropRNG():RandomInt(21)-10)/10,0), ent)
 			sw:Update()
 			sw.DepthOffset = -40
 			sw:GetData().ml = true
 			sw:GetData().Color = nil
 		end
 		if spr:IsEventTriggered("shoot") then
-			local tarvec = (target.Position-ent.Position):Resized(11)
-			local e = Isaac_Tower.EnemyHandlers.FireProjectile(0,0, ent.Position, tarvec, ent)
+			local tarvec = (target.Position-data.Position):Resized(11)
+			local e = Isaac_Tower.EnemyHandlers.FireProjectile(0,0, data.Position, tarvec, ent)
 			e:GetData().TSJDNHC_GridColl = 1
 		end
 	end
@@ -1764,7 +1770,7 @@ function Isaac_Tower.ENT.LOGIC.BloodProjUpdate(_, ent)
 	local data = ent:GetData().Isaac_Tower_Data
 	local spr = ent:GetSprite()
 	if not ent.Child and data.Flags.HasTrailEffect then
-		ent.Child = Isaac.Spawn(1000,EffectVariant.SPRITE_TRAIL,0,ent.Position,Vector.Zero,ent)
+		ent.Child = Isaac.Spawn(1000,EffectVariant.SPRITE_TRAIL,0,data.Position,Vector.Zero,ent)
 		ent.Child:ToEffect():FollowParent(ent)
 		ent.Child:ToEffect().MinRadius = 0.19
 
@@ -1774,7 +1780,7 @@ function Isaac_Tower.ENT.LOGIC.BloodProjUpdate(_, ent)
 	end
 	if data.Flags.Gravity then
 		local grav = data.Gravity == true and 0.8 or data.Gravity
-		ent.Velocity = ent.Velocity.Y<12 and (Vector(ent.Velocity.X, math.min(12, ent.Velocity.Y+grav))) or ent.Velocity
+		data.Velocity = data.Velocity.Y<12 and (Vector(data.Velocity.X, math.min(12, data.Velocity.Y+grav))) or data.Velocity
 	end
 	if ent:GetData().TSJDNHC_GridColl == 1 then
 		if data.OnGround or data.CollideWall or data.CollideCeiling then
@@ -1789,7 +1795,8 @@ function Isaac_Tower.ENT.LOGIC.BloodProjInit(_, ent) --Зачем?
 	spr:Play("RegularTear6")
 end
 function Isaac_Tower.ENT.LOGIC.BloodProjRemove(_, ent)
-	Isaac.Spawn(1000,11,0,ent.Position,Vector.Zero,ent)
+	local data = ent:GetData().Isaac_Tower_Data
+	Isaac.Spawn(1000,11,0,data.Position,Vector.Zero,ent)
 	if ent.Child then ent.Child:Die() end
 end
 mod:AddCallback(Isaac_Tower.Callbacks.PROJECTILE_PRE_REMOVE, Isaac_Tower.ENT.LOGIC.BloodProjRemove, 0)

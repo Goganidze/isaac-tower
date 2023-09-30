@@ -480,6 +480,7 @@ do
 				local entData = curData.EnemiesList[i]
 				local ent = Isaac_Tower.Spawn(entData.type, entData.st,entData.pos,zero,nil)
 				ent:GetData().Isaac_Tower_Data = entData.data
+				ent:GetData().Isaac_Tower_Data.Velocity = Vector(0,0)
 				Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_POST_RESTORE, entData.type, ent, curData)
 			end
 		end
@@ -1192,7 +1193,7 @@ function Isaac_Tower.RoomPostCompilator()
 end
 
 local updateframe = 0
-local updateframe30 --= 0
+local updateframe30 = 0
 local UpdatesInThatFrame = 0
 local UpdatesInThatFrame30 = 0
 
@@ -1200,20 +1201,20 @@ local ScrenX,ScrenY = 0, 0
 local ScrenXX,ScrenYY = 0, 0
 --local ta,rta = 0,0
 mod:AddCallback(ModCallbacks.MC_POST_RENDER, function()
-	if not Isaac_Tower.InAction or (Isaac_Tower.Pause and Isaac_Tower.game:IsPaused()) then return end
+	if not Isaac_Tower.InAction or (Isaac_Tower.Pause or Isaac_Tower.game:IsPaused()) then return end
 	ScrenXX,ScrenYY = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 	if Isaac_Tower.GridLists.Solid and ScrenX ~= Isaac.GetScreenWidth() and ScrenY ~= Isaac.GetScreenHeight() then
 		ScrenX,ScrenY = ScrenXX,ScrenYY --Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
 	end
 
-	if not updateframe30 then
+	--[[if not updateframe30 then
 		if Isaac.GetFrameCount()%2 == 0 then
 			updateframe30 = 0.0
 		else
 			updateframe30 = 0.5
 		end
-	end
+	end]]
 
 	updateframe = updateframe + Isaac_Tower.UpdateSpeed
 	UpdatesInThatFrame = 0
@@ -1276,6 +1277,9 @@ end
 
 function Isaac_Tower.GetProcentUpdate()
 	return updateframe%1
+end
+function Isaac_Tower.GetProcentUpdate30()
+	return updateframe30%1
 end
 
 function Isaac_Tower.HandleUpdateSpeedPos(pos,vel)
@@ -1350,6 +1354,8 @@ function Isaac_Tower.Spawn(name, subtype, pos, vec, spawner)
 	ent:GetSprite():Play(ent:GetSprite():GetDefaultAnimation())
 	ent:GetData().Isaac_Tower_Data = {Type = name, GridPoints = {}, --Position = ent.Position, Velocity = ent.Velocity,
 		LastPosition = pos, Half = data.Size, grounding = 0}
+	ent:GetData().Isaac_Tower_Data.Position = pos
+	ent:GetData().Isaac_Tower_Data.Velocity = vec
 	local d = ent:GetData().Isaac_Tower_Data
 	d.Self = ent
 
@@ -1379,7 +1385,7 @@ function Isaac_Tower.Spawn(name, subtype, pos, vec, spawner)
 	local xs,ys = math.ceil(spawnXY.X/40), math.ceil(spawnXY.Y/40)
 	d.SpawnXY = Vector(xs,ys)
 
-	local addflag = EntityFlag.FLAG_NO_SPRITE_UPDATE
+	local addflag = EntityFlag.FLAG_NO_SPRITE_UPDATE --| EntityFlag.FLAG_INTERPOLATION_UPDATE | EntityFlag.FLAG_NO_INTERPOLATE
 	ent:AddEntityFlags(addflag)
 
 	--setmetatable(d, enemyMetatable)
@@ -1400,6 +1406,8 @@ function Isaac_Tower.EnemyHandlers.FireProjectile(name, subtype, pos, vec, spawn
 	local da = ent:GetData()
 	ent:GetData().Isaac_Tower_Data = {Type = name, GridPoints = {}, --Position = ent.Position, Velocity = ent.Velocity,
 		LastPosition = pos, Half = Vector(data.Size/2,data.Size/2)}
+	ent:GetData().Isaac_Tower_Data.Position = pos
+	ent:GetData().Isaac_Tower_Data.Velocity = vec
 	local d = da.Isaac_Tower_Data
 	d.Self = ent
 
@@ -1453,8 +1461,10 @@ function Isaac_Tower.EnemyHandlers.GetCollidedEnemies(ent, CollideWithPlayers)
 			if col.Index ~= ent.Index and col.EntityCollisionClass == 1 then
 				local colData = col:GetData().Isaac_Tower_Data
 				if colData then
-					local box1 = {pos = ent.Position, half = data.Half}
-					local box2 = {pos = col.Position, half = colData.Half}
+					--local box1 = {pos = ent.Position, half = data.Half}
+					--local box2 = {pos = col.Position, half = colData.Half}
+					local box1 = {pos = data.Position, half = data.Half}
+					local box2 = {pos = colData.Position, half = colData.Half}
 					if Isaac_Tower.NoType_CheckAABB(box1, box2) then
 						tab[#tab+1] = col
 					end
@@ -1465,7 +1475,7 @@ function Isaac_Tower.EnemyHandlers.GetCollidedEnemies(ent, CollideWithPlayers)
 			for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
 				local colData = Isaac.GetPlayer(i):GetData().Isaac_Tower_Data
 				if colData then
-					local box1 = {pos = ent.Position, half = data.Half}
+					local box1 = {pos = data.Position, half = data.Half}
 					local box2 = {pos = colData.Position, half = colData.Half}
 					if Isaac_Tower.NoType_CheckAABB(box1, box2) then
 						tab[#tab+1] = Isaac.GetPlayer(i)
@@ -1812,8 +1822,9 @@ end]]
 
 function Isaac_Tower.ShouldCollide(ent, grid, check) --d.TSJDNHC_GridColl, grid.Collision
 	local entCol, gridColl = ent:GetData().TSJDNHC_GridColl, grid.Collision
-	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
-	
+	local fent = ent:GetData().Isaac_Tower_Data --or ent:GetData().Isaac_Tower_Data
+	local pos = fent.Position or ent.Position
+
 	if not check and grid.OnCollisionFunc and grid.OnCollisionFunc(ent, grid) then
 		return false
 	end
@@ -1825,20 +1836,20 @@ function Isaac_Tower.ShouldCollide(ent, grid, check) --d.TSJDNHC_GridColl, grid.
 
 	if entCol == 1 and gridColl == 1 then
 		if grid.OnlyUp then
-			if not ent:ToPlayer() then
+			--if not ent:ToPlayer() then
 
-				if ent.Position.Y > (grid.CenterPos.Y-grid.Half.Y) then
+			--	if ent.Position.Y > (grid.CenterPos.Y-grid.Half.Y) then
+			--		return
+			--	elseif (ent.Position.Y+fent.CollisionOffset.Y+fent.Half.Y) <= (grid.CenterPos.Y-grid.Half.Y+2) then
+			--		return true
+			--	end
+			--else
+				if pos.Y > (grid.CenterPos.Y-grid.Half.Y) then
 					return
-				elseif (ent.Position.Y+fent.CollisionOffset.Y+fent.Half.Y) <= (grid.CenterPos.Y-grid.Half.Y+2) then
+				elseif (pos.Y+fent.CollisionOffset.Y+fent.Half.Y) <= (grid.CenterPos.Y-grid.Half.Y+2) then
 					return true
 				end
-			else
-				if fent.Position.Y > (grid.CenterPos.Y-grid.Half.Y) then
-					return
-				elseif (fent.Position.Y+fent.CollisionOffset.Y+fent.Half.Y) <= (grid.CenterPos.Y-grid.Half.Y+2) then
-					return true
-				end
-			end
+			--end
 		else
 			return true
 		end
@@ -2195,8 +2206,8 @@ end
 
 local function EnemyintersectAABB_X(ent, box)
 	local this = ent:GetData().Isaac_Tower_Data
-	this.Position = ent.Position
-	this.Velocity = ent.Velocity
+	--this.Position = ent.Position
+	--this.Velocity = ent.Velocity
 
     local dx = box.CenterPos.X - (this.Position.X+this.CollisionOffset.X) - this.Velocity.X
     local px = (box.Half.X + this.Half.X) - math.abs(dx)
@@ -2239,8 +2250,8 @@ end
 
 local function EnemyintersectAABB_Y(ent, box)
 	local this = ent:GetData().Isaac_Tower_Data
-	this.Position = ent.Position
-	this.Velocity = ent.Velocity
+	--this.Position = ent.Position
+	--this.Velocity = ent.Velocity
 
     local dx = box.CenterPos.X - (this.Position.X+this.CollisionOffset.X) - this.Velocity.X
     local px = (box.Half.X + this.Half.X) - math.abs(dx)
@@ -3030,7 +3041,8 @@ function Isaac_Tower.GameRenderUpdate()
 			if ent then
 				Isaac_Tower.EnemyUpdate(nil,ent)
 				if updatePos then
-					ent.Position = ent.Position + ent.Velocity
+					local data = ent:GetData().Isaac_Tower_Data
+					data.Position = data.Position + data.Velocity
 				end
 				--print(4, ent.Position, Isaac.GetFrameCount())
 			end
@@ -3040,7 +3052,8 @@ function Isaac_Tower.GameRenderUpdate()
 			if ent then
 				Isaac_Tower.ProjectileUpdate(nil,ent)
 				if updatePos then
-					ent.Position = ent.Position + ent.Velocity
+					local data = ent:GetData().Isaac_Tower_Data
+					data.Position = data.Position + data.Velocity
 				end
 			end
 		end
@@ -3135,7 +3148,7 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 		local data = ent:GetData().Isaac_Tower_Data
 		if data.GrabbedBy and Isaac_Tower.FlayerHandlers.UnGrabState[data.GrabbedBy.State] then
 			local rot = sign(data.GrabbedBy.Velocity.X)
-			ent.Velocity = Vector(rot*-4,-7)
+			data.Velocity = Vector(rot*-4,-7)
 			data.GrabbedBy.GrabTarget = nil
 			data.GrabbedBy = nil
 			data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
@@ -3150,7 +3163,7 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 		for i, col in pairs(Isaac_Tower.EnemyHandlers.GetCollidedEnemies(ent)) do
 			local Edata = col:GetData().Isaac_Tower_Data
 			Edata.State = Isaac_Tower.EnemyHandlers.EnemyState.DEAD
-			Edata.DeadFlyRot = col.Position.X < ent.Position.X and -1 or 1
+			Edata.DeadFlyRot = Edata.Position.X < Edata.Position.X and -1 or 1
 			--local addflag = EntityFlag.FLAG_NO_SPRITE_UPDATE
 			--col:ClearEntityFlags(addflag)
 		end
@@ -3159,11 +3172,11 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 			ent:GetData().TSJDNHC_GridColl = 0
 			data.DeadFlyRot = data.CollideWall
 			if data.StateFrame < 1 then
-				ent.Position = data.prePosition or ent.Position
+				data.Position = data.prePosition or data.Position
 			end
 			return
 		end
-		data.prePosition = ent.Position/1
+		data.prePosition = data.Position/1
 		data.StateFrame = data.StateFrame + 1
 		--for i, col in pairs(Isaac_Tower.EnemyHandlers.GetCollidedEnemies(ent)) do
 		--	print(col.Position)
@@ -3174,8 +3187,8 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 		local spr = ent:GetSprite()
 		local sig = spr.FlipX and -1 or 1
 		if ent.FrameCount%2 == 0 then
-			spawnSpeedEffect(ent.Position-ent.Velocity+Vector(sig*-15, (ent.FrameCount*4%24)*2-20):Rotated(sig*(ent.Velocity:GetAngleDegrees())),
-				ent.Velocity*0.8, (ent.Velocity*Vector(1,-1)):GetAngleDegrees()).Color = Color(1,1,1,.5)
+			spawnSpeedEffect(data.Position-data.Velocity+Vector(sig*-15, (ent.FrameCount*4%24)*2-20):Rotated(sig*(data.Velocity:GetAngleDegrees())),
+				data.Velocity*0.8, (data.Velocity*Vector(1,-1)):GetAngleDegrees()).Color = Color(1,1,1,.5)
 		end
 	end,
 	[Isaac_Tower.EnemyHandlers.EnemyState.DEAD] = function(ent)
@@ -3187,11 +3200,11 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 			local rng = RNG()
 			rng:SetSeed(ent.DropSeed,35)
 
-			local grid = Isaac.Spawn(1000,EffectVariant.BLOOD_EXPLOSION,0,ent.Position, Vector(0,0) ,nil)
+			local grid = Isaac.Spawn(1000,EffectVariant.BLOOD_EXPLOSION,0,data.Position, Vector(0,0) ,nil)
 			grid.Color = ent.SplatColor
 			for i=1, 8 do
 				local vec = Vector.FromAngle(-rng:RandomInt(181) or 0):Resized((rng:RandomInt(105)+11)/10)
-				local grid = Isaac.Spawn(1000,IsaacTower_GibVariant,Isaac_Tower.ENT.GibSubType.GIB,ent.Position,vec ,nil)
+				local grid = Isaac.Spawn(1000,IsaacTower_GibVariant,Isaac_Tower.ENT.GibSubType.GIB,data.Position,vec ,nil)
 				grid:GetSprite():Load("gfx/effects/it_guts.anm2",true)
 				grid:GetSprite():Play((rng:RandomInt(12)+1), true)
 				grid:ToEffect().Rotation = rng:RandomInt(101)-50
@@ -3202,7 +3215,7 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 			ent.SubType = Isaac_Tower.ENT.GibSubType.GIB
 			local addflag = EntityFlag.FLAG_NO_SPRITE_UPDATE
 			ent:ClearEntityFlags(addflag)
-			local ver = data.DeadFlyRot and data.DeadFlyRot*8 or sign0(data.TrueVelocity.X or ent.Velocity.X)*8
+			local ver = data.DeadFlyRot and data.DeadFlyRot*8 or sign0(data.TrueVelocity.X or data.Velocity.X)*8
 			ent.Velocity = Vector(ver, -8)
 		end
 
@@ -3213,14 +3226,18 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
 	if not ent:GetData().Isaac_Tower_Data then return end
 
+	local typ = ent:GetData().Isaac_Tower_Data and ent:GetData().Isaac_Tower_Data.Type
+	local data = ent:GetData().Isaac_Tower_Data
 	ent:GetData().Isaac_Tower_Data.StateFrame = ent:GetData().Isaac_Tower_Data.StateFrame or 0
 	if ent.FrameCount > 0 then
-		ent.Velocity = ent.Velocity/Isaac_Tower.UpdateSpeed
+		--ent.Velocity = ent.Velocity/Isaac_Tower.UpdateSpeed
 	end
+	--local inpPos = true
 	--Isaac_Tower.UpdateSpeedHandler30(function()
+	--	inpPos = false
 		ent:GetSprite():Update()
-		local typ = ent:GetData().Isaac_Tower_Data and ent:GetData().Isaac_Tower_Data.Type
-		local data = ent:GetData().Isaac_Tower_Data
+		--local typ = ent:GetData().Isaac_Tower_Data and ent:GetData().Isaac_Tower_Data.Type
+		--local data = ent:GetData().Isaac_Tower_Data
 
 		data.slopeAngle = nil
 
@@ -3230,8 +3247,9 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 		--data.LastPosition = ent.Position/1
 		--ent.Velocity = ent.Velocity/Isaac_Tower.UpdateSpeed
 
-		data.Position = ent.Position
-		data.Velocity = ent.Velocity
+		--data.Position = ent.Position
+		--data.Velocity = ent.Velocity
+		data.Position = data.Position + data.Velocity
 
 		local collidedGrid = {}
 
@@ -3239,14 +3257,14 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 
 		if ent:GetData().TSJDNHC_GridColl>0 then
 			for ia, k in pairs(data.GridPoints) do
-				local grid = Isaac_Tower.GridLists.Solid:GetGrid(ent.Position + Vector(0, 10) + ent.Velocity + k[1])
+				local grid = Isaac_Tower.GridLists.Solid:GetGrid(data.Position + Vector(0, 10) + data.Velocity + k[1])
 
 				if grid then
 					if Isaac_Tower.ShouldCollide(ent, grid) then
 						collidedGrid[grid] = collidedGrid[grid] or {}
 					end
 				end
-				local obs = Isaac_Tower.GridLists.Obs:GetGrid(ent.Position + Vector(0, 10) + ent.Velocity + k[1])
+				local obs = Isaac_Tower.GridLists.Obs:GetGrid(data.Position + Vector(0, 10) + data.Velocity + k[1])
 				
 				if obs and Isaac_Tower.ShouldCollide(ent, obs) then
 					collidedGrid[obs] = collidedGrid[grid] or {}
@@ -3258,13 +3276,13 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 
 				if hit and hit.delta.X ~= 0 then
 					if not data.slopeRot --hit.Slope
-						or ((ent.Position.Y > hit.pos.Y or not data.slopeRot == sign(hit.delta.X))
-							and data.slopeRot == sign(hit.delta.X)) then
+					or ((data.Position.Y > hit.pos.Y or not data.slopeRot == sign(hit.delta.X))
+					and data.slopeRot == sign(hit.delta.X)) then
 						
-						ent.Position = Vector(ent.Position.X - hit.delta.X + ent.Velocity.X, ent.Position.Y)
+						data.Position = Vector(data.Position.X - hit.delta.X + data.Velocity.X, data.Position.Y)
 					
-						if sign(ent.Velocity.X) == sign(hit.delta.X) then
-							ent.Velocity = Vector(0, ent.Velocity.Y)
+						if sign(data.Velocity.X) == sign(hit.delta.X) then
+							data.Velocity = Vector(0, data.Velocity.Y)
 						end
 					end
 				end
@@ -3275,12 +3293,12 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 
 				if hitY and hitY.delta.Y ~= 0 then
 					if hitY.SmoothUp then
-						ent.Position = Vector(ent.Position.X, ent.Position.Y - hitY.delta.Y / math.max(1, (30 / math.abs(ent.Velocity.X)))) --10
+						data.Position = Vector(data.Position.X, data.Position.Y - hitY.delta.Y / math.max(1, (30 / math.abs(data.Velocity.X)))) --10
 					else
 						if hitY.delta.Y > 0.0 then
-							hitY.delta.Y = math.max(0, hitY.delta.Y - 0.1 - ent.Velocity.Y)
+							hitY.delta.Y = math.max(0, hitY.delta.Y - 0.1 - data.Velocity.Y)
 						end
-						ent.Position = ent.Position - Vector(0, hitY.delta.Y)
+						data.Position = data.Position - Vector(0, hitY.delta.Y)
 					end
 					if hitY.SlopeAngle then
 						data.slopeAngle = hitY.SlopeAngle
@@ -3288,17 +3306,18 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 				end
 			end
 
-			local prePosition = ent.Position / 1
+			--local prePosition = data.Position / 1
+			ent:Update()
+			ent.Position = data.Position --ent.Position + ent.Velocity -- * Isaac_Tower.UpdateSpeed
+			--data.Position = data.Position + data.Velocity
 
-			--ent.Position = ent.Position + ent.Velocity -- * Isaac_Tower.UpdateSpeed
-
-			data.TrueVelocity = ent.Position - data.LastPosition
+			data.TrueVelocity = data.Position - data.LastPosition
 			
 			if data.State ~= Isaac_Tower.EnemyHandlers.EnemyState.PUNCHED 
 			and data.TrueVelocity.Y >= 0 and data.grounding and data.grounding > 0 then
 				local collGrid = {}
 				for i = -1, 1 do
-					local grid = Isaac_Tower.rayCast((ent.Position - ent.Velocity + Vector(data.Half.X * i, -10)),
+					local grid = Isaac_Tower.rayCast((data.Position - data.Velocity + Vector(data.Half.X * i, -10)),
 						Vector(0, 1), 10, 6)                   -- Vector(fent.Half.X*i,-10)
 
 					if grid and Isaac_Tower.ShouldCollide(ent, grid) then
@@ -3308,8 +3327,8 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 				local groundMinOffset = -200
 				local ignoreGrounding = false
 				for ia, k in pairs(collGrid) do
-					data.Position = ent.Position
-					data.Velocity = ent.Velocity
+					--data.Position = ent.Position
+					--data.Velocity = ent.Velocity
 					local hit = Isaac_Tower.CheckintersectAABB(data, ia)
 
 					if hit.delta.Y > -40 and hit.delta.Y <= 10 and groundMinOffset < hit.delta.Y then
@@ -3323,9 +3342,9 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 					end
 				end
 				if not ignoreGrounding and groundMinOffset > -40 and groundMinOffset < 0 then
-					ent.Position = Vector(ent.Position.X, ent.Position.Y - groundMinOffset)
+					data.Position = Vector(data.Position.X, data.Position.Y - groundMinOffset)
 					data.OnGround = true
-					ent.Velocity = Vector(ent.Velocity.X, math.min(0, ent.Velocity.Y))
+					data.Velocity = Vector(data.Velocity.X, math.min(0, data.Velocity.Y))
 				end
 			end
 			
@@ -3340,10 +3359,10 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 		if data.Flags.EntityCollision == 1 then
 			for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
 				local fent = Isaac_Tower.GetFlayer(i)
-				local dist = fent and fent.Position:Distance(ent.Position)
+				local dist = fent and fent.Position:Distance(data.Position)
 				if fent and dist < data.FlayerDistanceCheck and data.State ~= Isaac_Tower.EnemyHandlers.EnemyState.GRABBED then
 					
-					local box1 = {pos = ent.Position, half = data.Half}
+					local box1 = {pos = data.Position, half = data.Half}
 					local box2 = {pos = fent.Position, half = fent.Half}
 					if Isaac_Tower.NoType_CheckAABB(box1, box2) then
 						local result = Isaac.RunCallback(Isaac_Tower.Callbacks.FLAYER_PRE_COLLIDING_ENEMY, fent, ent)
@@ -3378,17 +3397,28 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 		
 		--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, typ, ent)
 		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, typ, ent)
-		--ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
+		--data.Position = data.Position + data.Velocity
 
 		data.LastPosition = ent.Position/1
 	--end)
-	ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
+	--ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
 	
-	if not Isaac_Tower.GridLists.Solid:GetGrid(ent.Position) then
+	if not Isaac_Tower.GridLists.Solid:GetGrid(data.Position) then
 		ent:Remove()
 	end
 end
---mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, Isaac_Tower.EnemyUpdate, IsaacTower_Enemy)
+function Isaac_Tower.EnemyPostUpdate_RealPosUpdate(ent)
+	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
+
+	local data = ent:GetData().Isaac_Tower_Data
+	if data then
+		ent.Position = data.Position+data.Velocity*Isaac_Tower.GetProcentUpdate30()
+		ent.Velocity = data.Velocity*Isaac_Tower.UpdateSpeed
+	end
+end
+mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, function(_, ent)
+	Isaac_Tower.EnemyPostUpdate_RealPosUpdate(ent)
+end, IsaacTower_Enemy)
 
 function Isaac_Tower.EnemyPostRender(_, ent, Pos, Offset, Scale)
 	if ent.Variant ~= IsaacTower_Enemy then return end
@@ -3416,7 +3446,7 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 
 	ent:GetData().Isaac_Tower_Data.StateFrame = ent:GetData().Isaac_Tower_Data.StateFrame or 0
 	if ent.FrameCount > 0 then
-		ent.Velocity = ent.Velocity/Isaac_Tower.UpdateSpeed
+		--ent.Velocity = ent.Velocity/Isaac_Tower.UpdateSpeed
 	end
 	Isaac_Tower.UpdateSpeedHandler30(function()
 		ent:GetSprite():Update()
@@ -3431,8 +3461,8 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 		--data.LastPosition = ent.Position/1
 		--ent.Velocity = ent.Velocity/Isaac_Tower.UpdateSpeed
 
-		data.Position = ent.Position
-		data.Velocity = ent.Velocity
+		--data.Position = ent.Position
+		--data.Velocity = ent.Velocity
 
 		local collidedGrid = {}
 
@@ -3440,14 +3470,14 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 
 		if ent:GetData().TSJDNHC_GridColl>0 then
 			for ia, k in pairs(data.GridPoints) do
-				local grid = Isaac_Tower.GridLists.Solid:GetGrid(ent.Position + Vector(0, 10) + ent.Velocity + k[1])
+				local grid = Isaac_Tower.GridLists.Solid:GetGrid(data.Position + Vector(0, 10) + data.Velocity + k[1])
 
 				if grid then
 					if Isaac_Tower.ShouldCollide(ent, grid) and not grid.OnlyUp then
 						collidedGrid[grid] = collidedGrid[grid] or {}
 					end
 				end
-				local obs = Isaac_Tower.GridLists.Obs:GetGrid(ent.Position + Vector(0, 10) + ent.Velocity + k[1])
+				local obs = Isaac_Tower.GridLists.Obs:GetGrid(data.Position + Vector(0, 10) + data.Velocity + k[1])
 				
 				if obs and Isaac_Tower.ShouldCollide(ent, obs) then
 					collidedGrid[obs] = collidedGrid[grid] or {}
@@ -3459,16 +3489,16 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 				local hit = EnemyintersectAABB_X(ent, ia)
 
 				if hit and hit.delta.X ~= 0 then
-					if not data.slopeRot --hit.Slope
-						or ((ent.Position.Y > hit.pos.Y or not data.slopeRot == sign(hit.delta.X))
-							and data.slopeRot == sign(hit.delta.X)) then
+					--if not data.slopeRot --hit.Slope
+					--	or ((data.Position.Y > hit.pos.Y or not data.slopeRot == sign(hit.delta.X))
+					--		and data.slopeRot == sign(hit.delta.X)) then
 						
 						--ent.Position = Vector(ent.Position.X - hit.delta.X + ent.Velocity.X, ent.Position.Y)
 					
 						--if sign(ent.Velocity.X) == sign(hit.delta.X) then
 						--	ent.Velocity = Vector(0, ent.Velocity.Y)
 						--end
-					end
+					--end
 				end
 			end
 
@@ -3491,18 +3521,18 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 			end
 			--local prePosition = ent.Position / 1
 			--ent.Position = ent.Position + ent.Velocity -- * Isaac_Tower.UpdateSpeed
-
-			data.TrueVelocity = ent.Position - data.LastPosition
 		end
+			data.TrueVelocity = data.Position - data.LastPosition
+		
 		data.StateFrame = data.StateFrame + 1
 		
 		if ent.EntityCollisionClass == 1 then
 			for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
 				local fent = Isaac_Tower.GetFlayer(i)
-				local dist = fent and fent.Position:Distance(ent.Position)
+				local dist = fent and fent.Position:Distance(data.Position)
 				if fent and dist < data.FlayerDistanceCheck then
 					
-					local box1 = {pos = ent.Position, half = data.Half}
+					local box1 = {pos = data.Position, half = data.Half}
 					local box2 = {pos = fent.Position, half = fent.Half}
 					if Isaac_Tower.NoType_CheckAABB(box1, box2) then
 						local result = Isaac.RunCallback(Isaac_Tower.Callbacks.FLAYER_PRE_COLLIDING_ENEMY, fent, ent)
@@ -3520,7 +3550,7 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 		end
 
 		Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.PROJECTILE_POST_UPDATE, typ, ent)
-		--ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
+		data.Position = data.Position + data.Velocity
 		data.LastPosition = ent.Position/1
 	end)
 	--ent.Velocity = ent.Velocity*Isaac_Tower.UpdateSpeed
@@ -3529,7 +3559,10 @@ function Isaac_Tower.ProjectileUpdate(_, ent)
 		ent:Remove()
 	end
 end
-mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, Isaac_Tower.ProjectileUpdate, Isaac_Tower.ENT.Proj.VAR)
+--mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, Isaac_Tower.ProjectileUpdate, Isaac_Tower.ENT.Proj.VAR)
+mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, function(_, ent)
+	Isaac_Tower.EnemyPostUpdate_RealPosUpdate(ent)
+end, Isaac_Tower.ENT.Proj.VAR)
 
 function Isaac_Tower.ProjectilePostRender(_, ent, Pos, Offset, Scale)
 	if ent.Variant ~= Isaac_Tower.ENT.Proj.VAR then return end
@@ -3604,7 +3637,7 @@ GibsLogic = {
 					spr.Color = e:GetData().Color
 					e:GetData().Color.A = e:GetData().Color.A - (e:GetData().AlphaLoss or 0.05)
 				end
-
+				e:GetData().Isaac_Tower_Data.Position = e.Position
 				local grid = Isaac_Tower.GridLists.Solid:GetGrid(e.Position)
 				if grid and Isaac_Tower.ShouldCollide(e, grid) then
 					e.State = 2

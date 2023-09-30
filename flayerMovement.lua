@@ -377,6 +377,18 @@ function Isaac_Tower.FlayerHandlers.TryTakeDamage(fent, Damage, Flags, Source, D
 	return true
 end
 
+function Isaac_Tower.FlayerHandlers.LiftEnemiesInRadius(pos, power, radius)
+	radius = radius or 400
+	local ents = Isaac_Tower.EnemyHandlers.GetRoomEnemies()
+	for i=1,#ents do
+		local ent = ents[i]
+		local edat = ent:GetData().Isaac_Tower_Data
+		if edat.OnGround and edat.Position:Distance(pos) < radius then
+			edat.Velocity = Vector(edat.Velocity.X, edat.Velocity.Y-power)
+		end
+	end
+end
+
 local walkanim = {walk = true, walk_jump_down = true}
 
 Isaac_Tower.FlayerMovementState = {}
@@ -1067,7 +1079,7 @@ function Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, target)
 	end
 	if stateCheck and not target:GetData().Isaac_Tower_Data.Flags.Invincibility then
 		target:GetData().Isaac_Tower_Data.State  = Isaac_Tower.EnemyHandlers.EnemyState.DEAD
-		target:GetData().Isaac_Tower_Data.DeadFlyRot = fent.Position.X<target.Position.X and 1 or -1
+		target:GetData().Isaac_Tower_Data.DeadFlyRot = fent.Position.X<target:GetData().Isaac_Tower_Data.Position.X and 1 or -1
 	end
 end
 function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
@@ -1077,10 +1089,10 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 	and (not fent.DamageSource or fent.DamageSource.Index and fent.DamageSource.Index ~= ent.Index) then
 		if not (fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0) and
 		fent.OnGround and data.State == Isaac_Tower.EnemyHandlers.EnemyState.STUN then
-			if fent.Position.X < ent.Position.X then
-				ent.Velocity = Vector(ent.Velocity.X*0.8 - sign(fent.Position.X-ent.Position.X)*(dist/20), ent.Velocity.Y )
+			if fent.Position.X < data.Position.X then
+				data.Velocity = Vector(data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(dist/20), data.Velocity.Y )
 			else
-				ent.Velocity = Vector(ent.Velocity.X*0.8 + sign(ent.Position.X-fent.Position.X)*(dist/20), ent.Velocity.Y )
+				data.Velocity = Vector(data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(dist/20), data.Velocity.Y )
 			end
 		elseif not Isaac_Tower.FlayerHandlers.BounceIgnoreState[fent.State] and not fent.OnGround 
 		and fent.Position.Y<ent.Position.Y and fent.Velocity.Y>0 and data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
@@ -1090,9 +1102,9 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 			end
 			if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
 			if fent.Position.X < ent.Position.X then
-				ent.Velocity =  Vector(ent.Velocity.X*0.8 - sign(fent.Position.X-ent.Position.X)*(40-dist)/2, ent.Velocity.Y )
+				data.Velocity =  Vector(data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(40-dist)/2, data.Velocity.Y )
 			else
-				ent.Velocity = Vector(ent.Velocity.X*0.8 + sign(ent.Position.X-fent.Position.X)*(40-dist)/2, ent.Velocity.Y )
+				data.Velocity = Vector(data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(40-dist)/2, data.Velocity.Y )
 			end
 			fent.Velocity.Y = -4
 			fent.JumpActive = 15
@@ -1186,11 +1198,13 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 	local TargetPos = Vector(0,-50)
 	if fent.GrabTarget and fent.GrabTarget:Exists() then
 		local tarData = fent.GrabTarget:GetData().Isaac_Tower_Data
-		local oldpos = fent.GrabTarget.Position/1
+		local oldpos = tarData.Position/1
 		local extraoffset = Isaac_Tower.FlayerHandlers.GetGrabNullOffset 
 			and Isaac_Tower.FlayerHandlers.GetGrabNullOffset(spr)
-		fent.GrabTarget.Position = fent.Position + (extraoffset or TargetPos) + fent.TrueVelocity
-		fent.GrabTarget.Velocity = Vector(0,0) --oldpos-fent.GrabTarget.Position  --Vector(0,0)
+		--fent.GrabTarget:Update()
+		tarData.Position = fent.Position + (extraoffset or TargetPos) + fent.TrueVelocity
+		tarData.Velocity = Vector(0,0) -- tarData.Position - fent.GrabTarget.Position   --Vector(0,0) --oldpos-fent.GrabTarget.Position  --Vector(0,0)
+		fent.GrabTarget:Update()
 		fent.GrabTarget.DepthOffset = 110
 		--fent.GrabTarget.SpriteOffset = TargetPos
 		fent.GrabTarget:GetData().TSJDNHC_GridColl = 0
@@ -1246,17 +1260,18 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 			Isaac_Tower.HandleMoving(player)
 			return
 		end
+		local edata = fent.GrabTarget:GetData().Isaac_Tower_Data
 		--fent.GrabTarget.Position = fent.Position + Vector(0,-10)
-		fent.GrabTarget:GetData().Isaac_Tower_Data.State  = Isaac_Tower.EnemyHandlers.EnemyState.PUNCHED
+		edata.State  = Isaac_Tower.EnemyHandlers.EnemyState.PUNCHED
 		local rot = spr.FlipX and -1 or 1
-		fent.GrabTarget.Velocity = fent.PunchRot and (fent.PunchRot:Resized(29)) or Vector(29*rot,0)
-		fent.GrabTarget.Position = fent.GrabTarget.Position - fent.GrabTarget.Velocity
+		edata.Velocity = fent.PunchRot and (fent.PunchRot:Resized(29)) or Vector(29*rot,0)
+		edata.Position = edata.Position - edata.Velocity
 		--print(fent.GrabTarget.Velocity, fent.PunchRot,  fent.PunchRot:Resized(29))
-		fent.GrabTarget:GetData().Isaac_Tower_Data.GrabbedBy = nil
+		edata.GrabbedBy = nil
 		fent.GrabTarget:GetData().TSJDNHC_GridColl = 1
-		fent.GrabTarget:GetData().Isaac_Tower_Data.CanBreakPoop = true
-		fent.GrabTarget:GetData().Isaac_Tower_Data.prePosition = fent.GrabTarget.Position/1
-		fent.GrabTarget:GetData().Isaac_Tower_Data.StateFrame = 0
+		edata.CanBreakPoop = true
+		edata.prePosition = edata.Position/1
+		edata.StateFrame = 0
 		--fent.GrabTarget:Update()
 		Isaac_Tower.EnemyUpdate(nil,fent.GrabTarget)
 		fent.GrabTarget = nil
@@ -1274,7 +1289,7 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 		local rot = spr.FlipX and -1 or 1
 		local extraoffset = Isaac_Tower.FlayerHandlers.GetGrabNullOffset 
 			and Isaac_Tower.FlayerHandlers.GetGrabNullOffset(spr)
-		fent.GrabTarget.Position = fent.Position + (extraoffset and (extraoffset*Vector(rot,1)) or Vector(rot*30,-10))
+		fent.GrabTarget:GetData().Isaac_Tower_Data.Position = fent.Position + (extraoffset and (extraoffset*Vector(rot,1)) or Vector(rot*30,-10))
 	end
 	if spr:IsFinished(spr:GetAnimation()) then
 		fent.GrabDelay = 20
@@ -1399,14 +1414,7 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 					spr:Play("grab_down_landing")
 					if fent.Velocity.Y > 8 then
 						Isaac_Tower.game:ShakeScreen(10)
-						local ents = Isaac_Tower.EnemyHandlers.GetRoomEnemies()
-						local power = math.min(10, 5+fent.Velocity.Y-8)
-						for i=1,#ents do
-							local ent = ents[i]
-							if ent:GetData().Isaac_Tower_Data.OnGround and ent.Position:Distance(fent.Position) < 400 then
-								ent.Velocity = Vector(ent.Velocity.X, ent.Velocity.Y-power)
-							end
-						end
+						Isaac_Tower.FlayerHandlers.LiftEnemiesInRadius(fent.Position, math.min(10, 5+fent.Velocity.Y-8))
 					end
 				else
 					if Inp.PressDown(idx) then

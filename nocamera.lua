@@ -268,6 +268,7 @@ local function RenTrack(_,ent)
 	end
 end
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
+local IsaacTower_Entitys = {[Isaac.GetEntityVariantByName("PIZTOW Enemi")] = true, [Isaac.GetEntityVariantByName("PIZTOW Projectile")] = true }
 local function ERenTrack(_,ent)
 	--if (fastUpdate or Isaac.GetFrameCount()%2 == 0) and CameraEntity and CameraEntity.Ref then 
 	if DoubleRenderCondition and ent and ent:Exists() then
@@ -277,11 +278,16 @@ local function ERenTrack(_,ent)
 			--if not d.SpecialRender.igronelist[ent.Index] and d.renderlist and not d.IsCamRender and ent and ent:Exists() then
 			if not d.IsCamRender and not d.SpecialRender.igronelist[ent.Index] then
 				local data = ent:GetData()
+				local itdata = data.Isaac_Tower_Data
 				if data and (data.RA or not data.ml and 
-				(data.Isaac_Tower_Data and data.Isaac_Tower_Data.GrabbedBy or Isaac_Tower.ENT.AboveRender[ent.Variant])) then
+				(itdata and itdata.GrabbedBy or Isaac_Tower.ENT.AboveRender[ent.Variant])) then
 					d.renderlist.entityAbove[#d.renderlist.entityAbove+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
-				elseif ent.Type and (ent.Variant ~= entCam.VARIANT) then
-					d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
+				elseif ent.Variant ~= entCam.VARIANT then
+					if IsaacTower_Entitys[ent.Variant] then
+						d.renderlist.IT_entity[#d.renderlist.IT_entity+1] = {ent,ent:GetData().Isaac_Tower_Data, itdata.Velocity/Wtr}
+					else
+						d.renderlist.entity[#d.renderlist.entity+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
+					end
 				end
 			end
 		else
@@ -374,7 +380,7 @@ function TSJDNHC.CamEntUpdat(_,e)
 		end 
 
 		if not d.renderlist then
-			d.renderlist = {stein = {}, creep = {}, rock = {}, entity = {}, entityAbove = {} }
+			d.renderlist = {stein = {}, creep = {}, rock = {}, entity = {}, entityAbove = {}, IT_entity = {} }
 		end
 
 		d.CameraOffset = Vector(-20,60) - e.Position
@@ -447,7 +453,7 @@ function TSJDNHC.CamEntUpdat(_,e)
 		d.RoomShading:Play(tostring(game:GetRoom():GetRoomShape()))
 
 		d.SpecialRender = {igronelist = {}, room = {}, stein = {}, creep = {}, rock = {}, underrock = {}, entity = {} }
-		d.renderlist = {stein = {}, creep = {}, rock = {}, underrock = {}, entity = {}, entityAbove = {} }
+		d.renderlist = {stein = {}, creep = {}, rock = {}, underrock = {}, entity = {}, entityAbove = {}, IT_entity = {} }
 		--e:AddEntityFlags(EntityFlag.FLAG_PERSISTENT)
 
 		local roomDescriptor = game:GetLevel():GetCurrentRoomDesc()
@@ -581,7 +587,9 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 				d.CameraPosition = targetPos
 			else
 				local cenpos = Vector(0,0)
-				for i,ent in pairs(d.TargetEntity) do
+				--for i,ent in pairs(d.TargetEntity) do
+				for i=1, #d.TargetEntity do
+					local ent = d.TargetEntity[i]
 					if ent and ent.Position then
 						cenpos = cenpos + ent.Position
 					end
@@ -650,7 +658,9 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 
 	d.FloorSprite:Render(Pos) 
 	--d.SpecialRender.room[id] = {Wall = tab.Wall, Floor = tab.Floor, Shading = tab.Shading, Overlay = tab.Overlay}
-	for i,k in pairs(d.SpecialRender.room) do
+	--for i,k in pairs(d.SpecialRender.room) do
+	for i=1, #d.SpecialRender.room do
+		local k = d.SpecialRender.room[i]
 		if k.Floor then
 			k.Floor.Scale = Vector(1,1)*scale
 			k.Floor:Render(Pos+k.Offset*scale)
@@ -661,37 +671,44 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 
 	--print(d.StainVisible)
 	if d.CurrentCameraScale>0.4 and d.StainVisible then
-	    for i,k in pairs(d.renderlist.stein) do
-		if k and k[2] then
-			if scale~=1 then
-				local sclae = -(k[1]-Vector(320,280))/Wtr
-				local scaledOffset = ((scale-1)*sclae) or Vector(0,0) ---sclae
-				local trueScale = k[2].Scale*1
-				k[2].Scale = k[2].Scale*scale
-				k[2]:Render(k[4]-scaledOffset+CameraOffset) --Isaac.WorldToRenderPosition(k[1])
-				k[2].Scale = trueScale
-			else
-				k[2]:Render(k[4]+CameraOffset)
+		--for i,k in pairs(d.renderlist.stein) do
+		for i=1, #d.renderlist.stein do
+			local k = d.renderlist.stein[i]
+			if k and k[2] then
+				if scale~=1 then
+					local sclae = -(k[1]-Vector(320,280))/Wtr
+					local scaledOffset = ((scale-1)*sclae) or Vector(0,0) ---sclae
+					local trueScale = k[2].Scale*1
+					k[2].Scale = k[2].Scale*scale
+					k[2]:Render(k[4]-scaledOffset+CameraOffset) --Isaac.WorldToRenderPosition(k[1])
+					k[2].Scale = trueScale
+				else
+					k[2]:Render(k[4]+CameraOffset)
+				end
 			end
 		end
-	    end
 	end
 
-	for i,k in pairs(d.renderlist.creep) do
+	--for i,k in pairs(d.renderlist.creep) do
+	for i=1, #d.renderlist.creep do
+		local k = d.renderlist.creep[i]
 		if k then
 			if d.CurrentCameraScale~=1 then
+				local spr = k[1]:GetSprite()
 				local scaledOffset = ((scale-1)*k[2]) or Vector(0,0) ---k[2]
-				local trueScale = k[1]:GetSprite().Scale*1
-				k[1]:GetSprite().Scale = k[1]:GetSprite().Scale*scale
+				local trueScale = spr.Scale*1
+				spr.Scale = spr.Scale*scale
 				k[1]:Render(scaledOffset+CameraOffset)
-				k[1]:GetSprite().Scale = trueScale
+				spr.Scale = trueScale
 			else
 				k[1]:Render(CameraOffset)
 			end
 		end
 	end 
 
-	for i,k in pairs(d.renderlist.entity) do
+	--for i,k in pairs(d.renderlist.entity) do
+	for i=1, #d.renderlist.entity do
+		local k = d.renderlist.entity[i]
 		if k and k[1] and k[1].Type<1000 then
 			if d.CurrentCameraScale~=1 then
 				local scaledOffset = ((scale-1)*(k[2])-zeroOffset) or Vector(0,0) ---k[2]
@@ -716,7 +733,9 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 
 	Isaac.RunCallback(TSJDNHC.Callbacks.WALL_BACKDROP_RENDER, Pos, CameraOffset, scale)
 
-	for i,k in pairs(d.SpecialRender.room) do
+	--for i,k in pairs(d.SpecialRender.room) do
+	for i=1, #d.SpecialRender.room do
+		local k = d.SpecialRender.room[i]
 		if k.Wall then
 			if d.CurrentCameraScale ~= 1 then
 				local trueScale = k.Wall.Scale/1
@@ -728,14 +747,17 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		end
 	end
 
-	for i,k in pairs(d.renderlist.underrock) do
+	--for i,k in pairs(d.renderlist.underrock) do
+	for i=1, #d.renderlist.underrock do
+		local k = d.renderlist.underrock[i]
 		if k and k[4] and k[3] then
 			if d.CurrentCameraScale~=1 then
+				local spr = k[3]:GetSprite()
 				local scaledOffset = ((scale-1)*k[4]) or Vector(0,0) ---k[4]
-				local trueScale = k[3]:GetSprite().Scale/1
-				k[3]:GetSprite().Scale = k[3]:GetSprite().Scale*scale
+				local trueScale = spr.Scale/1
+				spr.Scale = spr.Scale*scale
 				k[3]:Render(scaledOffset+CameraOffset)
-				k[3]:GetSprite().Scale = trueScale
+				spr.Scale = trueScale
 			else
 				k[3]:Render(CameraOffset)
 			end
@@ -744,14 +766,17 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 
 	Isaac.RunCallback(TSJDNHC.Callbacks.GRID_BACKDROP_RENDER, Pos, CameraOffset, scale)
 
-	for i,k in pairs(d.renderlist.rock) do
+	--for i,k in pairs(d.renderlist.rock) do
+	for i=1, #d.renderlist.rock do
+		local k = d.renderlist.rock[i]
 		if k and k[4] and k[3] then
 			if d.CurrentCameraScale~=1 then
+				local spr = k[3]:GetSprite()
 				local scaledOffset = ((scale-1)*k[4]) or Vector(0,0) ---k[4]
-				local trueScale = k[3]:GetSprite().Scale/1
-				k[3]:GetSprite().Scale = k[3]:GetSprite().Scale*scale
+				local trueScale = spr.Scale/1
+				spr.Scale = spr.Scale*scale
 				k[3]:Render(scaledOffset+CameraOffset)
-				k[3]:GetSprite().Scale = trueScale
+				spr.Scale = trueScale
 			else
 				k[3]:Render(CameraOffset)
 			end
@@ -762,7 +787,9 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		d.RoomShading:Render(Pos)
 	end
 
-	for i,k in pairs(d.SpecialRender.room) do
+	--for i,k in pairs(d.SpecialRender.room) do
+	for i=1, #d.SpecialRender.room do
+		local k = d.SpecialRender.room[i]
 		if k.Shading then
 			k.Shading.Scale = Vector(1,1)*scale
 			k.Shading:Render(Pos+k.Offset*scale)
@@ -770,12 +797,14 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 	end
 	Isaac.RunCallback(TSJDNHC.Callbacks.SHADING_BACKDROP_RENDER, Pos, CameraOffset, scale)
 	
-	for i,k in pairs(d.renderlist.entity) do
-		
+	--for i,k in pairs(d.renderlist.entity) do
+	for i=1, #d.renderlist.entity do
+		local k = d.renderlist.entity[i]
 		if k and k[1] and k[1]:Exists() then
 			if d.CurrentCameraScale~=1 then
+				local spr = k[1]:GetSprite()
 				local scaledOffset = k[2]*(scale-1)-zeroOffset  -- -k[2]--(d.CurrentCameraScale*k[2]-k[2]) or Vector(0,0)
-				local trueScale = k[1]:GetSprite().Scale/1
+				local trueScale = spr.Scale/1
 				local TruePositionOfset = k[1].PositionOffset/1
 			
 				if k[1].Type == 1 then
@@ -790,9 +819,9 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 					--end
 				else
 					k[1].PositionOffset = k[1].PositionOffset*scale
-					k[1]:GetSprite().Scale = k[1]:GetSprite().Scale*scale
+					spr.Scale = spr.Scale*scale
 					k[1]:Render(scaledOffset+CameraOffset)
-					k[1]:GetSprite().Scale = trueScale
+					spr.Scale = trueScale
 					k[1].PositionOffset = TruePositionOfset
 				end
 			else
@@ -801,16 +830,45 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 			
 			Isaac.RunCallbackWithParam(TSJDNHC.Callbacks.ENTITY_POSTRENDER, k[1].Type, k[1], Pos-d.CenterPos, CameraOffset, d.CurrentCameraScale)
 		end
-	end 
+	end
+	local proc = Isaac_Tower.GetProcentUpdate30()
+	--proc = proc == 0 and 1 or proc
+	for i=1, #d.renderlist.IT_entity do
+		local k = d.renderlist.IT_entity[i]
+		if k and k[1] and k[1]:Exists() then
+			local spr = k[1]:GetSprite()
+			if d.CurrentCameraScale~=1 then
+				local scaledOffset = (k[2].Position/Wtr + k[3]*proc )*scale-zeroOffset  -- -k[2]--(d.CurrentCameraScale*k[2]-k[2]) or Vector(0,0)
+				local trueScale = spr.Scale/1
+				--local TruePositionOfset = k[1].PositionOffset/1
+			
+				--k[1].PositionOffset = k[1].PositionOffset*scale
+				spr.Scale = spr.Scale*scale
+				--k[1]:Render(scaledOffset+CameraOffset)
+				spr:Render(  scaledOffset+CameraOffset+zeroPos)
+				spr.Scale = trueScale
+				--k[1].PositionOffset = TruePositionOfset
+			else
+				local scaledOffset = (k[2].Position/Wtr + k[3]*proc )*scale-zeroOffset
+				spr:Render( scaledOffset+Pos-d.CenterPos+zeroPos)
+				--k[1]:Render(CameraOffset)
+			end
+			
+			Isaac.RunCallbackWithParam(TSJDNHC.Callbacks.ENTITY_POSTRENDER, k[1].Type, k[1], Pos-d.CenterPos, CameraOffset, d.CurrentCameraScale)
+		end
+	end
+
 
 	Isaac.RunCallback(TSJDNHC.Callbacks.ISAAC_TOWER_POST_ALL_ENEMY_RENDER, Pos, CameraOffset, scale)
 
-	for i,k in pairs(d.renderlist.entityAbove) do
-		
+	--for i,k in pairs(d.renderlist.entityAbove) do
+	for i=1, #d.renderlist.entityAbove do
+		local k = d.renderlist.entityAbove[i]
 		if k and k[1] and k[1]:Exists() then
 			if d.CurrentCameraScale~=1 then
+				local spr = k[1]:GetSprite()
 				local scaledOffset = k[2]*(scale-1)-zeroOffset
-				local trueScale = k[1]:GetSprite().Scale/1
+				local trueScale = spr.Scale/1
 				local TruePositionOfset = k[1].PositionOffset/1
 			
 				if k[1].Type == 1 then
@@ -819,9 +877,9 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 					k[1].PositionOffset = TruePositionOfset
 				else
 					k[1].PositionOffset = k[1].PositionOffset*scale
-					k[1]:GetSprite().Scale = k[1]:GetSprite().Scale*scale
+					spr.Scale = spr.Scale*scale
 					k[1]:Render(scaledOffset+CameraOffset)
-					k[1]:GetSprite().Scale = trueScale
+					spr.Scale = trueScale
 					k[1].PositionOffset = TruePositionOfset
 				end
 			else
@@ -861,7 +919,9 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		end
 	end
 
-	for i,k in pairs(d.SpecialRender.room) do
+	--for i,k in pairs(d.SpecialRender.room) do
+	for i=1, #d.SpecialRender.room do
+		local k = d.SpecialRender.room[i]
 		if k.Overlay then
 			k.Overlay.Scale = Vector(1,1)*scale
 			k.Overlay:Render(Pos+k.Offset*scale)
@@ -875,7 +935,8 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 		rock = d.renderlist.rock, 
 		underrock = d.renderlist.underrock, 
 		entity = {},
-		entityAbove = {}, } 
+		entityAbove = {},
+		IT_entity = {}, } 
 	end
 	d.IsCamRender = false
 
