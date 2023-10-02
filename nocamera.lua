@@ -280,7 +280,7 @@ local function ERenTrack(_,ent)
 				local data = ent:GetData()
 				local itdata = data.Isaac_Tower_Data
 				if data and (data.RA or not data.ml and 
-				(itdata and itdata.GrabbedBy or Isaac_Tower.ENT.AboveRender[ent.Variant])) then
+				(itdata and itdata.GrabbedBy or ent.Variant == IsaacTower_GibVariant and Isaac_Tower.ENT.AboveRender[ent.SubType])) then
 					d.renderlist.entityAbove[#d.renderlist.entityAbove+1] = {ent,(ent.Position)/Wtr} -- -Vector(320,280))/Wtr} 
 				elseif ent.Variant ~= entCam.VARIANT then
 					if IsaacTower_Entitys[ent.Variant] then

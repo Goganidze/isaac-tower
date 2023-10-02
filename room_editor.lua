@@ -933,6 +933,9 @@ UIs.Setting = GenSprite("gfx/editor/ui.anm2","настройки")
 for i=0,6 do
 	UIs["MenuActulae" .. i] = GenSprite("gfx/editor/ui.anm2","меню наконец то", i)
 end
+UIs.RoomEditor_debug = GenSprite("gfx/editor/ui.anm2","room_editor_debug")
+UIs.luamod_debug = GenSprite("gfx/editor/ui.anm2","luamod_debug")
+
 
 function UIs.Box48() return GenSprite("gfx/editor/ui.anm2","контейнер") end
 function UIs.Counter() return GenSprite("gfx/editor/ui.anm2","счётчик") end
@@ -2278,7 +2281,7 @@ function Isaac_Tower.editor.RoomSelectMenu.GenRoomList()
 			local self
 			self = Isaac_Tower.editor.AddButton(Isaac_Tower.editor.RoomSelectMenu.Name, qnum, pos, 96, 16, UIs.Var_Sel(), function(button)
 				if button ~= 0 or Input.IsButtonPressed(Keyboard.KEY_SPACE, 0) then return end
-
+				
 				Isaac_Tower.editor.ChangeRoom(k) --.Name
 				Isaac_Tower.editor.RoomSelectMenu.State = 2
 			end, function(pos)
@@ -2295,7 +2298,7 @@ function Isaac_Tower.editor.RoomSelectMenu.GenRoomList()
 	local self 
 	self = Isaac_Tower.editor.AddButton(Isaac_Tower.editor.RoomSelectMenu.Name, qnum, pos, 96, 16, UIs.Var_Sel(), function(button)
 		if button ~= 0 or Input.IsButtonPressed(Keyboard.KEY_SPACE, 0) then return end
-
+		
 		local bumun
 		::back::
 		local newName = bumun and "newroom "..tostring(bumun) or "newroom"
@@ -6560,6 +6563,7 @@ do
 
 	local offset = 0
 	function Isaac_Tower.editor.DebugMenu.Render(off, mousepos)
+		if not Isaac_Tower.InAction or Isaac_Tower.editor.InEditor then return end
 		offset = off
 		local MenuUpPos = Vector(Isaac.GetScreenWidth()/2, -50 + off)
 		UIs.MenuUp.Color = Color(1,1,1,0.5)
@@ -6573,12 +6577,18 @@ do
 	end
 
 	local self
-	self = Isaac_Tower.editor.AddButton("__debug_menu", "open_editor", Vector(12,5), 32, 32, UIs.TestRun, function(button) 
+	self = Isaac_Tower.editor.AddButton("__debug_menu", "open_editor", Vector(12,5), 32, 32, UIs.RoomEditor_debug, function(button) 
 		if button ~= 0 then return end
 		Isaac_Tower.OpenEditor()
 	end, function(pos)
 		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,5+offset)
-		
+	end)
+	local self
+	self = Isaac_Tower.editor.AddButton("__debug_menu", "luamod", Vector(46,5), 32, 32, UIs.luamod_debug, function(button) 
+		if button ~= 0 then return end
+		Isaac.ExecuteCommand("luamod isaac tower")
+	end, function(pos)
+		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(46,5+offset)
 	end)
 end
 

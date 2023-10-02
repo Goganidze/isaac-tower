@@ -242,7 +242,7 @@ Isaac_Tower.ENT.GibSubType = {
 Isaac_Tower.ENT.Enemy = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_Enemy}
 Isaac_Tower.ENT.Proj = {ID = EntityType.ENTITY_EFFECT, VAR = Isaac.GetEntityVariantByName("PIZTOW Projectile")}
 Isaac_Tower.ENT.AboveRender = {[Isaac_Tower.ENT.GibSubType.SOUND_BARRIER] = true,
-	[IsaacTower_GibVariant] = true}
+	[Isaac_Tower.ENT.GibSubType.GIB] = true}
 
 Isaac_Tower.sprites.BlackNotCube = Sprite()
 Isaac_Tower.sprites.BlackNotCube:Load("gfx/doubleRender/black.anm2",true)
@@ -2233,7 +2233,7 @@ local function EnemyintersectAABB_X(ent, box)
 
     local upbox = Isaac_Tower.rayCast( box.CenterPos+Vector(0,-box.Half.Y), Vector(0,-1), 15, 2)
 
-    local smoothup = this.DontHelpCollisionUpping or not (dy>0 and py<20 and (not upbox or upbox.Collision == 0 or upbox.slope) )
+    local smoothup = true --this.DontHelpCollisionUpping or not (dy>0 and py<20 and (not upbox or upbox.Collision == 0 or upbox.slope) )
 	
     if (px < py) and smoothup then
       local sx = sign(dx)
@@ -2262,7 +2262,7 @@ local function EnemyintersectAABB_Y(ent, box)
     
     local hit = hitG()
 
-    local boxHalfY = box.CenterPos.Y+0
+    local boxHalfY = box.CenterPos.Y --+0
 
     if box.slope then
       boxHalfY = boxHalfY - (GetDeepSlope(this, box) or 0)
@@ -2275,7 +2275,7 @@ local function EnemyintersectAABB_Y(ent, box)
       return
     end
 
-    local upbox = Isaac_Tower.rayCast( box.CenterPos+Vector(0,-box.Half.Y), Vector(0,-1), 15, 2)
+    --local upbox = Isaac_Tower.rayCast( box.CenterPos+Vector(0,-box.Half.Y), Vector(0,-1), 15, 2)
 
     --local smoothup = this.DontHelpCollisionUpping or not (dy>0 and py<20 and (not upbox or upbox.Collision == 0 or upbox.slope) )
     if (px < py) then --and smoothup then 
@@ -2290,9 +2290,9 @@ local function EnemyintersectAABB_Y(ent, box)
         this.OnGround = true 
         this.jumpDelay = 10
         hit.SlopeAngle = box.MovingMulti
-        if (px < py) and (dy>0 and py<20) then
-            hit.SmoothUp = true
-        end
+        --if (px < py) and (dy>0 and py<20) then
+        --    hit.SmoothUp = true
+        --end
       else
         this.Velocity.Y = math.max(0, this.Velocity.Y)
 		--this.Velocity = Vector(this.Velocity.X, math.max(0, this.Velocity.Y))
@@ -3292,14 +3292,14 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 				local hitY = EnemyintersectAABB_Y(ent, ia)
 
 				if hitY and hitY.delta.Y ~= 0 then
-					if hitY.SmoothUp then
-						data.Position = Vector(data.Position.X, data.Position.Y - hitY.delta.Y / math.max(1, (30 / math.abs(data.Velocity.X)))) --10
-					else
+					--if hitY.SmoothUp then
+					--	data.Position = Vector(data.Position.X, data.Position.Y - hitY.delta.Y / math.max(1, (30 / math.abs(data.Velocity.X)))) --10
+					--else
 						if hitY.delta.Y > 0.0 then
 							hitY.delta.Y = math.max(0, hitY.delta.Y - 0.1 - data.Velocity.Y)
 						end
 						data.Position = data.Position - Vector(0, hitY.delta.Y)
-					end
+					--end
 					if hitY.SlopeAngle then
 						data.slopeAngle = hitY.SlopeAngle
 					end
@@ -3697,12 +3697,16 @@ GibsLogic = {
 	Render = {
 		[Isaac_Tower.ENT.GibSubType.AFTERIMAGE] = function(e)
 			if Isaac_Tower.game:IsPaused() or not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
-			if e:GetData().color then
-				e:GetData().color.A = e:GetData().color.A-0.05
-				e:GetSprite().Color = e:GetData().color
-				if e:GetData().color.A <= 0 then
+			local data = e:GetData()
+			if data.color then
+				data.color.A = data.color.A-data.AlphaLoss*Isaac_Tower.UpdateSpeed
+				e:GetSprite().Color = data.color
+				if data.color.A <= 0 then
 					e:Remove()
 				end
+			end
+			if data.Increase then
+				e:GetSprite().Scale = e:GetSprite().Scale + Vector(0.02, 0.02)*Isaac_Tower.UpdateSpeed
 			end
 		end,
 		[Isaac_Tower.ENT.GibSubType.SWEET] = function(e)
@@ -4145,9 +4149,37 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 	if Scale ~= 1 then
 		zeroOffset = BDCenter*(Scale-1) +GridListStartPos*(1-Scale) ---BDCenter
 	end
+
+	local gridlist = Isaac_Tower.Renders.EnviRender[2]
+	if gridlist then
+		--if layer==0 then
+			for i=0,#gridlist do --,k in pairs(gridlist) do
+				local k = gridlist[i]
+				local obj = Isaac_Tower.GridLists.Evri.List[k]
+				if obj then
+					local pos = obj.pos*Scale + startPos
+					if Scale ~= 1 then
+						--local scaledOffset = (Scale*obj.pos-obj.pos) or Vector(0,0)
+						pos = pos -zeroOffset --+ vec + scaledOffset
+					end
+					if Scale ~= 1 then
+						local preScale = obj.spr.Scale/1
+						obj.spr.Scale = obj.spr.Scale*Scale
+						obj.spr:Render(pos)
+						obj.spr.Scale = preScale
+					else
+						obj.spr:Render(pos)
+					end
+					--obj.spr:Render(pos)
+					--Isaac.RenderScaledText(tostring(pos), pos.X, pos.Y, 0.5, 0.5, 1,1,1,1)
+				end
+			end
+		--end
+	end
+
 	--for layer,gridlist in pairs(Isaac_Tower.Renders.EnviRender) do
-	if Isaac_Tower.Renders.EnviMaxLayer>0 then
-		for layer=2,Isaac_Tower.Renders.EnviMaxLayer do
+	if Isaac_Tower.Renders.EnviMaxLayer>2 then
+		for layer=3,Isaac_Tower.Renders.EnviMaxLayer do
 			local gridlist = Isaac_Tower.Renders.EnviRender[layer]
 			if gridlist then
 				--for i,k in pairs(gridlist) do
@@ -4161,12 +4193,13 @@ function Isaac_Tower.Renders.PostAllEntityRender(_, Pos, Offset, Scale)
 							pos = pos -zeroOffset --+ vec
 						end
 						if Scale ~= 1 then
+							local off = ((layer-2)/20*(Offset/Scale+Isaac_Tower.GridLists.Solid.RenderCenterPos))
 							local preScale = obj.spr.Scale/1
 							obj.spr.Scale = obj.spr.Scale*Scale
-							obj.spr:Render(pos)
+							obj.spr:Render(pos+off)
 							obj.spr.Scale = preScale
 						else
-							local off = ((layer-1)/20*(Offset+Isaac_Tower.GridLists.Solid.RenderCenterPos))
+							local off = ((layer-2)/20*(Offset+Isaac_Tower.GridLists.Solid.RenderCenterPos))
 							obj.spr:Render(pos+off)
 						end
 						--obj.spr:Render(pos)

@@ -20,6 +20,14 @@ local function TabDeepCopy(tbl)
     return t
 end
 
+local function sign(num)
+	return num < 0 and -1 or 1
+end
+local function sign0(num)
+	if type(num) ~= "number" then error("[1] is not a number",2) end
+	return num < 0 and -1 or num == 0 and 0 or 1
+end
+
 local sizecache = {}
 local function GetLinkedGrid(grid, pos, size, fill, sizeY)
 	if size and pos then
@@ -81,6 +89,23 @@ local function SetState(data, state)
 	data.State = state
 	data.StateFrame = 0
 end
+
+local function SpawnAfterImage(spr, pos, col, AlphaLos, isAttack)
+	local off = Isaac.Spawn(1000, IsaacTower_GibVariant, Isaac_Tower.ENT.GibSubType.AFTERIMAGE, pos, Vector(0,0), nil)
+	local espr, data = off:GetSprite(), off:GetData()
+	espr:Load(spr:GetFilename(), true)
+	espr:Play(spr:GetAnimation(), true)
+	espr:SetFrame(spr:GetFrame())
+	data.color = col or Color(1,1,1,1)
+	espr.Color = data.color
+	espr.FlipX = spr.FlipX
+	espr.Rotation = spr.Rotation
+	data.AlphaLoss = AlphaLos or 0.05
+	data.Increase = isAttack
+	return off
+end
+
+
 
 
 for i=1,9 do
@@ -1214,6 +1239,10 @@ do
 		{"cel_","black3_3",Vector(78,78),Vector(39,39),Vector(0.4,0.4),Vector(13,13)},
 		{"cel_","black5_5",Vector(130,130),Vector(65,65),Vector(0.3,0.3),Vector(13,13)},
 		{"cel_","1_1x3",Vector(86,32),Vector(3,4),Vector(0.5,0.5),Vector(-8,5)},
+		{"cel_","web1",Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(13,13)},
+		{"cel_","web2",Vector(26,26),Vector(13,13),Vector(1.0,1.0),Vector(13,13)},
+		{"cel_","web3",Vector(36,26),Vector(18,13),Vector(1.0,1.0),Vector(10,13)},
+		{"cel_","web4",Vector(175,198),Vector(87,99),Vector(.3,.3),Vector(13,13)},
 	}
 
 	for i=1,13 do
@@ -1716,6 +1745,135 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 end
 --mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyHorhLogic, "horh")
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyHorhLogic, "horh")
+
+---------------------------------------ПАУК С ЛИЦОМ ИСААКА | ТРИРЕ-------------------------------------------
+
+Isaac_Tower.RegisterEnemy("trire", "gfx/it_enemies/trire.anm2", Vector(15,15), {EntityCollision = EntityCollisionClass.ENTCOLL_PLAYERONLY})
+Isaac_Tower.editor.AddEnemies("trire",
+	GenSprite("gfx/it_enemies/trire.anm2","idle",nil,1,Vector(13,13)),
+	"trire",0,
+	GenSprite("gfx/it_enemies/trire.anm2","idle",nil,1,Vector(13/2,13/2)))
+
+mod:AddCallback(Isaac_Tower.Callbacks.ENEMY_POST_INIT, function(_,ent)
+	ent:GetSprite().Offset = Vector(0,-1) / Wtr
+	ent:GetData().Isaac_Tower_Data.delay = ent:GetDropRNG():RandomInt(10)+30
+end, "trire")
+function Isaac_Tower.ENT.LOGIC.EnemyTrireLogic(_,ent)
+	local data = ent:GetData().Isaac_Tower_Data
+	local spr = ent:GetSprite()
+	if data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
+		local target = Isaac_Tower.GerNearestFlayer(ent.Position)
+		if data.OnGround  then
+			if data.State ~= 3 then
+				data.Velocity = Vector(data.Velocity.X*0.8, math.min(0,data.Velocity.Y))
+			else
+				data.Velocity = Vector(data.Velocity.X, math.min(0,data.Velocity.Y))
+			end
+		else
+			data.Velocity = data.Velocity.Y<12 and (Vector(data.Velocity.X, math.min(12, data.Velocity.Y+0.8))) or data.Velocity
+		end
+		if data.CollideWall and not data.OnGround and not data.CollideCeiling and data.State ~= 4 then
+			data.Velocity.X = -data.TrueVelocity.X/2
+			if data.refvelocity then
+				data.refvelocity.X = -data.refvelocity.X/2
+			end
+		end
+		if data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
+			if target.Position.X - ent.Position.X > 0 then
+				spr.FlipX = true
+			else
+				spr.FlipX = false
+			end
+
+			if spr:GetAnimation() ~= "idle" then
+				spr:Play("idle", true)
+			end
+			data.delay = data.delay - 1
+			if data.delay <= 0 and target.Position:Distance(data.Position)<350 then
+				data.State = 2
+				data.delay = ent:GetDropRNG():RandomInt(10)+30
+			end
+		elseif data.State == 2 then
+			if target.Position.X - ent.Position.X > 0 then
+				spr.FlipX = true
+			else
+				spr.FlipX = false
+			end
+
+			if spr:IsFinished("jump") then
+				data.State = 3
+				local vel = Vector( (target.Position.X-data.Position.X) / 20 , math.min(-5,target.Position.Y-data.Position.Y) / 6 )
+				vel = Vector(math.max(9,math.abs(vel.X))*sign(vel.X), math.min(-1,vel.Y))
+				--if not Isaac_Tower.lineOnlyCheck(data.Position, target.Position, 40, 1) then
+				--	vel.Y = vel.Y - 3
+				--end
+				vel = Vector(vel.X, vel.Y-(math.abs(vel.X)+1)/2)
+				if not Isaac_Tower.lineOnlyCheck(data.Position, target.Position, 40, 1) then
+					vel.Y = vel.Y - 3
+				end
+				vel:Resize(math.min(15,vel:Length()))
+				data.Velocity = vel
+				data.refvelocity = vel
+				spr:Play("up", true)
+				data.grounding = 0
+			elseif spr:GetAnimation() ~= "jump" then
+				spr:Play("jump", true)
+			end
+		elseif data.State == 3 then
+			data.refvelocity = data.refvelocity.Y<12 and (Vector(data.refvelocity.X, math.min(12, data.refvelocity.Y+0.8))) or data.refvelocity
+			data.Velocity = data.refvelocity
+			if data.Velocity.Y < 0 then
+				if spr:GetAnimation() ~= "up" then
+					spr:Play("up", true)
+				end
+			else
+				if spr:GetAnimation() == "up" then
+					spr:Play("transition", true)
+				elseif spr:IsFinished("transition") then
+					spr:Play("down", true)
+				--elseif spr:GetAnimation() == "down" and data.OnGround then
+				--	data.State = 4
+				--	data.Velocity.Y = 0
+				--	data.Velocity.X = data.refvelocity.X/2
+				--	data.refvelocity = nil
+				end
+				if data.OnGround then
+					data.State = 4
+					data.Position.Y = data.Position.Y + data.Velocity.Y/3
+					local grid = Isaac_Tower.rayCast(data.Position+Vector(0,0),Vector(0,1),5,3)
+					if grid and not grid.slope then
+						data.Position.Y = grid.CenterPos.Y-grid.Half.Y-data.Half.Y
+					end
+					data.Velocity.Y = 0
+					data.Velocity.X = data.refvelocity.X/2
+					data.refvelocity = nil
+				end
+			end
+
+			SpawnAfterImage(spr, data.Position+data.Velocity, Color(1,0.5,0.5,0.4,0.4), 0.05, true)
+			--SpawnAfterImage(spr, data.Position+data.Velocity/2, Color(2,0.5,0.5,0.4,0.2), 0.05, true)
+		elseif data.State == 4 then
+			if spr:IsFinished("fall") then
+				data.State = Isaac_Tower.EnemyHandlers.EnemyState.IDLE
+			elseif spr:GetAnimation() ~= "fall" then
+				spr:Play("fall", true)
+			end
+		end
+	end
+end
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ENEMY_POST_UPDATE, Isaac_Tower.ENT.LOGIC.EnemyTrireLogic, "trire")
+
+
+
+Isaac_Tower.EnemyHandlers.FlayerCollision["trire"] = function(fent, ent, EntData)
+	--local spr = ent:GetSprite()
+	local data = ent:GetData().Isaac_Tower_Data
+	if data.State == 3 and fent.State ~= "Захват" and fent.Velocity.Y < 3 then
+		if Isaac_Tower.FlayerHandlers.TryTakeDamage(fent, 0, 0, ent) then
+			return true
+		end
+	end
+end
 
 --------------------------------------ПИКАПЫ-БОНУСЫ----------------------------------------------
 

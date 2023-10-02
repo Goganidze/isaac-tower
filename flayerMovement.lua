@@ -330,7 +330,7 @@ function Isaac_Tower.FlayerHandlers.SpeedEffects(fent, spr, angle)
 				fent.TrueVelocity, (fent.TrueVelocity*Vector(1,-1)):GetAngleDegrees()).Color = Color(1,1,1,.5)
 		end
 		if math.abs(fent.RunSpeed) > 10 then
-			SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.RunSpeed)/50)))), 4/math.abs(fent.RunSpeed) )
+			SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.RunSpeed)/50))))) --, 4/math.abs(fent.RunSpeed) )
 		end
 	end
 end
@@ -570,7 +570,7 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 					fent.TrueVelocity, (fent.TrueVelocity*Vector(1,-1)):GetAngleDegrees()).Color = Color(1,1,1,.5)
 			end
 			if math.abs(fent.RunSpeed) > 10 then
-				SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.RunSpeed)/50)))), 4/math.abs(fent.RunSpeed) )
+				SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.RunSpeed)/50))))) --, 4/math.abs(fent.RunSpeed) )
 			end
 		elseif fent.OnGround then
 			fent.RunSpeed = fent.RunSpeed*0.7	
@@ -710,7 +710,7 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 				--end
 			end
 			if math.abs(fent.RunSpeed) > 10 then
-				SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.RunSpeed)/50)))), 4/math.abs(fent.RunSpeed) )
+				SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.RunSpeed)/50))))) --, 4/math.abs(fent.RunSpeed) )
 			end
 		end
 
@@ -850,7 +850,7 @@ Isaac_Tower.FlayerMovementState["Скольжение"] = function(player, fent,
 					fent.TrueVelocity, (fent.TrueVelocity*Vector(1,-1)):GetAngleDegrees()).Color = Color(1,1,1,.5)
 			end
 			if math.abs(fent.RunSpeed) > 10 then
-				SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.RunSpeed)/50)))), 4/math.abs(fent.RunSpeed) )
+				SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.RunSpeed)/50))))) --, 4/math.abs(fent.RunSpeed) )
 			end
 		end
 		if spr:GetAnimation() ~= "duck_roll" then
@@ -1101,10 +1101,14 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 				data.StateFrame = 0
 			end
 			if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
+			local nextvel
+			local pow = data.OnGround and 2 or 5
 			if fent.Position.X < ent.Position.X then
-				data.Velocity =  Vector(data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(40-dist)/2, data.Velocity.Y )
+				nextvel = data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(40-dist)/pow
+				data.Velocity.X = math.min((40-dist)/pow, nextvel )
 			else
-				data.Velocity = Vector(data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(40-dist)/2, data.Velocity.Y )
+				nextvel = data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(40-dist)/pow
+				data.Velocity.X = math.max(-(40-dist)/pow, nextvel )
 			end
 			fent.Velocity.Y = -4
 			fent.JumpActive = 15
@@ -1522,7 +1526,7 @@ Isaac_Tower.FlayerMovementState["Супер_прыжок"] = function(player, fe
 				fent.TrueVelocity, (fent.TrueVelocity*Vector(1,-1)):GetAngleDegrees()).Color = Color(1,1,1,.5)
 		end
 		--if math.abs(fent.RunSpeed) > 10 then
-			SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.Velocity.Y)/20)))), 4/math.abs(fent.Velocity.Y) )
+			SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,math.min(1, (math.max(0,math.abs(fent.Velocity.Y)/20))))) --, 4/math.abs(fent.Velocity.Y) )
 		--end
 
 		if Inp.PressGrab(idx) then
