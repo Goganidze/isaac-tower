@@ -1651,12 +1651,14 @@ function TSJDNHC.Grid.UpdateRenderTab(self)
 				--print(self.Grid[i][j].SpriteAnim, self.GridSprites[self.Grid[i][j].SpriteAnim])
 				self.RenderGridList[#self.RenderGridList+1] = {
 					pos = self.Grid[i][j].RenderPos,
-					spr = self.GridSprites[self.Grid[i][j].SpriteAnim] or self.GridSprites[tostring(self.Grid[i][j].SpriteAnim)]}
+					spr = self.GridSprites[self.Grid[i][j].SpriteAnim] or self.GridSprites[tostring(self.Grid[i][j].SpriteAnim)],
+					fnc = self.Grid[i][j]._render, self = self.Grid[i][j]}
 			end
 			if self.Grid[i][j].Sprite then
 				self.RenderGridList[#self.RenderGridList+1] = {
 					pos = self.Grid[i][j].RenderPos,
-					spr = self.Grid[i][j].Sprite}
+					spr = self.Grid[i][j].Sprite,
+					fnc = self.Grid[i][j]._render, self = self.Grid[i][j]}
 			end
 		end
 	end
@@ -1691,6 +1693,9 @@ function TSJDNHC.Grid.RenderGrid(self, grid, vec, scale)
 	if anim then
 		anim:Render(renderPos)
 	end
+	if grid._render then
+		grid._render(grid, renderPos, scale)
+	end
 end
 
 function TSJDNHC.Grid.Render(self, vec, scale)
@@ -1718,9 +1723,17 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 					tab.spr.Scale = tab.spr.Scale*scale
 					tab.spr:Render(renderPos)
 					tab.spr.Scale = preScale
+					if tab.fnc then
+						tab.fnc(tab.self, renderPos, scale)
+					end
 				else
 					tab.spr:Render(renderPos)
+					if tab.fnc then
+						tab.fnc(tab.self, renderPos, scale)
+					end
 				end
+			elseif tab._render then
+				
 			end
 		end
 	elseif self.RenderMethod == 1 then
@@ -1789,7 +1802,7 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 								--tab.Sprite.Scale = tab.Sprite.Scale*scale
 								--tab.Sprite:Render(renderPos)
 								--tab.Sprite.Scale = preScale
-								toRender[toRenderNum] = {tab.Sprite,renderPos,true}
+								toRender[toRenderNum] = {tab.Sprite,renderPos,true,tab}
 								toRenderNum = toRenderNum + 1
 							else
 								tab.Sprite:Render(renderPos)
@@ -1810,7 +1823,7 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 							--	anim.Scale = preScale
 							--else
 								--anim:Render(renderPos)
-								toRender[toRenderNum] = {anim,renderPos}
+								toRender[toRenderNum] = {anim,renderPos,nil,tab}
 								toRenderNum = toRenderNum + 1
 							--end
 							ignoreList[tab] = true
@@ -1830,7 +1843,7 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 								--tab.Parent.Sprite:Render(renderPos)
 								--tab.Parent.Sprite.Scale = preScale
 
-								toRender[toRenderNum] = {tab.Parent.Sprite,renderPos,true}
+								toRender[toRenderNum] = {tab.Parent.Sprite,renderPos,true,tab.Parent}
 								toRenderNum = toRenderNum + 1
 							else
 								tab.Parent.Sprite:Render(renderPos)
@@ -1849,7 +1862,7 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 								renderPos = renderPos + scaledOffset-zeroOffset
 								--anim:Render(renderPos)
 
-								toRender[toRenderNum] = {anim,renderPos}
+								toRender[toRenderNum] = {anim,renderPos,nil,tab.Parent}
 								toRenderNum = toRenderNum + 1
 								--anim.Scale = preScale
 							else
@@ -1871,6 +1884,10 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 				spr.Scale = preScale
 			else
 				spr:Render(renderPos)
+			end
+			if k[4]._render then
+				print()
+				k[4]._render(k[4],renderPos,scale)
 			end
 		end
 
@@ -1939,6 +1956,41 @@ local function clearGridData(grid)
 	grid.Half = Vector(grid.GridList.Xsize/2 , grid.GridList.Ysize/2)
 	grid.CenterPos = grid.Position + grid.Half
 	grid.Collision = 0
+end
+
+function TSJDNHC.Grid.PlaceGrid(self, tab, pos, ttype)
+	---@type Frid
+	local grid
+	pos = pos or tab.pos
+	if tab.useWorldPos then
+		grid = self:GetGrid(pos)
+	else
+		grid = type(pos) == "number" and findIndex(pos, self) or self.Grid[pos.Y][pos.X]
+	end
+	if grid then
+		for k, dat in pairs(tab) do
+			if k ~= "pos" then
+				grid[k] = dat
+			end
+		end
+		if TSJDNHC.GridTypes[ttype or grid.Type] and TSJDNHC.GridTypes[ttype or grid.Type].Render then
+			grid._render = TSJDNHC.GridTypes[ttype or grid.Type].Render
+		end
+		local gtype = ttype and TSJDNHC.GridTypes[ttype] or grid.Type and TSJDNHC.GridTypes[grid.Type]
+		if gtype and gtype.Init then
+			gtype.Init(grid, self)
+		end
+		if self.MapStyle and grid.SpriteAnim and (self.MapStyle.affl[grid.SpriteAnim] or self.MapStyle.bigs[grid.SpriteAnim]) then
+			local id = (grid.XY.X%self.MapStyle.size.X)+((grid.XY.Y-1)%self.MapStyle.size.Y)*self.MapStyle.size.Y
+			local mapSpr = self.MapStyle.sprs[id]
+			grid.Mapspr = mapSpr
+			if self.MapStyle.bigs[grid.SpriteAnim] then
+				grid.Mapspr = self.MapStyle.sprs[grid.SpriteAnim .. "_" .. math.ceil(id)]
+			end
+		end
+	end
+
+	self:UpdateUpdateTab()
 end
 
 function TSJDNHC.Grid.DestroyGrid(self, x, y)
@@ -2087,6 +2139,9 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 					grid[k] = dat
 				end
 			end
+			if TSJDNHC.GridTypes[grid.Type] and TSJDNHC.GridTypes[grid.Type].Render then
+				grid._render = TSJDNHC.GridTypes[grid.Type].Render
+			end
 			--[[if self.MapStyle and grid.SpriteAnim and self.MapStyle.affl[grid.SpriteAnim] then
 				local id = (grid.XY.X%self.MapStyle.size.X)+((grid.XY.Y-1)%self.MapStyle.size.Y)*self.MapStyle.size.Y
 				local mapSpr = self.MapStyle.sprs[id]
@@ -2127,12 +2182,13 @@ function TSJDNHC.DeleteAllGridList()
 end
 
 TSJDNHC.GridTypes = {}
-function TSJDNHC.AddGridType(name, initFunc, updateFunc, destroyFunc)
+function TSJDNHC.AddGridType(name, initFunc, updateFunc, destroyFunc, renderFunc)
 	if name and initFunc then
 		TSJDNHC.GridTypes[name] = TSJDNHC.GridTypes[name] or {}
 		TSJDNHC.GridTypes[name].Init = initFunc
 		TSJDNHC.GridTypes[name].Update = updateFunc
 		TSJDNHC.GridTypes[name].PostDestroy = destroyFunc
+		TSJDNHC.GridTypes[name].Render = renderFunc
 	end
 end
 

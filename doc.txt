@@ -8,7 +8,7 @@
 	GridList	MakeGridList( Vector pos, int y, int x, int xs, int ys )
 	void		debug( int num )
 	void		DeleteAllGridList()
-	void		AddGridType(string name, function initFunc, function updateFunc, function destroyFunc)
+	void		AddGridType(string name, function initFunc, function updateFunc, function destroyFunc, function renderFunc)
 	Frid		GetGrid(Vector pos)
 
 
@@ -54,6 +54,8 @@
 
 	Дата сущности хранится в таблице с ключом Isaac_Tower_Data, кроме TSJDNHC_GridColl
 
+	Position Vector
+	Velocity Vector   - оригинальные Позиция и Скорость имеют баг с откатом значения вне обновления сущности
 	Type string
 	State integer
 	StateFrame integer

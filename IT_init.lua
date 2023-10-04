@@ -897,7 +897,7 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION
 -------------------------------------------------------------------------------------
 Isaac_Tower.editor.AddSpecial("script", nil, 
 	GenSprite("gfx/editor/special_tiles.anm2","script"),
-	{TargetRoom = -1, Name = "", Size = Vector(1,1)},
+	{Name = "", Size = Vector(1,1)},
 	GenSprite("gfx/editor/special_tiles.anm2","script"),
 	function(solidTab, grid)
 		if grid.TargetName then
@@ -944,6 +944,146 @@ Isaac_Tower.editor.AddSpecialEditData("script", "tarname", 1, {HintText = GetStr
 		return true
 	end
 end})
+-------------------------------------------------------------------------
+local holeRotTab = {"0 %","90 %","180 %","270 %"}
+
+local nilSpr = GenSprite("gfx/fakegrid/teleport_hole.anm2","blu",nil,nil,Vector(0,13))
+nilSpr.Color = Color(1,1,1,0)
+Isaac_Tower.editor.AddSpecial("teleport_hole", nil, 
+	GenSprite("gfx/fakegrid/teleport_hole.anm2","blu",Vector(0.5,.5)),
+	{TargetRoom = -1, Name = "", Size = Vector(2,2), Rot = 1},
+	nilSpr, --GenSprite("gfx/fakegrid/teleport_hole.anm2","blu"),
+	function(solidTab, grid)
+		if grid.TargetName then
+			solidTab = solidTab.."TargetName='"..grid.TargetName.."',"
+		end
+		if grid.Name then
+			solidTab = solidTab.."Name='"..grid.Name.."',"
+		end
+		if grid.Rot then
+			solidTab = solidTab.."Rot="..grid.Rot..","
+		end
+		if grid.AltSkin then
+			solidTab = solidTab.."Skin='"..grid.Rot.."',"
+		end
+		solidTab = solidTab.."Size=Vector("..math.ceil(grid.Size.X)..","..math.ceil(grid.Size.Y).."),"
+		return solidTab
+	end,
+	function(tab)
+		for idx, grid in pairs(tab) do
+			local Gtype = "teleport_hole"
+			local x,y = math.ceil(grid.XY.X), math.ceil(grid.XY.Y)
+			--local size = grid.Size/1
+			--grid.Size = nil
+			Isaac_Tower.editor.PlaceSpecial(Gtype,x,y,grid)
+			local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype]
+			list[y][x].EditData = {name = {Text = grid.Name},
+				tarname = {Text = grid.TargetName},
+				tarroom = {Text = grid.TargetRoom},
+				rot = {Text = holeRotTab[grid.Rot]},
+				color = {Flag = grid.AltColor},}
+			--list[y][x].Size = size
+		end
+	end)
+	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "name", 1, {HintText = GetStr("special_obj_name"), ResultCheck = function(info, result)
+		if not result then
+			return true
+		else
+			if #result < 1 or not string.find(result,"%S") then
+				return GetStr("emptyField")
+			end
+			info.Name = result
+			return true
+		end
+	end})
+	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "tarname", 1, {HintText = GetStr("nameTarget"), ResultCheck = function(info, result)
+		if not result then
+			return true
+		else
+			if #result < 1 or not string.find(result,"%S") then
+				return GetStr("emptyField")
+			end
+			info.TargetName = result
+			return true
+		end
+	end})
+	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "tarroom", 2, {HintText = GetStr("Transition Target"), ResultCheck = function(info,result)
+		if not result then
+			return false
+		else
+			info.TargetRoom = result
+			return true
+		end
+	end, Generation = function(info)
+		local tab = {}
+		for rnam, romdat in pairs(Isaac_Tower.Rooms) do
+			if rnam ~= Isaac_Tower.editor._EditorTestRoom then
+				tab[#tab+1] = rnam
+			end
+		end
+		return tab
+	end})
+	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "rot", 2, {HintText = GetStr("Rotation"), ResultCheck = function(info,_,result)
+		if not result then
+			return false
+		else
+			info.Rot = result
+			return true
+		end
+	end, Generation = function(info)
+		local tab = holeRotTab
+		return tab
+	end, ParamInit = function(info)
+		info.EditData.rot.Text = "0 %"
+		info.Rot = 1
+	end})
+	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "color", 3, {HintText = GetStr("use_alt_skin"), ResultCheck = function(info, result)
+		info.AltSkin = result
+	end})
+
+local function teleport_hole_init(_,_, grid)
+	if not Isaac_Tower.LevelHandler.RoomHasSavedData(Isaac_Tower.CurrentRoom.Name) then
+		local muv = grid.Rot==1 and Vector(-1,1) or grid.Rot==4 and Vector(1,-1) or Vector(1,1)
+		Isaac_Tower.GridLists.Obs:PlaceGrid({Collision=1, Rot = grid.Rot}, grid.XY*2+muv, "teleport_hole_block")
+	end
+end
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_INIT, teleport_hole_init, "teleport_hole")
+
+TSJDNHC_PT.AddGridType("teleport_hole_block", function(self, gridList)
+	self.Sprite = GenSprite("gfx/fakegrid/teleport_hole.anm2", self.AltSkin and "yellow_down" or "blu_down")
+	self.OverSpr = GenSprite("gfx/fakegrid/teleport_hole.anm2", self.AltSkin and "yellow_up" or "blu_up")
+	local x,y = 2,2
+	if self.Rot == 1 or self.Rot == 3 then
+		x = 4
+	elseif self.Rot == 2 or self.Rot == 4 then
+		y = 4
+	end
+	self.Sprite.Rotation = (self.Rot-1) * 90
+	self.Sprite.Offset = self.Rot==1 and Vector(0,0) or self.Rot==2 and Vector(26,0)
+		or self.Rot==3 and Vector(52,26) or self.Rot==4 and Vector(0,52)
+	gridList:MakeMegaGrid(self.Index, x, y)
+end,
+nil,nil,
+function(self, Pos, scale)
+	local oldScale = self.OverSpr.Scale / 1
+	self.OverSpr.Scale = self.OverSpr.Scale*scale
+	self.OverSpr:Render(Pos)
+	self.OverSpr.Scale = oldScale
+end)
+local function teleport_hole_collision(_, player, grid)
+	local fent = player:GetData().Isaac_Tower_Data
+	if fent.State ~= "" then
+		if grid.Rot==1 then
+			if Isaac_Tower.Input.PressDown(player.ControllerIndex) then
+				player.Visible = false
+			end
+		end
+	end
+end
+
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, teleport_hole_collision, "teleport_hole")
+
+
 
 
 

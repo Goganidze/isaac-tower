@@ -154,7 +154,7 @@ function Inp.PressGrab(idx)
 		return Input.IsActionPressed(ButtonAction.ACTION_SHOOTLEFT, idx)
 	end
 end
-
+Isaac_Tower.Input = Inp
 
 local function spawnDust(pos, vec)
 	local eff = Isaac.Spawn(1000,59,1,pos+vec*2,vec,nil):ToEffect() 
@@ -1183,6 +1183,12 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 			--	fent.PunchRot = Vector(rot,0)
 			end
 			return
+		elseif Inp.PressDown(idx) then
+			if fent.OnGround then
+				SetState(fent,"Присел")
+				Isaac_Tower.EnemyHandlers.UngrabEnemy(fent.GrabTarget)
+				fent.GrabTarget = nil
+			end
 		end
 	end
 

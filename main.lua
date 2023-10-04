@@ -120,6 +120,7 @@ local Isaac_TowerCallbacks = {
 	PRE_EDITOR_CONVERTING_EDITOR_ROOM = {},
 	EDITOR_SPECIAL_UPDATE = {},
 	EDITOR_SPECIAL_TILE_RENDER = {},
+	SPECIAL_INIT = {},
 	SPECIAL_UPDATE = {},
 	SPECIAL_COLLISION = {},
 	SPECIAL_RENDER = {},
@@ -904,6 +905,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			end
 		end
 
+		local toInit = {}
 		local EntersSpawn = {}
 		local SpawnPoints = {}
 		if newRoom.Special then
@@ -922,6 +924,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 								Isaac_Tower.GridLists.Special[gType][k] = { Parent = index }
 							end
 						end
+						toInit[#toInit+1] = {gType,Isaac_Tower.GridLists.Special[gType][index]}
+
 						if gType == "Room_Transition" then
 							EntersSpawn[#EntersSpawn + 1] = {
 								Name = grid.Name,
@@ -940,6 +944,10 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 					end
 				end
 			end
+		end
+		for i=1,#toInit do
+			local k = toInit[i]
+			Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_INIT, k[1], k[1], k[2])
 		end
 
 		Isaac_Tower.SpawnPoint = newRoom.DefSpawnPoint
@@ -1512,6 +1520,20 @@ function Isaac_Tower.EnemyHandlers.RemoveEnemyFromArray(ent)
 			end
 		end
 	end
+end
+
+function Isaac_Tower.EnemyHandlers.UngrabEnemy(ent, vel)
+	vel = vel or Vector(0,0)
+	local data = ent:GetData().Isaac_Tower_Data
+	
+	data.Velocity = vel
+	data.GrabbedBy.GrabTarget = nil
+	data.GrabbedBy = nil
+	data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
+	data.StateFrame = 0
+	data.grounding = 0
+	ent:GetData().TSJDNHC_GridColl = 1
+	ent.DepthOffset = 0
 end
 
 function Isaac_Tower.GerNearestFlayer(pos)
@@ -3146,15 +3168,17 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 	end,
 	[Isaac_Tower.EnemyHandlers.EnemyState.GRABBED] = function(ent)
 		local data = ent:GetData().Isaac_Tower_Data
-		if data.GrabbedBy and Isaac_Tower.FlayerHandlers.UnGrabState[data.GrabbedBy.State] then
-			local rot = sign(data.GrabbedBy.Velocity.X)
+		if data.GrabbedBy and (Isaac_Tower.FlayerHandlers.UnGrabState[data.GrabbedBy.State] or not data.GrabbedBy.GrabTarget ) then
+			--[[local rot = sign(data.GrabbedBy.Velocity.X)
 			data.Velocity = Vector(rot*-4,-7)
 			data.GrabbedBy.GrabTarget = nil
 			data.GrabbedBy = nil
 			data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
 			data.StateFrame = 0
 			ent:GetData().TSJDNHC_GridColl = 1
-			ent.DepthOffset = 0
+			ent.DepthOffset = 0]]
+			local rot = sign(data.GrabbedBy.Velocity.X)
+			Isaac_Tower.EnemyHandlers.UngrabEnemy(ent, Vector(rot*-4,-7))
 		end
 		--Isaac_Tower.FlayerHandlers.UnGrabState
 	end,

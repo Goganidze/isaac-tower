@@ -188,6 +188,35 @@ local function NaitiMezdy(ar1,ar2,ar3,ar4)
 	return retu
 end
 
+local function PrintTab(tab, level)
+	level = level or 0
+	
+	if type(tab) == "table" then
+		for i,k in pairs(tab) do
+			local offset = ""
+			if level and level>0 then
+				for j = 0, level do
+					offset = offset .. " "
+				end
+			end
+			print(offset .. i,k)
+			if type(k) == "table" then
+				PrintTab(k, level+1)
+			end
+		end
+	end
+end
+local DeepPrint = function(...)
+	for i,k in pairs({...}) do
+		if type(k) == "table" then 
+			print(k)
+			PrintTab(k,1)
+		else
+			print(k)
+		end
+	end
+end
+
 
 
 Isaac_Tower.editor = {}
@@ -855,6 +884,8 @@ Isaac_Tower.editor.strings = {
 	["AnimName"] = {en = "name of the animation", ru = "название анимации"},
 	["Auto"] = {en = "Auto", ru = "Авто"},
 	["layer"] = {en = "layer", ru = "слой"},
+	["Rotation"] = {en = "Rotation", ru = "Поворот"},
+	["use_alt_skin"] = {en = "use an alt skin", ru = "использовать альт. окрас"},
 
 	["DefSpawnPoint"] = {en = "There must be only one DEF spawn point in the room", ru = "В комнате должна быть только одна DEF точка спавна"},
 	["addEnvitext1"] = {en = "green square should completely", ru = "зелёный квадрат должен полностью"},
@@ -872,6 +903,8 @@ Isaac_Tower.editor.strings = {
 	["Scriptname"] = {en = "Script name", ru = "название скрипта"},
 
 	["roomlist_hint"] = {en = nil, ru = "открывает список загруженных комнат"},
+	["triggerNoTarget"] = {en = "Doesn't have a target", ru = "Отсутствует цель"},
+	["ObjBlockedbyObj"] = {en = "overlapped on object layer [3]", ru = "перекрыто на слое объектов [3]"},
 }
 local function GetStr(str)
 	if Isaac_Tower.editor.strings[str] then
@@ -1599,7 +1632,7 @@ function Isaac_Tower.editor.OpenSpecialEditMenu(name, grid)
 					local self
 					self = Isaac_Tower.editor.AddButton(Menuname, bntName, Repos, 96*1.5, 9, Sspr, function(button) 
 						if frame>2 and button ~= 0 then return end
-						local Otvet = k.ResultCheck(grid,romdat)
+						local Otvet = k.ResultCheck(grid, romdat, rnam)
 						if Otvet == true then
 							grid.EditData[k.ParamName].Text = romdat
 						end
@@ -1639,6 +1672,29 @@ function Isaac_Tower.editor.OpenSpecialEditMenu(name, grid)
 				Createlist()
 			end, function(pos)
 			end,nil,-1)
+
+		elseif k.Type == 3 then
+			local knum = num+0
+			local Rpos = centerPos+Vector(0,32*knum+16-Isaac_Tower.editor.SpecialEditMenu.numParam*16)
+			Isaac_Tower.editor.AddButton(Menuname, knum, Rpos, 16, 16, UIs.FlagBtn(), function(button) 
+				if button ~= 0 then return end
+				
+
+
+				grid.EditData[k.ParamName].Flag = not grid.EditData[k.ParamName].Flag
+				k.ResultCheck(grid,grid.EditData[k.ParamName].Flag)
+				--Isaac_Tower.editor.OpenTextboxPopup(k.onlyNumber, resultCheck, grid.EditData[k.ParamName].Text or k.Text)
+			end, function(pos) 
+				if k.HintText then
+					font:DrawStringScaledUTF8(k.HintText,pos.X+6,pos.Y-8,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
+				end
+				if grid.EditData[k.ParamName].Flag then
+					UIs.Flag:Render(pos)
+				end
+				--if grid.EditData[k.ParamName].Text then
+				--	font:DrawStringScaledUTF8(grid.EditData[k.ParamName].Text,pos.X+4,pos.Y+2.5,0.5,0.5,KColor(0.1,0.1,0.2,0.8),0,false)
+				--end
+			end)
 		end
 		num = num + 1
 	end
@@ -3372,14 +3428,14 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 									--Isaac_Tower.editor.SpecialSelectedTile = grid or nil
 									
 								--else
-									if not grid or not grid.Parent then --pGrid.size or (CheckEmpty(list, Vector(x,y), pGrid.size) then
+									if not grid then --or not grid.Parent then --pGrid.size or (CheckEmpty(list, Vector(x,y), pGrid.size) then
 										--if not list[y] then
 										--	list[y] = {}
 										--end
 										--if not list[y][x] then
 										--	list[y][x] = {}
 										--end
-										SafePlacingTable(list,y,x)
+										--[[SafePlacingTable(list,y,x)
 										--list[y][x].sprite = pGrid.trueSpr
 										local Gtype = Isaac_Tower.editor.SelectedGridType
 										list[y][x].info = pGrid.info
@@ -3395,16 +3451,19 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 										Isaac_Tower.editor.Memory.CurrentRoom.SpecialSpriteTab[Gtype][index] = {spr = pGrid.trueSpr, pos = Vector(xr*26/2, ypos), info = info}
 										if pGrid.size then
 											for i,k in pairs(GetLinkedGrid(list, Vector(x,y), pGrid.size, true)) do
-												--if not list[k[1]] then
-												--	list[k[1]] = {}
+												--if not list[k[1] ] then
+												--	list[k[1] ] = {}
 												--end
-												--if not list[k[1]][k[2]] then
-												--	list[k[1]][k[2]] = {}
+												--if not list[k[1] ][k[2] ] then
+												--	list[k[1] ][k[2] ] = {}
 												--end
 												SafePlacingTable(list,k[1],k[2])
-												list[k[1]][k[2]].Parent = Vector(x,y)
+												list[k[1] ][k[2] ].Parent = Vector(x,y)
 											end
-										end
+										end]]
+										--print("hii", Input.IsMouseBtnPressed(0), grid)
+										--PrintTab(pGrid)
+										Isaac_Tower.editor.PlaceSpecial(Isaac_Tower.editor.SelectedGridType,x,y,pGrid)
 										holdMouse = 0
 									end
 								--end
@@ -3558,6 +3617,7 @@ end, function(tab)
 				for x=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.X do
 					
 					local grid = ycol and ycol[x]
+					--PrintTab(y,x,grid)
 					if grid and grid.info then
 						if typ == "Room_Transition" then
 							tab.Special[typ][#tab.Special[typ]+1] = {} --TabDeepCopy(grid.info)
@@ -3594,7 +3654,7 @@ end, function(str)
 				for x=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.X do
 					
 					local grid = ycol and ycol[x]
-					if grid and grid.info then
+					if grid and grid.type then
 						local pos = Vector(x,y)
 						solidTab = solidTab .. "    {XY=Vector(" .. math.ceil(pos.X) .. "," .. math.ceil(pos.Y) .. ")," 
 						if typ  == "Room_Transition" then
@@ -5476,6 +5536,20 @@ function Isaac_Tower.editor.GenOverlayMenu()
 	Isaac_Tower.editor.Overlay.DetectPosX = Isaac_Tower.editor.Overlay.num*16 + 16 + 22+16
 end
 
+local function checkAnotherLayer(layer, x, y, size)
+	if layer then
+		if size then
+			for i,k in pairs(GetLinkedGrid(layer, Vector(x,y), size)) do
+				return false
+			end
+		else
+			if layer[y] and layer[y][x] then
+				return false
+			end
+		end
+		return true
+	end
+end
 
 local SpecialConstMem = {}
 SpecialConstMem.ArrowLeft = GenSprite("gfx/editor/special_tiles.anm2","arrow_smol",0)
@@ -5514,11 +5588,25 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_UPDATE, function(_,IsSelect
 							SpecialConstMem.MultiDesPoint = true
 						end
 					end
+					if x.type == "trigger" then
+						if x.EditData and not x.EditData.tarname then
+							x.ErrorMes = GetStr("triggerNoTarget")
+						end
+					elseif x.type == "teleport_hole" then
+						if Isaac_Tower.editor.Memory.CurrentRoom.Obs then
+							if not checkAnotherLayer(Isaac_Tower.editor.Memory.CurrentRoom.Obs, x.XY.X*2, x.XY.Y*2, x.Size*2) then
+								x.ErrorMes = GetStr("ObjBlockedbyObj")
+								x.objOverlapped = true
+							elseif x.objOverlapped then
+								x.objOverlapped = nil
+								x.ErrorMes = nil
+							end
+						end
+					end
 				end
 			end
 		end
 
-		
 		if SpecialConstMem.MultiDesPoint and DefPointNum <= 1 then
 			SpecialConstMem.MultiDesPoint = false
 			for i,y in pairs(Isaac_Tower.editor.Memory.CurrentRoom.Special["spawnpoint_def"]) do
@@ -5553,6 +5641,8 @@ Isaac_Tower.sprites.Room_Transition_Spr = GenSprite("gfx/editor/special_tiles.an
 Isaac_Tower.sprites.Room_Transition_Spr.Scale = Vector(0.5,0.5)
 Isaac_Tower.sprites.Trigger_Spr = GenSprite("gfx/editor/special_tiles.anm2","trigger")
 Isaac_Tower.sprites.Trigger_Spr.Scale = Vector(0.5,0.5)
+Isaac_Tower.sprites.teleport_hole_Spr = GenSprite("gfx/fakegrid/teleport_hole.anm2","blu")
+Isaac_Tower.sprites.teleport_hole_Spr.Scale = Vector(0.5,0.5)
 
 local SelectedSpecialRenderFunc = {
 	Room_Transition = function(Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
@@ -5969,8 +6059,27 @@ local SpecialRenderFunc = {
 		Linfo.FSize = Linfo.FSize or Vector(1,1)
 		local oldScale = Isaac_Tower.sprites.Trigger_Spr.Scale*1
 		Isaac_Tower.sprites.Trigger_Spr.Scale = Vector(0.5,0.5) * Gridscale * Linfo.FSize --  * Vector(math.max(1,Linfo.Size.X*(1-2/28)), math.max(1,Linfo.Size.Y*(1-2/28)))
-		Isaac_Tower.sprites.Trigger_Spr:Render(renderPos+(Linfo.ThitRenderOffset or Vector(0,0))+Isaac_Tower.sprites.Room_Transition_Spr.Scale)
+		Isaac_Tower.sprites.Trigger_Spr:Render(renderPos+(Linfo.ThitRenderOffset or Vector(0,0))+Isaac_Tower.sprites.Trigger_Spr.Scale)
 		Isaac_Tower.sprites.Trigger_Spr.Scale = oldScale
+
+		if Linfo.FSize.X>1 or Linfo.FSize.Y>1 then
+			UIs.PinedPos.Scale = Vector(1*Gridscale,1*Gridscale)
+			UIs.PinedPos:Render(renderPos+Vector(-1,-2))
+		end
+	end,
+	teleport_hole = function(Linfo, info, renderPos, OverleySelected, IsSel, Gridscale)
+		local oldScale = Isaac_Tower.sprites.teleport_hole_Spr.Scale*1
+		if Linfo.AltSkin then
+			Isaac_Tower.sprites.teleport_hole_Spr:Play("yellow")
+		else
+			Isaac_Tower.sprites.teleport_hole_Spr:Play("blu")
+		end
+		Isaac_Tower.sprites.teleport_hole_Spr.Rotation = (Linfo.Rot-1) * 90
+		Isaac_Tower.sprites.teleport_hole_Spr.Offset = Linfo.Rot==1 and Vector(0,13)*Gridscale or Linfo.Rot==2 and Vector(13,0)*Gridscale 
+			or Linfo.Rot==3 and Vector(26,13)*Gridscale or Linfo.Rot==4 and Vector(13,26)*Gridscale
+		Isaac_Tower.sprites.teleport_hole_Spr.Scale = Vector(0.5,0.5) * Gridscale
+		Isaac_Tower.sprites.teleport_hole_Spr:Render(renderPos+Isaac_Tower.sprites.teleport_hole_Spr.Scale)
+		Isaac_Tower.sprites.teleport_hole_Spr.Scale = oldScale
 	end,
 }
 mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,info, renderPos, OverleySelected, IsSel, Gridscale)
@@ -6305,6 +6414,7 @@ mod:AddCallback(Isaac_Tower.Callbacks.EDITOR_SPECIAL_TILE_RENDER, function(_,inf
 				end
 			end]]
 		end
+		--print(Isaac_Tower.editor.SpecialSelectedTile, Linfo)
 		if Isaac_Tower.editor.SpecialSelectedTile == Linfo 
 		and not Isaac_Tower.game:IsPaused() and Isaac_Tower.editor.SelectedMenu == "grid" then
 			if not Isaac_Tower.editor.GetButton("grid", "_special_edit_button", true) then
@@ -6368,18 +6478,23 @@ function Isaac_Tower.editor.PlaceSpecial(Gtype,x,y,data)
 
 	SafePlacingTable(list,y,x)
 	
-	local size = data.Size
+	local size = data.Size or pGrid.info.Size
 
 	list[y][x] = TabDeepCopy(data)
 	local grid = list[y][x]
-	grid.info = pGrid.info
+	--grid.info = pGrid.info
+	for i,k in pairs(TabDeepCopy(pGrid.info)) do
+		if not grid[i] then
+			grid[i] = k
+		end
+	end
 	grid.type = Gtype --Isaac_Tower.editor.SelectedGridType
 	grid.XY = Vector(x,y)
 	grid.pos = Vector((x-1)*26/2, (y-1)*26/2)
 	--grid.Size = size*1
 	grid.ThitRenderOffset = nil
 	
-	local index = tostring(x) .. "." .. tostring(y)
+	local index = math.ceil(x) .. "." .. math.ceil(y)
 	local info = function() --if not Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype] then error("",2)  end
 		--if not Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y] then return end -- error(Gtype.." "..x.." "..y,2)  end
 		return Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype][y][x] end

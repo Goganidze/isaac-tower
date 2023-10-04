@@ -2413,6 +2413,9 @@ Special={
  Room_Transition={
     {XY=Vector(23,1),TargetRoom='tutorial_4',Name='44',TargetName='44',Size=Vector(4,1),},
  },
+ teleport_hole={
+  {XY=Vector(28,13),Name='',Rot=1,Size=Vector(2,2),},
+ }
 },
 ObsList={
   gfx='gfx/fakegrid/tutorial.png',
