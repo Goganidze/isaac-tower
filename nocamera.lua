@@ -1729,11 +1729,16 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 				else
 					tab.spr:Render(renderPos)
 					if tab.fnc then
-						tab.fnc(tab.self, renderPos, scale)
+						tab.fnc(tab.self, renderPos, vec, scale)
 					end
 				end
-			elseif tab._render then
-				
+			elseif tab.fnc then
+				local renderPos = tab.pos + startPos
+				if scale ~= 1 then
+					local scaledOffset = (scale*tab.pos-tab.pos) or Vector(0,0)
+					renderPos = renderPos + scaledOffset-zeroOffset --+ vec
+				end
+				tab.fnc(tab.self, renderPos, vec, scale)
 			end
 		end
 	elseif self.RenderMethod == 1 then
@@ -1886,8 +1891,7 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 				spr:Render(renderPos)
 			end
 			if k[4]._render then
-				print()
-				k[4]._render(k[4],renderPos,scale)
+				k[4]._render(k[4],renderPos,vec,scale)
 			end
 		end
 
@@ -1937,6 +1941,16 @@ function TSJDNHC.Grid.GetGrid(self, vec)
 end
 
 ---@return Frid
+function TSJDNHC.Grid.GetGridByXY(self, vec)
+	local xs,ys = vec.X,vec.Y
+	local grid = self.Grid[ys] and self.Grid[ys][xs]
+	if grid and grid.Parent then
+		grid = grid.Parent
+	end
+	return grid
+end
+
+---@return Frid
 function TSJDNHC.Grid.GetRawGrid(self, vec)
 	vec = vec - self.StartPos
 	local xs,ys = math.ceil(vec.X/self.Xsize), math.ceil(vec.Y/self.Ysize)
@@ -1958,6 +1972,7 @@ local function clearGridData(grid)
 	grid.Collision = 0
 end
 
+---@return Frid
 function TSJDNHC.Grid.PlaceGrid(self, tab, pos, ttype)
 	---@type Frid
 	local grid
@@ -1988,9 +2003,9 @@ function TSJDNHC.Grid.PlaceGrid(self, tab, pos, ttype)
 				grid.Mapspr = self.MapStyle.sprs[grid.SpriteAnim .. "_" .. math.ceil(id)]
 			end
 		end
+		self:UpdateUpdateTab()
+		return grid
 	end
-
-	self:UpdateUpdateTab()
 end
 
 function TSJDNHC.Grid.DestroyGrid(self, x, y)

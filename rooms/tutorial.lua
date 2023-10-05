@@ -1915,6 +1915,9 @@ Isaac_Tower.ScriptHandler.AddLocalScript('tutorial_3', "1",
 
 local roomdata = {Name='tutorial_4',Size=V(85.0,42.0),DefSpawnPoint=V(60.0,1240.0),
 Special={
+ teleport_hole={
+    {XY=Vector(33,17),TargetName='hl1',TargetRoom='tutorial_5',Name='hl1',Rot=3,Size=Vector(2,2),},
+ },
  Room_Transition={
     {XY=V(1,20),TargetRoom='tutorial_3',Name='33',TargetName='33',Size=V(1,10),},
     {XY=V(58,42),TargetRoom='tutorial_5',Name='44',TargetName='44',Size=V(4,1),},
@@ -2414,7 +2417,7 @@ Special={
     {XY=Vector(23,1),TargetRoom='tutorial_4',Name='44',TargetName='44',Size=Vector(4,1),},
  },
  teleport_hole={
-  {XY=Vector(28,13),Name='',Rot=1,Size=Vector(2,2),},
+  {XY=Vector(28,13),TargetName='hl1',TargetRoom='tutorial_4',Name='hl1',Rot=1,Size=Vector(2,2),},
  }
 },
 ObsList={

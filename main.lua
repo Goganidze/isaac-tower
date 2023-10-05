@@ -14,6 +14,7 @@ end
 Isaac_Tower = {
 	game = Game(),
 	sprites = {},
+	Renders = {},
 	inDebugVer = true
 }
 --local Isaac_Tower = Isaac_Tower 
@@ -906,11 +907,11 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		end
 
 		local toInit = {}
-		local EntersSpawn = {}
-		local SpawnPoints = {}
-		if newRoom.Special then
+		Isaac_Tower.GridLists.UnSave.EntersSpawn = {}
+		Isaac_Tower.GridLists.UnSave.SpawnPoints = {}
+		if newRoom.Special then   --Спешлы генерируются в вызове ROOM_LOADING, в файле IT_init
 			for gType, tab in pairs(newRoom.Special) do
-				if gType ~= "spawnpoint_def" and gType ~= "" then
+				if gType == "Room_Transition" or gType == "spawnpoint" then
 					Isaac_Tower.GridLists.Special[gType] = {}
 					for i, grid in ipairs(tab) do
 						--local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
@@ -927,13 +928,13 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 						toInit[#toInit+1] = {gType,Isaac_Tower.GridLists.Special[gType][index]}
 
 						if gType == "Room_Transition" then
-							EntersSpawn[#EntersSpawn + 1] = {
+							Isaac_Tower.GridLists.UnSave.EntersSpawn[#Isaac_Tower.GridLists.UnSave.EntersSpawn + 1] = {
 								Name = grid.Name,
 								pos = Isaac_Tower.GridLists.Special[gType][index].pos,
 								HasOffset = true
 							}
 						elseif gType == "spawnpoint" then
-							SpawnPoints[grid.Name] = {
+							Isaac_Tower.GridLists.UnSave.SpawnPoints[grid.Name] = {
 								Name = grid.Name,
 								pos = Isaac_Tower.GridLists.Special[gType][index].pos
 							}
@@ -950,13 +951,13 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_INIT, k[1], k[1], k[2])
 		end
 
+		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ROOM_LOADING, nil, Isaac_Tower.GridLists, newRoom, roomName, oldRoomName)
+
 		Isaac_Tower.SpawnPoint = newRoom.DefSpawnPoint
-		--if oldRoomName and newRoom.EntersSpawn and newRoom.EntersSpawn[oldRoomName] then
-		--	Isaac_Tower.SpawnPoint = newRoom.EntersSpawn[oldRoomName]
-		--end
 		local useOffset = false
 		local targetName
-		for i, k in pairs(EntersSpawn) do
+
+		for i, k in pairs(Isaac_Tower.GridLists.UnSave.EntersSpawn) do
 			--[[if k.FromRoom and preRoomName == k.FromRoom then
 			if TargetSpawnPoint and TargetSpawnPoint == k.Name then
 				--if TargetSpawnPoint == k.Name then
@@ -1002,15 +1003,10 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		
 
 
-		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ROOM_LOADING, nil, Isaac_Tower.GridLists, newRoom, roomName, oldRoomName)
+		--Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ROOM_LOADING, nil, Isaac_Tower.GridLists, newRoom, roomName, oldRoomName)
 
 		Isaac_Tower.CurrentRoom = newRoom
 
-		--print()
-		--print(Isaac_Tower.LevelHandler.HasSavedData(roomName), roomName)
-		--for i,k in pairs(Isaac_Tower.GridLists) do
-		--	print(i,k)
-		--end
 		Isaac_Tower.RoomPostCompilator()
 
 		local offset = useOffset and Isaac_Tower.TransitionSpawnOffset or Vector(0, 0)
@@ -1022,8 +1018,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		Isaac_Tower.SmoothPlayerPos = Isaac.GetPlayer():GetData().Isaac_Tower_Data.Position
 		Isaac_Tower.TransitionSpawnOffset = nil
 
-		if targetName and SpawnPoints[targetName] then
-			Isaac_Tower.SpawnPoint = SpawnPoints[targetName].pos - Vector(7, 7)
+		if targetName and Isaac_Tower.GridLists.UnSave.SpawnPoints[targetName] then
+			Isaac_Tower.SpawnPoint = Isaac_Tower.GridLists.UnSave.SpawnPoints[targetName].pos - Vector(7, 7)
 		end
 	end
 end
@@ -2413,6 +2409,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 	if ent:GetPlayerType() ~= IsaacTower_Type then return end
 	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
 	local d = ent:GetData()
+	---@type Flayer
 	local fent = d.Isaac_Tower_Data
 
 	Isaac_Tower.UpdateSpeedHandler(function()
@@ -2422,7 +2419,6 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 
 		if not Isaac_Tower.GridLists.Solid:GetGrid(fent.Position) then
 			local result = Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.PLAYER_OUT_OF_BOUNDS, nil, ent)
-			print(result)
 			if type(result) == "userdata" and result.X then
 				Isaac_Tower.SetPlayerPos(ent, result)
 			elseif result ~= true then
@@ -2533,7 +2529,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 								--local spID = spec.Parents[iq]
 								local spid = tab[spec.Parents[iq]]
 								--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
-								Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+								Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spid)
 							end
 						end
 						--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spec)
@@ -2779,6 +2775,7 @@ function Isaac_Tower.INIT_FLAYER(player)
 	end
 
 	d.Isaac_Tower_Data = {
+		Self = player,
 		FrameCount = 0,
 		Position = player.Position, --Isaac.GetPlayer(pid)
 		Velocity = Vector(0,0),
@@ -3001,7 +2998,6 @@ function Isaac_Tower.GameUpdate()
 		--TSJDNHC_PT:SetFocusPosition(Isaac_Tower.SmoothPlayerPos, 1)
 
 		if pointIndex and Isaac_Tower.GridLists.Fake then
-			--print(pointIndex)
 			local group = Isaac_Tower.GridLists.Fake[pointIndex.XY.Y] and Isaac_Tower.GridLists.Fake[pointIndex.XY.Y][pointIndex.XY.X]
 			if group then
 				fakegroup[#fakegroup+1] = group
@@ -3021,7 +3017,6 @@ function Isaac_Tower.GameUpdate()
 		for i,k in pairs(Isaac_Tower.GridLists.Fake.Sorted) do
 			if not blocked[i] then
 				for j,spr in pairs(k) do
-					--print(spr, spr.Color.A)
 					if spr.Color.A < 1 then
 						spr.Color = Color(spr.Color.R, spr.Color.G, spr.Color.B, spr.Color.A+0.1)
 					end
@@ -3029,7 +3024,6 @@ function Isaac_Tower.GameUpdate()
 			end
 		end
 	end
-	--print("Is update", Isaac.GetFrameCount())
 end
 function Isaac_Tower.GameRenderUpdate()
 	if Game():IsPaused() then return end
@@ -3066,7 +3060,6 @@ function Isaac_Tower.GameRenderUpdate()
 					local data = ent:GetData().Isaac_Tower_Data
 					data.Position = data.Position + data.Velocity
 				end
-				--print(4, ent.Position, Isaac.GetFrameCount())
 			end
 		end
 		for i=1,#arrayProj do
@@ -3203,7 +3196,6 @@ Isaac_Tower.EnemyHandlers.EnemyStateLogic = {
 		data.prePosition = data.Position/1
 		data.StateFrame = data.StateFrame + 1
 		--for i, col in pairs(Isaac_Tower.EnemyHandlers.GetCollidedEnemies(ent)) do
-		--	print(col.Position)
 		--	local Edata = col:GetData().Isaac_Tower_Data
 		--	Edata.State = Isaac_Tower.EnemyHandlers.EnemyState.DEAD
 		--	Edata.DeadFlyRot = col.Position.X < ent.Position.X and -1 or 1
@@ -3798,7 +3790,6 @@ mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, function(_, e)
 		--	e:Remove()
 		--end
 	end]]
-	--print(1,e.Velocity)
 	if e.FrameCount > 0 then
 		e.Velocity = e.Velocity/Isaac_Tower.UpdateSpeed
 	end
@@ -3810,7 +3801,6 @@ mod:AddCallback(ModCallbacks.MC_POST_EFFECT_UPDATE, function(_, e)
 		Isaac_Tower.ENT.GIBCalls.Update(e)
 	end)
 	e.Velocity = e.Velocity*Isaac_Tower.UpdateSpeed
-	--print(2,e.Velocity)
 end, IsaacTower_GibVariant)
 
 mod:AddCallback(ModCallbacks.MC_POST_EFFECT_RENDER, function(_, e)
@@ -3846,7 +3836,7 @@ Isaac_Tower.sprites.GridCollPoint:Play("point")
 --Isaac_Tower.GridLists.Evri
 
 local IsOddRenderFrame = false
-Isaac_Tower.Renders = {}
+--Isaac_Tower.Renders = {}
 local tg = 0
 local v26 = Vector(26,26)
 local v0 = Vector(0,0)
@@ -3990,7 +3980,6 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 							pos = obj.pos + startPos
 						end
 						if Scale ~= 1 then
-							--print(obj.pos, pos)print(obj.pos, pos)
 							local preScale = obj.spr.Scale/1
 							obj.spr.Scale = obj.spr.Scale*Scale
 							obj.spr:Render(pos)

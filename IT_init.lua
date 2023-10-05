@@ -957,6 +957,9 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 		if grid.TargetName then
 			solidTab = solidTab.."TargetName='"..grid.TargetName.."',"
 		end
+		if grid.TargetRoom ~= -1 then
+			solidTab = solidTab.."TargetRoom='"..grid.TargetRoom.."',"
+		end
 		if grid.Name then
 			solidTab = solidTab.."Name='"..grid.Name.."',"
 		end
@@ -1042,9 +1045,19 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 	end})
 
 local function teleport_hole_init(_,_, grid)
-	if not Isaac_Tower.LevelHandler.RoomHasSavedData(Isaac_Tower.CurrentRoom.Name) then
+	if grid.Name then
+		Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
+			Name = grid.Name,
+			pos = grid.pos
+		}
+		Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name].pos = Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name].pos + Vector(60,20)
+	end
+	if Isaac_Tower.LevelHandler.RoomHasSavedData(Isaac_Tower.CurrentRoom.Name) then
 		local muv = grid.Rot==1 and Vector(-1,1) or grid.Rot==4 and Vector(1,-1) or Vector(1,1)
-		Isaac_Tower.GridLists.Obs:PlaceGrid({Collision=1, Rot = grid.Rot}, grid.XY*2+muv, "teleport_hole_block")
+		grid.Grid = Isaac_Tower.GridLists.Obs:GetGridByXY(grid.XY*2+muv)
+	else
+		local muv = grid.Rot==1 and Vector(-1,1) or grid.Rot==4 and Vector(1,-1) or Vector(1,1)
+		grid.Grid = Isaac_Tower.GridLists.Obs:PlaceGrid({Collision=1, Rot = grid.Rot}, grid.XY*2+muv, "teleport_hole_block")
 	end
 end
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_INIT, teleport_hole_init, "teleport_hole")
@@ -1064,18 +1077,52 @@ TSJDNHC_PT.AddGridType("teleport_hole_block", function(self, gridList)
 	gridList:MakeMegaGrid(self.Index, x, y)
 end,
 nil,nil,
-function(self, Pos, scale)
+function(self, Pos, Offset, scale)
+	if self.Target then
+		Isaac_Tower.FlayerRender(nil, self.Target, Offset, Offset, scale)
+	end
+
 	local oldScale = self.OverSpr.Scale / 1
 	self.OverSpr.Scale = self.OverSpr.Scale*scale
 	self.OverSpr:Render(Pos)
 	self.OverSpr.Scale = oldScale
 end)
+
+---@param _ any
+---@param player EntityPlayer
+---@param grid SpecialGrid
 local function teleport_hole_collision(_, player, grid)
+	---@type Flayer
 	local fent = player:GetData().Isaac_Tower_Data
-	if fent.State ~= "" then
+	if grid.TargetName and fent.State ~= "Cutscene" and not Isaac_Tower.Pause then
 		if grid.Rot==1 then
 			if Isaac_Tower.Input.PressDown(player.ControllerIndex) then
 				player.Visible = false
+				fent.Velocity = Vector(0,0)
+				grid.Grid.Target = player
+				grid.Target = player
+				local gridpos = grid.pos+Vector(20,0)
+				fent.PreviousState = fent.State
+				fent.State = "Cutscene"
+				fent.StateFrame = 0
+				fent.InputWait = nil
+				fent.InvulnerabilityFrames = 5
+
+				fent.CutsceneLogic = function(player, fent, spr, idx)
+					fent.Position = gridpos
+					if spr:GetAnimation() ~= "poke" then
+						spr:Play("poke")
+					elseif spr:IsFinished("poke") then
+						Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
+						player.Visible = true
+
+						fent.PreviousState = fent.State
+						fent.State = "Ходьба"
+						fent.StateFrame = 0
+						fent.InputWait = nil
+						fent.CutsceneLogic = nil
+					end
+				end
 			end
 		end
 	end
@@ -1091,6 +1138,7 @@ do
 	local ignoreTypes = {spawnpoint_def=true,[""]=true,Room_Transition=true,spawnpoint=true}
 	Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.ROOM_LOADING, function(_,gridlist, newRoom, roomName, oldRoomName)
 		if newRoom.Special then
+			local toInit = {}
 			for gType, tab in pairs(newRoom.Special) do
 				if not ignoreTypes[gType] then
 					Isaac_Tower.GridLists.Special[gType] = {}
@@ -1138,8 +1186,14 @@ do
 						if Isaac_Tower.GridLists.Special[gType][index].Name then
 							Isaac_Tower.GridLists.ObjByName[Isaac_Tower.GridLists.Special[gType][index].Name] = Isaac_Tower.GridLists.Special[gType][index]
 						end
+						toInit[#toInit+1] = {gType,Isaac_Tower.GridLists.Special[gType][index]}
 					end
 				end
+			end
+
+			for i=1,#toInit do
+				local k = toInit[i]
+				Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_INIT, k[1], k[1], k[2])
 			end
 		end
 	end)

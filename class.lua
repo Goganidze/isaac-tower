@@ -1,0 +1,58 @@
+---@class Flayer
+---@field Position Vector
+---@field Velocity Vector
+---@field RunSpeed number
+---@field Self EntityPlayer
+---@field FrameCount integer
+---@field TrueVelocity Vector
+---@field Half Vector
+---@field DefaultHalf Vector
+---@field CollisionOffset Vector
+---@field CroachDefaultCollisionOffset Vector
+---@field jumpDelay integer
+---@field State any
+---@field StateFrame integer
+---@field JumpPressed integer
+---@field CanJump boolean
+---@field grounding integer
+---@field Flayer FlayerSprites
+---@field PosRecord table
+---@field UnStuck table
+---@field CollideWall integer|nil
+---@field OnGround boolean
+---@field CollideCeiling boolean
+---@field slopeAngle integer|nil
+---@field LastVelocity Vector
+---@field LastPosition Vector
+---@field RepeatingNum integer
+---@field slopeRot integer
+---@field SmoothUp boolean
+---@field OnAttack boolean
+---@field Shadowposes table
+---@field ControllerIndex integer
+---@field JumpActive integer
+---@field GrabPressed boolean
+---@field AttackAngle number
+---@field UseApperkot boolean
+---@field PreviousState any
+---@field InputWait integer
+---@field InvulnerabilityFrames integer
+---@field CutsceneLogic function|nil
+
+        
+---@class FlayerSprites
+---@field Sprite Sprite
+---@field Queue integer|string
+---@field SpeedEffectSprite Sprite
+---@field RightHandSprite Sprite
+
+---@class SpecialGrid
+---@field Name string|nil
+---@field Type any
+---@field XY Vector
+---@field pos Vector
+---@field Size Vector|nil
+---@field FrameCount integer
+---@field TargetName any|nil
+---@field Target any|nil
+---@field TargetRoom any

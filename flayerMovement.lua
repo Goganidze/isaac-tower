@@ -49,7 +49,7 @@ local function sign0(num)
 	return num < 0 and -1 or num == 0 and 0 or 1
 end
 
----@param state "Ходьба"|"Бег"|"Аперкот-не-кот"|"Бег_по_стене"|"Бег_смена_направления"|"Захват"|"Захватил ударил"|"Захватил"|"НачалоБега"|"Остановка_бега"|"Присел"|"Скольжение"|"Скольжение_Захват"|"Стомп"|"Стомп_импакт_пол"|"Супер_прыжок"|"Супер_прыжок_перенаправление"|"Супер_прыжок_подготовка"|"Удар_об_потолок"|"Урон"
+---@param state "Ходьба"|"Бег"|"Аперкот-не-кот"|"Бег_по_стене"|"Бег_смена_направления"|"Захват"|"Захватил ударил"|"Захватил"|"НачалоБега"|"Остановка_бега"|"Присел"|"Скольжение"|"Скольжение_Захват"|"Стомп"|"Стомп_импакт_пол"|"Супер_прыжок"|"Супер_прыжок_перенаправление"|"Супер_прыжок_подготовка"|"Удар_об_потолок"|"Урон"|"Cutscene"
 local function SetState(fent, state)
 	fent.PreviousState = fent.State
 	fent.State = state
@@ -192,6 +192,10 @@ function Isaac_Tower.FlayerHandlers.AnimWalk(spr, Walkanim, idleAnim, vel)
 	end
 end
 
+---@param fent Flayer
+---@param Upspeed number
+---@param PressTime integer
+---@param ActiveTime integer
 function Isaac_Tower.FlayerHandlers.JumpHandler(fent, Upspeed, PressTime, ActiveTime)
 	local idx = fent.ControllerIndex
 	if fent.CanJump and ((fent.OnGround or fent.jumpDelay>0) and fent.JumpPressed < PressTime or fent.JumpActive) then --15
@@ -257,6 +261,8 @@ end
 local walkRunState = {[1] = true,[2] = true,[3] = true}
 local notWallClambingState = {[1]=true, [5] = true,[40] = true} --[1] = true,
 
+---@param fent Flayer
+---@return boolean
 function Isaac_Tower.FlayerHandlers.GrabHandler(fent)
 	local idx = fent.ControllerIndex
 	local spr = fent.Flayer.Sprite
@@ -1890,6 +1896,15 @@ Isaac_Tower.FlayerMovementState["Урон"] = function(player, fent, spr, idx)
 	end
 	return toReturn
 end
+Isaac_Tower.FlayerMovementState["Cutscene"] = function(player, fent, spr, idx)
+	local toReturn = {donttransformRunSpeedtoX=true,dontLoseY=true}
+	if fent.CutsceneLogic then
+		fent.CutsceneLogic(player, fent, spr, idx)
+	end
+
+	return toReturn
+end
+
 
 
 
