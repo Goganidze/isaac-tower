@@ -38,6 +38,7 @@
 ---@field InputWait integer
 ---@field InvulnerabilityFrames integer
 ---@field CutsceneLogic function|nil
+---@field IngoneTransition integer|nil
 
         
 ---@class FlayerSprites
@@ -45,6 +46,7 @@
 ---@field Queue integer|string
 ---@field SpeedEffectSprite Sprite
 ---@field RightHandSprite Sprite
+---@field DefaultOffset Vector
 
 ---@class SpecialGrid
 ---@field Name string|nil

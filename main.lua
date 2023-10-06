@@ -218,13 +218,52 @@ mod:AddCallback(ModCallbacks.MC_PRE_MOD_UNLOAD, function(_, mod)
 				end
 			end
 		end
-		for j,f in ipairs(k) do
+		for j=#k,1,-1 do
+			local f = k[j]
 			if f.Mod == mod then
-				table.remove(f, j)
+				table.remove(k, j)
 			end
 		end
 	end
 end)
+
+-----------------------------------------Стырил из fiend folio
+local function runUpdates(tab)
+	for i = #tab, 1, -1 do
+		local f = tab[i]
+		f.Delay = f.Delay - 1
+		if f.Delay <= 0 then
+			f.Func()
+			table.remove(tab, i)
+		end
+	end
+end
+
+Isaac_Tower.delayedFuncs = {}
+function Isaac_Tower.scheduleForUpdate(foo, delay, callback, noCancelOnNewRoom)
+	callback = callback
+	if not Isaac_Tower.delayedFuncs[callback] then
+		Isaac_Tower.delayedFuncs[callback] = {}
+		Isaac_Tower.AddDirectCallback(mod,callback, function()
+			runUpdates(Isaac_Tower.delayedFuncs[callback])
+		end)
+	end
+
+	table.insert(Isaac_Tower.delayedFuncs[callback], { Func = foo, Delay = delay, NoCancel = noCancelOnNewRoom })
+end
+
+function Isaac_Tower.cancelScheduledFunctions()
+	for callback, tab in pairs(Isaac_Tower.delayedFuncs) do
+		for i = #tab, 1, -1 do
+			local f = tab[i]
+			if not f.NoCancel then
+				table.remove(tab, i)
+			end
+		end
+	end
+end
+----------------------------------------
+
 
 function Isaac_Tower.SetScale(num, noLerp) TSJDNHC_PT:SetScale(num, noLerp) end
 
@@ -497,6 +536,11 @@ do
 	function Isaac_Tower.LevelHandler.ClearRoomData()
 		Isaac_Tower.LevelHandler.RoomData = {}
 	end
+
+	function Isaac_Tower.LevelHandler.IsFirstVisit()
+		local d = Isaac_Tower.LevelHandler.GetCurrentRoomData().VisitCount
+		return d and d == 1 or false
+	end
 end
 
 
@@ -508,15 +552,19 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
 		local newRoom = Isaac_Tower.Rooms[roomName]
 
+
 		--if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
 		--	Isaac_Tower.CurrentRoom.Name = roomName
 		--else
-			Isaac_Tower.CurrentRoom = {Name = roomName}
+
+		Isaac_Tower.CurrentRoom = {Name = roomName}
+		local roomdata = Isaac_Tower.LevelHandler.GetRoomData(roomName)
+		roomdata.VisitCount = roomdata.VisitCount and (roomdata.VisitCount+1) or 1
+		roomdata.FrameCount = 0
 		--end
 		TSJDNHC_PT.DeleteAllGridList()
 		Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
-		--local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
-		--local newRoom = Isaac_Tower.Rooms[roomName]
+		
 		Isaac_Tower.GridLists = {
 			Solid = false,
 			Obs = false,
@@ -536,43 +584,10 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		end
 
 		if Isaac_Tower.LevelHandler.RoomHasSavedData(roomName) then
-			--for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
-			--	if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
-			--		ent:Remove()
-			--	end
-			--end
-			--TSJDNHC_PT.DeleteAllGridList()
-			--Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
-
-			----Isaac_Tower.GridLists.Solid = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y, newRoom.Size.X, 40,40)
-			----Isaac_Tower.GridLists.Solid:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
-			----Isaac_Tower.GridLists.Solid:SetGridFromList(newRoom.SolidList)
-			----Isaac_Tower.GridLists.Solid:SetRenderMethod(1)
-			--Isaac_Tower.GridLists = {}
 			Isaac_Tower.LevelHandler.TryRestoreSavedGridList(roomName)
 			Isaac_Tower.LevelHandler.TryRestoreSavedtEnemies(roomName)
 
-			--Isaac_Tower.GridLists.Evri = {}
-			--Isaac_Tower.GridLists.Special = {}
 		else
-			--for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
-			--	if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
-			--		ent:Remove()
-			--	end
-			--end
-
-			--TSJDNHC_PT.DeleteAllGridList()
-			--Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
-			----local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
-			----local newRoom = Isaac_Tower.Rooms[roomName]
-			--Isaac_Tower.GridLists = {
-			--	Solid = false,
-			--	Obs = false,
-			--	Special = {},
-			--	Evri = {},
-			--	Bonus = {},
-			--	--Fake = {},
-			--}
 			Isaac_Tower.GridLists.Solid = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y, newRoom.Size.X, 40,
 				40)
 			Isaac_Tower.GridLists.Obs = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y * 2, newRoom.Size.X * 2,
@@ -587,146 +602,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			Isaac_Tower.GridLists.Obs:SetGridFromList(newRoom.ObsList or {})
 			Isaac_Tower.GridLists.Solid:SetRenderMethod(1)
 			local fakelist = {}
-			--[[if newRoom.SolidFakeList then
-				--Isaac_Tower.GridLists.Fake = TSJDNHC_PT:MakeGridList(Vector(-40,100),newRoom.Size.Y,newRoom.Size.X, 40,40)
-				--Isaac_Tower.GridLists.Fake:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
-				--Isaac_Tower.GridLists.Fake:SetGridFromList(newRoom.SolidFakeList)
-				----Isaac_Tower.GridLists.Fake:SetManualRender(true)
-				----Isaac_Tower.GridLists.Fake:SetRenderMethod(1)
-
-				--Isaac_Tower.GridLists.Fake:Render(Offset, Scale)
-				local Fake = TSJDNHC_PT:MakeGridList(Vector(-40, 100), newRoom.Size.Y, newRoom.Size.X, 40, 40) --TODO: прямое преобразование
-				Fake:SetGridAnim("gfx/fakegrid/grid2.anm2", 9)
-				Fake:SetGridFromList(newRoom.SolidFakeList)
-				Isaac_Tower.GridLists.Fake = {}
-				Isaac_Tower.GridLists.Fake.Sorted = {}
-				--Isaac_Tower.GridLists.FakeList = {}
-
-				local gfx = Isaac_Tower.GridLists.Solid.SpriteSheep
-				local anim = Isaac_Tower.GridLists.Solid.Anm2File
-				local function makeSprite(gridlist, Gtype)
-					local spr = Sprite()
-					spr:Load(anim, false)
-					if gfx then
-						for layer = 0, spr:GetLayerCount() - 1 do
-							spr:ReplaceSpritesheet(layer, gfx)
-						end
-					end
-					spr:LoadGraphics()
-					spr:Play(tostring(Gtype))
-					return spr
-				end
-
-				local list = Fake
-
-				for i = list.Y, 1, -1 do
-					for j = list.X, 1, -1 do
-						local grid = list.Grid[i][j]
-						local setGrids
-						if grid.SpriteAnim then
-							--Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
-							--Isaac_Tower.GridLists.Fake[i][j] = grid.gr
-							local nextindex = #fakelist + 1
-							fakelist[nextindex] = {
-								pos = grid.RenderPos,
-								spr = makeSprite(nil, grid.SpriteAnim), --self.GridSprites[grid.SpriteAnim] or self.GridSprites[tostring(grid.SpriteAnim)],
-								chl = grid.chl,
-							}
-							setGrids = true
-							Isaac_Tower.GridLists.Fake.Sorted[grid.gr] = Isaac_Tower.GridLists.Fake.Sorted[grid.gr] or {}
-							Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr] + 1] =
-							fakelist[nextindex].spr
-							--print(Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr] ], fakelist[nextindex].spr)
-						end
-						if grid.Sprite then
-							--Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
-							--Isaac_Tower.GridLists.Fake[i][j] = grid.gr
-							fakelist[#fakelist + 1] = {
-								pos = grid.RenderPos,
-								spr = grid.Sprite,
-								chl = grid.chl,
-							}
-							setGrids = true
-							Isaac_Tower.GridLists.Fake.Sorted[grid.gr] = Isaac_Tower.GridLists.Fake.Sorted[grid.gr] or {}
-							Isaac_Tower.GridLists.Fake.Sorted[grid.gr][#Isaac_Tower.GridLists.Fake.Sorted[grid.gr] + 1] =
-							fakelist[#fakelist].spr
-						end
-						if setGrids then
-							Isaac_Tower.GridLists.Fake[i] = Isaac_Tower.GridLists.Fake[i] or {}
-							Isaac_Tower.GridLists.Fake[i][j] = grid.gr
-							if grid.Childs then
-								for id = 1, #grid.Childs do
-									local chl = grid.Childs[id]
-									Isaac_Tower.GridLists.Fake[chl.XY.Y] = Isaac_Tower.GridLists.Fake[chl.XY.Y] or {}
-									Isaac_Tower.GridLists.Fake[chl.XY.Y][chl.XY.X] = grid.gr
-								end
-							end
-						end
-					end
-				end
-				Fake:Delete()
-			end
-			--Isaac_Tower.GridLists.Obs:SetRenderMethod(1)
-
-			if newRoom.EnviList then
-				local list = Isaac_Tower.GridLists.Evri
-				list.List = {}
-				local CustomType = {}
-				if newRoom.EnviList.CT and newRoom.EnviList.CF then
-					for i, k in pairs(newRoom.EnviList.CT) do
-						local size, pivot = Vector(k[3][1], k[3][2]), Vector(k[4][1], k[4][2])
-						local anm2, anim = newRoom.EnviList.CF[k[1] ], k[2]
-						local GType = anm2 .. anim
-						CustomType[i] = GType
-
-						local ingridSpr = GenSprite(anm2, anim)
-						ingridSpr.Scale = Vector(.5, .5)
-						Isaac_Tower.editor.AddEnvironment(GType,
-							GenSprite(anm2, anim),
-							function() return GenSprite(anm2, anim) end,
-							ingridSpr,
-							size,
-							pivot)
-					end
-					newRoom.EnviList.CT = nil
-					newRoom.EnviList.CF = nil
-				end
-				for i, k in pairs(newRoom.EnviList) do
-					if Isaac_Tower.editor.GridTypes["Environment"][k.name or CustomType[k.ct] ] then
-						if k.ct and CustomType[k.ct] then
-							k.name = CustomType[k.ct]
-						end
-
-						local spr = Isaac_Tower.editor.GridTypes["Environment"][k.name or CustomType[k.ct] ].info()
-						list.List[i] = { pos = k.pos, spr = spr, l = k.l or 0 }
-						local layer = k.l or 0
-
-						list[layer] = list[layer] or {}
-						for _, index in pairs(k.chl) do
-							local gridlist = list[layer]
-							gridlist[index[1] ] = gridlist[index[1] ] or {}
-							gridlist[index[1] ][index[2] ] = gridlist[index[1] ][index[2] ] or {}
-							gridlist[index[1] ][index[2] ].Ps = gridlist[index[1] ][index[2] ].Ps or {}
-							gridlist[index[1] ][index[2] ].Ps[i] = true
-						end
-					end
-				end
-				for i, k in pairs(fakelist) do
-					local id = #list.List + 1
-					list.List[id] = { pos = k.pos, spr = k.spr, l = 0 }
-					local layer = "fake"
-
-					list[layer] = list[layer] or {}
-					for _, index in pairs(k.chl) do
-						local gridlist = list[layer]
-						gridlist[index[1] ] = gridlist[index[1] ] or {}
-						gridlist[index[1] ][index[2] ] = gridlist[index[1] ][index[2] ] or {}
-						gridlist[index[1] ][index[2] ].Ps = gridlist[index[1] ][index[2] ].Ps or {}
-						gridlist[index[1] ][index[2] ].Ps[id] = true
-					end
-				end
-			end]]
-
+			
 			if newRoom.Enemy then
 				for i, k in pairs(newRoom.Enemy) do
 					local data = Isaac_Tower.EnemyHandlers.Enemies[k.name]
@@ -741,35 +617,12 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				for i, k in pairs(newRoom.Bonus) do
 					local data = Isaac_Tower.FlayerHandlers.BonusPickup[k.name]
 					if data then
-						--Isaac_Tower.Spawn(k.name, k.st, k.pos*20 + Vector(-60,80-data.spawnOffset), Vector(0,0))
-						--for i,k in pairs(data) do
-						--	print(i,k)
-						--end
-						--[[local spr = GenSprite(data.gfx, data.anim)
-						spr.PlaybackSpeed = 0.5
-						local x, y = k.pos.X, k.pos.Y
-						local grid = SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, y) --[x]
-						local posi = k.pos * 20 + data.Size * 10 + Vector(-60, 80)
-						grid[x] = {
-							Sprite = spr,
-							XY = k.pos,
-							Position = posi,
-							RenderPos = (k.pos * 20 + Vector(-20, -20)) / Wtr, --+ Vector(-60,80)
-							Exists = true,
-							Type = data.Name,
-							CH = {},
-							Ref = #Isaac_Tower.GridLists.Bonus.Ref + 1
-						}
-						for i, k in pairs(GetLinkedGrid(Isaac_Tower.GridLists.Bonus.Grid, k.pos, data.Size, true)) do
-							SafePlacingTable(Isaac_Tower.GridLists.Bonus.Grid, k.Y)[k.X] = { XY = k, Parent = grid[x] }
-							grid[x].CH[#grid[x].CH + 1] = k
-						end
-						Isaac_Tower.GridLists.Bonus.Ref[#Isaac_Tower.GridLists.Bonus.Ref + 1] = { k.pos, grid[x] }
-						Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_INIT, data.Name, grid[x])]]
 						Isaac_Tower.LevelHandler.PlaceBonusPickup(data, k.pos, Isaac_Tower.GridLists.Bonus)
 					end
 				end
 			end
+
+			Isaac_Tower.RoomPostCompilator()
 		end
 
 		local fakelist = {}
@@ -1007,7 +860,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 
 		Isaac_Tower.CurrentRoom = newRoom
 
-		Isaac_Tower.RoomPostCompilator()
+		--Isaac_Tower.RoomPostCompilator()
 
 		local offset = useOffset and Isaac_Tower.TransitionSpawnOffset or Vector(0, 0)
 		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
@@ -1021,6 +874,8 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		if targetName and Isaac_Tower.GridLists.UnSave.SpawnPoints[targetName] then
 			Isaac_Tower.SpawnPoint = Isaac_Tower.GridLists.UnSave.SpawnPoints[targetName].pos - Vector(7, 7)
 		end
+
+		Isaac_Tower.cancelScheduledFunctions()
 	end
 end
 
@@ -2448,228 +2303,232 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		local GridListSizeX = Isaac_Tower.GridLists.Solid.X
 		
 		for ihhh = 1, repeatNum do
-			local indexs = {}
-			local pointIndex = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position)
-			--local pointIndexStr = pointIndex and (math.ceil(pointIndex.XY.X) .. "." .. math.ceil(pointIndex.XY.Y))
-			local pointIndexStr = pointIndex and (pointIndex.XY.Y * GridListSizeX + pointIndex.XY.X)
-			for ia, k in pairs(d.TSJDNHC_GridPoints) do
-				local grid = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position + Vector(0, 12) + fent.Velocity + k[1])
+			if d.TSJDNHC_GridColl>0 then
+				local indexs = {}
+				local pointIndex = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position)
+				--local pointIndexStr = pointIndex and (math.ceil(pointIndex.XY.X) .. "." .. math.ceil(pointIndex.XY.Y))
+				local pointIndexStr = pointIndex and (pointIndex.XY.Y * GridListSizeX + pointIndex.XY.X)
+				for ia, k in pairs(d.TSJDNHC_GridPoints) do
+					local grid = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position + Vector(0, 12) + fent.Velocity + k[1])
 
-				if grid then
-					if Isaac_Tower.ShouldCollide(ent, grid) then
-						collidedGrid[grid] = collidedGrid[grid] or {}
-						--collidedGrid[grid][i] = k[1] + fent.Position
-						ent:GetData().LastcollidedGrid[#ent:GetData().LastcollidedGrid + 1] = grid
-					end
-					--local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
-					local index = grid.XY.Y * GridListSizeX + grid.XY.X
-					indexs[index] = true
-				end
-				--fent.Velocity = origVelocity
-				local obs = Isaac_Tower.GridLists.Obs:GetGrid(fent.Position + Vector(0, 12) + fent.Velocity + k[1]*Vector(1,1.2))
-				if obs and Isaac_Tower.ShouldCollide(ent, obs) then
-					collidedGrid[obs] = collidedGrid[grid] or {} --true
-					--collidedGrid[obs][i] = k[1] + fent.Position -- ent.Velocity
-					ent:GetData().LastcollidedGrid[#ent:GetData().LastcollidedGrid + 1] = obs
-				end
-				--fent.Velocity = slowedVelocity
-
-				if obs and Isaac_Tower.GridLists.Bonus.Grid then
-					local yr,xr = obs.XY.Y, obs.XY.X
-					local bonus = Isaac_Tower.GridLists.Bonus.Grid[yr] and Isaac_Tower.GridLists.Bonus.Grid[yr][xr]
-					if bonus then
-						if bonus.Parent then
-							--if Isaac_Tower.GridLists.Bonus.Ref[bonus.Parent] then
-								bonus = bonus.Parent --Isaac_Tower.GridLists.Bonus.Ref[bonus.Parent][2]
-							--else
-							--	Isaac_Tower.GridLists.Bonus.Grid[bonus.XY.Y][bonus.XY.X] = nil
-							--end
+					if grid then
+						if Isaac_Tower.ShouldCollide(ent, grid) then
+							collidedGrid[grid] = collidedGrid[grid] or {}
+							--collidedGrid[grid][i] = k[1] + fent.Position
+							ent:GetData().LastcollidedGrid[#ent:GetData().LastcollidedGrid + 1] = grid
 						end
-						Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_COLLISION, bonus.Type, ent, bonus)
+						--local index = math.ceil(grid.XY.X) .. "." .. math.ceil(grid.XY.Y)
+						local index = grid.XY.Y * GridListSizeX + grid.XY.X
+						indexs[index] = true
+					end
+					--fent.Velocity = origVelocity
+					local obs = Isaac_Tower.GridLists.Obs:GetGrid(fent.Position + Vector(0, 12) + fent.Velocity + k[1]*Vector(1,1.2))
+					if obs and Isaac_Tower.ShouldCollide(ent, obs) then
+						collidedGrid[obs] = collidedGrid[grid] or {} --true
+						--collidedGrid[obs][i] = k[1] + fent.Position -- ent.Velocity
+						ent:GetData().LastcollidedGrid[#ent:GetData().LastcollidedGrid + 1] = obs
+					end
+					--fent.Velocity = slowedVelocity
+
+					if obs and Isaac_Tower.GridLists.Bonus.Grid then
+						local yr,xr = obs.XY.Y, obs.XY.X
+						local bonus = Isaac_Tower.GridLists.Bonus.Grid[yr] and Isaac_Tower.GridLists.Bonus.Grid[yr][xr]
+						if bonus then
+							if bonus.Parent then
+								--if Isaac_Tower.GridLists.Bonus.Ref[bonus.Parent] then
+									bonus = bonus.Parent --Isaac_Tower.GridLists.Bonus.Ref[bonus.Parent][2]
+								--else
+								--	Isaac_Tower.GridLists.Bonus.Grid[bonus.XY.Y][bonus.XY.X] = nil
+								--end
+							end
+							Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.BONUSPICKUP_COLLISION, bonus.Type, ent, bonus)
+						end
 					end
 				end
-			end
 
-			for ia, k in pairs(indexs) do
-				local indexsignors = {}
-				for gtype, tab in pairs(Isaac_Tower.GridLists.Special) do
-					local spec = tab[ia]
-					if spec then
-						if spec.Parent then
-							spec = tab[spec.Parent]
+				
+				--[[if pointIndex and Isaac_Tower.GridLists.Fake then
+					for gtype, tab in pairs(Isaac_Tower.GridLists.Fake) do
+						local spec = tab[pointIndexStr]
+						print(spec,gtype, tab)
+						if spec then
+							if spec.Parent then
+								spec = tab[spec.Parent]
+							end
 						end
-						if spec.Parents then
-							for iq=1,#spec.Parents do
-								--local spID = spec.Parents[iq]
-								local spid = tab[spec.Parents[iq]]
-								if not indexsignors[spid] then
-									indexsignors[spid] = true
-									--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
-									Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+					end
+				end]]
+
+				for ia, k in pairs(Isaac.GetCallbacks(Isaac_Tower.Callbacks.FLAYER_GRID_SCANING)) do
+					local result = k.Function(k.Mod, ent, fent)
+					if result then
+						collidedGrid[result] = collidedGrid[result] or {}
+					end
+				end
+
+				ent:GetData().DebugGridRen = ent:GetData().DebugGridRen or {}
+
+				ent:GetData().DebugGridRen = {}
+				
+				for ia, k in pairs(collidedGrid) do
+					--local gridpos = (i.Position + i.CenterPos)
+					--local entpos = fent.Position - i.Position - fent.Velocity
+					--local nearPoint
+					--local maxd = 1000000
+
+					local hit = intersectAABB_X(fent, ia) ---разделить проверку на x и y
+
+					if hit and hit.delta.X ~= 0 then
+						if not fent.slopeRot --hit.Slope
+							or ((fent.Position.Y > hit.pos.Y or not fent.slopeRot == sign(hit.delta.X))
+								and fent.slopeRot == sign(hit.delta.X)) then
+							d.DebugGridRen[#d.DebugGridRen + 1] = hit.pos
+							fent.Position.X = fent.Position.X - hit.delta.X + fent.Velocity.X
+
+							if sign(fent.Velocity.X) == sign(hit.delta.X) then
+								fent.Velocity.X = 0
+							end
+						end
+						fent.UnStuck.CounterForce = fent.UnStuck.CounterForce + math.abs(hit.delta.X)
+					end
+				end
+				
+				local hasUpHelp = false
+				for ia, k in pairs(collidedGrid) do
+					local hitY = intersectAABB_Y(fent, ia)
+
+					if hitY and hitY.delta.Y ~= 0 then
+						d.DebugGridRen[#d.DebugGridRen + 1] = hitY.pos
+						if fent.SmoothUp then
+							hasUpHelp = true
+							
+							fent.Position.Y = fent.Position.Y - hitY.delta.Y / math.max(1, (30 / (math.abs(fent.Velocity.X)+2))) --10
+							
+							if hitY.delta.Y < 6 then
+								fent.SmoothUp = nil
+							end
+						else
+							fent.Position.Y = fent.Position.Y - hitY.delta.Y --Vector(0, hitY.delta.Y)
+						end
+						fent.UnStuck.CounterForce = fent.UnStuck.CounterForce + math.abs(hitY.delta.Y)
+						if hitY.SlopeAngle then
+							fent.slopeAngle = hitY.SlopeAngle
+						end
+					elseif not hasUpHelp then
+						fent.SmoothUp = nil
+					end
+				end
+
+				---- Анти застрязин
+				if fent.UnStuck.CounterForce > 50 then
+					if fent.UnStuck.LastPoses[fent.UnStuck.Nem+1] then
+						fent.Position = fent.UnStuck.LastPoses[fent.UnStuck.Nem+1] --Nem
+						fent.UnStuck.Nem = fent.UnStuck.Nem + 1
+					else
+					--	fent.UnStuck.Nem = 0
+					end
+				end
+				fent.UnStuck.CounterForce = math.min(500, math.max(0, fent.UnStuck.CounterForce - 20))
+				if fent.UnStuck.CounterForce <= 10 then
+					--fent.UnStuck.LastPoses[#fent.UnStuck.LastPoses+1] = fent.Position
+					if fent.FrameCount%2 == 0 then
+						table.insert(fent.UnStuck.LastPoses,1,fent.Position)
+					end
+					fent.UnStuck.Nem = 0
+				end
+				if #fent.UnStuck.LastPoses>25 then
+					fent.UnStuck.LastPoses[26] = nil
+				end
+
+				fent.Position = fent.Position + fent.Velocity -- * Isaac_Tower.UpdateSpeed
+				ent.Position = Vector(-200, fent.Position.Y + 50)
+
+
+				if fent.TrueVelocity.Y >= 0 and fent.grounding and fent.grounding > 0 then
+					local collGrid = {}
+					for i = -1, 1 do
+						local grid = Isaac_Tower.rayCast((fent.Position - fent.Velocity + Vector(fent.Half.X * i, -10)),
+							Vector(0, 1), 10, 6)    -- Vector(fent.Half.X*i,-10)
+
+						if grid and Isaac_Tower.ShouldCollide(ent, grid) then  --and grid.slope
+							collGrid[grid] = collGrid[grid] or true
+						end
+					end
+					local groundMinOffset = -200
+					local ignoreGrounding = false
+					for ia, k in pairs(collGrid) do
+						local hit = Isaac_Tower.CheckintersectAABB(fent, ia)
+
+						if hit.delta.Y > -40 and hit.delta.Y <= 10 and groundMinOffset < hit.delta.Y then
+							groundMinOffset = math.min(0, hit.delta.Y) -- 1
+
+							--[[local GridCollPoint = Sprite()
+								GridCollPoint:Load("gfx/doubleRender/gridDebug/debug.anm2")
+								GridCollPoint.Scale = Vector(2.5,2.5)
+								GridCollPoint:Play("point")
+								Isaac_Tower.DebugRenderThis(GridCollPoint, Isaac.WorldToRenderPosition(hit.pos), 1)]]
+
+							if not ignoreGrounding and not ia.slope then
+								ignoreGrounding = true
+							elseif ignoreGrounding and ia.slope then
+								ignoreGrounding = false
+							end
+						end
+					end
+					if not ignoreGrounding and groundMinOffset > -40 and groundMinOffset < 0 then
+						fent.Position.Y = fent.Position.Y - groundMinOffset --+ math.max(0, fent.Velocity.Y-4)
+						fent.OnGround = true
+						fent.jumpDelay = 10
+						fent.Velocity.Y = math.min(0, fent.Velocity.Y)
+					end
+				end
+
+				for ia, k in pairs(indexs) do
+					local indexsignors = {}
+					for gtype, tab in pairs(Isaac_Tower.GridLists.Special) do
+						local spec = tab[ia]
+						if spec then
+							if spec.Parent then
+								spec = tab[spec.Parent]
+							end
+							if spec.Parents then
+								for iq=1,#spec.Parents do
+									--local spID = spec.Parents[iq]
+									local spid = tab[spec.Parents[iq]]
+									if not indexsignors[spid] then
+										indexsignors[spid] = true
+										--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+										Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+									end
 								end
 							end
-						end
-						if not indexsignors[spec] then
-							indexsignors[spec] = true
-							--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spec)
-							Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spec)
-						end
-					end
-				end
-			end
-			if pointIndexStr then
-				for gtype, tab in pairs(Isaac_Tower.GridLists.Special) do
-					local spec = tab[pointIndexStr]
-					if spec then
-						if spec.Parent then
-							spec = tab[spec.Parent]
-						end
-						if spec.Parents then
-							for iq=1,#spec.Parents do
-								--local spID = spec.Parents[iq]
-								local spid = tab[spec.Parents[iq]]
-								--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
-								Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spid)
+							if not indexsignors[spec] then
+								indexsignors[spec] = true
+								--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spec)
+								Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spec)
 							end
 						end
-						--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spec)
-						Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spec)
 					end
 				end
-			end
-			--[[if pointIndex and Isaac_Tower.GridLists.Fake then
-				for gtype, tab in pairs(Isaac_Tower.GridLists.Fake) do
-					local spec = tab[pointIndexStr]
-					print(spec,gtype, tab)
-					if spec then
-						if spec.Parent then
-							spec = tab[spec.Parent]
+				if pointIndexStr then
+					for gtype, tab in pairs(Isaac_Tower.GridLists.Special) do
+						local spec = tab[pointIndexStr]
+						if spec then
+							if spec.Parent then
+								spec = tab[spec.Parent]
+							end
+							if spec.Parents then
+								for iq=1,#spec.Parents do
+									--local spID = spec.Parents[iq]
+									local spid = tab[spec.Parents[iq]]
+									--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_COLLISION, gtype, ent, spid)
+									Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spid)
+								end
+							end
+							--Isaac.RunCallbackWithParam(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spec)
+							Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, gtype, ent, spec)
 						end
 					end
-				end
-			end]]
-
-			for ia, k in pairs(Isaac.GetCallbacks(Isaac_Tower.Callbacks.FLAYER_GRID_SCANING)) do
-				local result = k.Function(k.Mod, ent, fent)
-				if result then
-					collidedGrid[result] = collidedGrid[result] or {}
-				end
-			end
-
-			ent:GetData().DebugGridRen = ent:GetData().DebugGridRen or {}
-
-			ent:GetData().DebugGridRen = {}
-			
-			for ia, k in pairs(collidedGrid) do
-				--local gridpos = (i.Position + i.CenterPos)
-				--local entpos = fent.Position - i.Position - fent.Velocity
-				--local nearPoint
-				--local maxd = 1000000
-
-				local hit = intersectAABB_X(fent, ia) ---разделить проверку на x и y
-
-				if hit and hit.delta.X ~= 0 then
-					if not fent.slopeRot --hit.Slope
-						or ((fent.Position.Y > hit.pos.Y or not fent.slopeRot == sign(hit.delta.X))
-							and fent.slopeRot == sign(hit.delta.X)) then
-						d.DebugGridRen[#d.DebugGridRen + 1] = hit.pos
-						fent.Position.X = fent.Position.X - hit.delta.X + fent.Velocity.X
-
-						if sign(fent.Velocity.X) == sign(hit.delta.X) then
-							fent.Velocity.X = 0
-						end
-					end
-					fent.UnStuck.CounterForce = fent.UnStuck.CounterForce + math.abs(hit.delta.X)
-				end
-			end
-			
-			local hasUpHelp = false
-			for ia, k in pairs(collidedGrid) do
-				local hitY = intersectAABB_Y(fent, ia)
-
-				if hitY and hitY.delta.Y ~= 0 then
-					d.DebugGridRen[#d.DebugGridRen + 1] = hitY.pos
-					if fent.SmoothUp then
-						hasUpHelp = true
-						
-						fent.Position.Y = fent.Position.Y - hitY.delta.Y / math.max(1, (30 / (math.abs(fent.Velocity.X)+2))) --10
-						
-						if hitY.delta.Y < 6 then
-							fent.SmoothUp = nil
-						end
-					else
-						fent.Position.Y = fent.Position.Y - hitY.delta.Y --Vector(0, hitY.delta.Y)
-					end
-					fent.UnStuck.CounterForce = fent.UnStuck.CounterForce + math.abs(hitY.delta.Y)
-					if hitY.SlopeAngle then
-						fent.slopeAngle = hitY.SlopeAngle
-					end
-				elseif not hasUpHelp then
-					fent.SmoothUp = nil
-				end
-			end
-
-			---- Анти застрязин
-			if fent.UnStuck.CounterForce > 50 then
-				if fent.UnStuck.LastPoses[fent.UnStuck.Nem+1] then
-					fent.Position = fent.UnStuck.LastPoses[fent.UnStuck.Nem+1] --Nem
-					fent.UnStuck.Nem = fent.UnStuck.Nem + 1
-				else
-				--	fent.UnStuck.Nem = 0
-				end
-			end
-			fent.UnStuck.CounterForce = math.min(500, math.max(0, fent.UnStuck.CounterForce - 20))
-			if fent.UnStuck.CounterForce <= 10 then
-				--fent.UnStuck.LastPoses[#fent.UnStuck.LastPoses+1] = fent.Position
-				if fent.FrameCount%2 == 0 then
-					table.insert(fent.UnStuck.LastPoses,1,fent.Position)
-				end
-				fent.UnStuck.Nem = 0
-			end
-			if #fent.UnStuck.LastPoses>25 then
-				fent.UnStuck.LastPoses[26] = nil
-			end
-
-			fent.Position = fent.Position + fent.Velocity -- * Isaac_Tower.UpdateSpeed
-			ent.Position = Vector(-200, fent.Position.Y + 50)
-
-
-			if fent.TrueVelocity.Y >= 0 and fent.grounding and fent.grounding > 0 then
-				local collGrid = {}
-				for i = -1, 1 do
-					local grid = Isaac_Tower.rayCast((fent.Position - fent.Velocity + Vector(fent.Half.X * i, -10)),
-						Vector(0, 1), 10, 6)    -- Vector(fent.Half.X*i,-10)
-
-					if grid and Isaac_Tower.ShouldCollide(ent, grid) then  --and grid.slope
-						collGrid[grid] = collGrid[grid] or true
-					end
-				end
-				local groundMinOffset = -200
-				local ignoreGrounding = false
-				for ia, k in pairs(collGrid) do
-					local hit = Isaac_Tower.CheckintersectAABB(fent, ia)
-
-					if hit.delta.Y > -40 and hit.delta.Y <= 10 and groundMinOffset < hit.delta.Y then
-						groundMinOffset = math.min(0, hit.delta.Y) -- 1
-
-						--[[local GridCollPoint = Sprite()
-							GridCollPoint:Load("gfx/doubleRender/gridDebug/debug.anm2")
-							GridCollPoint.Scale = Vector(2.5,2.5)
-							GridCollPoint:Play("point")
-							Isaac_Tower.DebugRenderThis(GridCollPoint, Isaac.WorldToRenderPosition(hit.pos), 1)]]
-
-						if not ignoreGrounding and not ia.slope then
-							ignoreGrounding = true
-						elseif ignoreGrounding and ia.slope then
-							ignoreGrounding = false
-						end
-					end
-				end
-				if not ignoreGrounding and groundMinOffset > -40 and groundMinOffset < 0 then
-					fent.Position.Y = fent.Position.Y - groundMinOffset --+ math.max(0, fent.Velocity.Y-4)
-					fent.OnGround = true
-					fent.jumpDelay = 10
-					fent.Velocity.Y = math.min(0, fent.Velocity.Y)
 				end
 			end
 		end
@@ -2795,6 +2654,7 @@ function Isaac_Tower.INIT_FLAYER(player)
 			Queue = -1,
 			SpeedEffectSprite = Sprite(),
 			RightHandSprite = Sprite(),
+			DefaultOffset = Vector(0,12)
 		},
 		PosRecord = {},
 		UnStuck = {
@@ -2984,13 +2844,17 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.ENTITY_POSTRENDER, Isaac_Tower.FlayerRender
 
 local flayerList = {}
 function Isaac_Tower.GameUpdate()
+	local roomdat = Isaac_Tower.LevelHandler.RoomData[Isaac_Tower.CurrentRoom.Name]
+	if roomdat then
+		roomdat.FrameCount = roomdat.FrameCount + 1
+	end
 	Isaac_Tower.GridLists.Obs:CallGridUpdate()
 
 	local fakegroup = {}
 	for i=0, Game():GetNumPlayers() do
 		flayerList[i] = Isaac_Tower.GetFlayer(i)  --Isaac_Tower.GetFlayer(i)
 		local fent = flayerList[i]
-		local pointIndex = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position)
+		local pointIndex = Isaac_Tower.GridLists.Solid:GetRawGrid(fent.Position)
 		--Isaac_Tower.SmoothPlayerPos = Isaac_Tower.SmoothPlayerPos * 0.8 
 		--	+ (fent.Position + Vector(fent.Velocity.X, 0) * 5) * 0.2
 
@@ -3374,9 +3238,12 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 
 		if data.Flags.EntityCollision == 1 then
 			for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
-				local fent = Isaac_Tower.GetFlayer(i)
+				local player = Isaac.GetPlayer(i)
+				local fent = player:GetData().Isaac_Tower_Data --Isaac_Tower.GetFlayer(i)
 				local dist = fent and fent.Position:Distance(data.Position)
-				if fent and dist < data.FlayerDistanceCheck and data.State ~= Isaac_Tower.EnemyHandlers.EnemyState.GRABBED then
+
+				if fent and player.EntityCollisionClass > 0 
+				and dist < data.FlayerDistanceCheck and data.State ~= Isaac_Tower.EnemyHandlers.EnemyState.GRABBED then
 					
 					local box1 = {pos = data.Position, half = data.Half}
 					local box2 = {pos = fent.Position, half = fent.Half}

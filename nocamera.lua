@@ -362,10 +362,11 @@ function TSJDNHC.CamEntUpdat(_,e)
 
 			d.RoomIndex = RoomIndex 
 		else
-			--print()
-			d.CurrentCameraScale = (d.CurrentCameraScale*0.9 + d.CameraScale*0.1)
+			local scaleLerp = d.CameraScaleLerp or 0.1
+			d.CurrentCameraScale = (d.CurrentCameraScale*(1-scaleLerp) + d.CameraScale*scaleLerp)
 			if math.abs(d.CameraScale-d.CurrentCameraScale)<0.001 then
 				d.CurrentCameraScale = d.CameraScale
+				d.CameraScaleLerp = nil
 			end
 			local scale = Vector(d.CurrentCameraScale or 1,d.CurrentCameraScale or 1)
 			d.FloorSprite.Scale = scale
@@ -1097,30 +1098,32 @@ function TSJDNHC:IsCamRender()
     end
 end
 
-function TSJDNHC:SetScale(scale, noLerp)
-    if CameraEntity and CameraEntity.Ref then
-	local d = CameraEntity.Ref:GetData()
-	if type(scale) == 'number' then
-		d.CameraScale = scale
-		if noLerp then
-			d.CurrentCameraScale = scale
-			local vec = Vector(scale,scale)
-			d.FloorSprite.Scale = vec
-			d.WallSprite.Scale = vec
-			d.WallSprite2.Scale = vec
-			d.RoomShading.Scale = vec
-			local centerPos = game:GetRoom():GetRoomShape()>8 and Vector(580,420) or game:GetRoom():GetCenterPos()
-			d.CenterPos = Isaac.WorldToRenderPosition(centerPos)*scale+bg_RenderPos*(1-scale)
-			for i=0,game:GetNumPlayers()-1 do
-				local player = Isaac.GetPlayer(i) 
-				player:AddCacheFlags(CacheFlag.CACHE_SIZE)
- 				player:EvaluateItems()
+function TSJDNHC:SetScale(scale, Lerp)
+	if CameraEntity and CameraEntity.Ref then
+		local d = CameraEntity.Ref:GetData()
+		if type(scale) == 'number' then
+			d.CameraScale = scale
+			if Lerp == 1 then
+				d.CurrentCameraScale = scale
+				local vec = Vector(scale,scale)
+				d.FloorSprite.Scale = vec
+				d.WallSprite.Scale = vec
+				d.WallSprite2.Scale = vec
+				d.RoomShading.Scale = vec
+				local centerPos = game:GetRoom():GetRoomShape()>8 and Vector(580,420) or game:GetRoom():GetCenterPos()
+				d.CenterPos = Isaac.WorldToRenderPosition(centerPos)*scale+bg_RenderPos*(1-scale)
+				for i=0,game:GetNumPlayers()-1 do
+					local player = Isaac.GetPlayer(i) 
+					player:AddCacheFlags(CacheFlag.CACHE_SIZE)
+					player:EvaluateItems()
+				end
+			else
+				d.CameraScaleLerp = Lerp
 			end
+		else
+			d.CameraScale = 1
 		end
-	else
-		d.CameraScale = 1
 	end
-    end
 end
 
 function TSJDNHC:SetWallGfx(tab)
@@ -1645,21 +1648,36 @@ end
 function TSJDNHC.Grid.UpdateRenderTab(self)
 	self.RenderGridList = {}
 	--local startPos = Isaac.WorldToRenderPosition(self.StartPos)
+	local num = 0
 	for i=self.Y, 1,-1 do
 		for j=self.X, 1,-1 do
+			local cnum = num
 			if self.Grid[i][j].SpriteAnim then
 				--print(self.Grid[i][j].SpriteAnim, self.GridSprites[self.Grid[i][j].SpriteAnim])
-				self.RenderGridList[#self.RenderGridList+1] = {
+				self.RenderGridList[cnum+1] = {
 					pos = self.Grid[i][j].RenderPos,
 					spr = self.GridSprites[self.Grid[i][j].SpriteAnim] or self.GridSprites[tostring(self.Grid[i][j].SpriteAnim)],
 					fnc = self.Grid[i][j]._render, self = self.Grid[i][j]}
+				--cnum = cnum + 1 
+				--num = num + 1
 			end
 			if self.Grid[i][j].Sprite then
-				self.RenderGridList[#self.RenderGridList+1] = {
+				self.RenderGridList[cnum+1] = {
 					pos = self.Grid[i][j].RenderPos,
 					spr = self.Grid[i][j].Sprite,
 					fnc = self.Grid[i][j]._render, self = self.Grid[i][j]}
+				--cnum = cnum + 1 
+				--num = num + 1
 			end
+			if self.Grid[i][j]._render then
+				self.RenderGridList[cnum+1] = {
+					pos = self.Grid[i][j].RenderPos,
+					fnc = self.Grid[i][j]._render, self = self.Grid[i][j]}
+				--cnum = cnum + 1 
+				--num = num + 1
+			end
+			cnum = cnum + 1 
+			num = num + 1
 		end
 	end
 end
@@ -1724,7 +1742,7 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 					tab.spr:Render(renderPos)
 					tab.spr.Scale = preScale
 					if tab.fnc then
-						tab.fnc(tab.self, renderPos, scale)
+						tab.fnc(tab.self, renderPos, vec, scale)
 					end
 				else
 					tab.spr:Render(renderPos)

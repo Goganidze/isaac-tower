@@ -967,7 +967,7 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 			solidTab = solidTab.."Rot="..grid.Rot..","
 		end
 		if grid.AltSkin then
-			solidTab = solidTab.."Skin='"..grid.Rot.."',"
+			solidTab = solidTab.."Skin="..(grid.AltSkin and 1 or 0)..","
 		end
 		solidTab = solidTab.."Size=Vector("..math.ceil(grid.Size.X)..","..math.ceil(grid.Size.Y).."),"
 		return solidTab
@@ -984,7 +984,8 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 				tarname = {Text = grid.TargetName},
 				tarroom = {Text = grid.TargetRoom},
 				rot = {Text = holeRotTab[grid.Rot]},
-				color = {Flag = grid.AltColor},}
+				color = {Flag = grid.Skin==1},}
+			list[y][x].AltSkin = grid.Skin==1
 			--list[y][x].Size = size
 		end
 	end)
@@ -1037,8 +1038,10 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 		local tab = holeRotTab
 		return tab
 	end, ParamInit = function(info)
-		info.EditData.rot.Text = "0 %"
-		info.Rot = 1
+		if not info.EditData.rot.Text then
+			info.EditData.rot.Text = "0 %"
+			info.Rot = 1
+		end
 	end})
 	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "color", 3, {HintText = GetStr("use_alt_skin"), ResultCheck = function(info, result)
 		info.AltSkin = result
@@ -1048,80 +1051,198 @@ local function teleport_hole_init(_,_, grid)
 	if grid.Name then
 		Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
 			Name = grid.Name,
-			pos = grid.pos
+			pos = grid.pos + Vector(20,20)
 		}
-		Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name].pos = Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name].pos + Vector(60,20)
 	end
 	if Isaac_Tower.LevelHandler.RoomHasSavedData(Isaac_Tower.CurrentRoom.Name) then
-		local muv = grid.Rot==1 and Vector(-1,1) or grid.Rot==4 and Vector(1,-1) or Vector(1,1)
+		local muv = grid.Rot==1 and Vector(-1,1) or grid.Rot==4 and Vector(1,-1) or Vector(-1,-1)
 		grid.Grid = Isaac_Tower.GridLists.Obs:GetGridByXY(grid.XY*2+muv)
 	else
-		local muv = grid.Rot==1 and Vector(-1,1) or grid.Rot==4 and Vector(1,-1) or Vector(1,1)
-		grid.Grid = Isaac_Tower.GridLists.Obs:PlaceGrid({Collision=1, Rot = grid.Rot}, grid.XY*2+muv, "teleport_hole_block")
+		local muv = grid.Rot==1 and Vector(-1,1) or grid.Rot==4 and Vector(1,-1) or Vector(-1,-1)
+		grid.Grid = Isaac_Tower.GridLists.Obs:PlaceGrid({Collision=1, Rot = grid.Rot, AltSkin = grid.Skin}, grid.XY*2+muv, "teleport_hole_block")
 	end
 end
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_INIT, teleport_hole_init, "teleport_hole")
 
 TSJDNHC_PT.AddGridType("teleport_hole_block", function(self, gridList)
-	self.Sprite = GenSprite("gfx/fakegrid/teleport_hole.anm2", self.AltSkin and "yellow_down" or "blu_down")
+	self.Sprite1 = GenSprite("gfx/fakegrid/teleport_hole.anm2", self.AltSkin and "yellow_down" or "blu_down")
 	self.OverSpr = GenSprite("gfx/fakegrid/teleport_hole.anm2", self.AltSkin and "yellow_up" or "blu_up")
 	local x,y = 2,2
+	--local spawnOfsset = Vector(0,0)
 	if self.Rot == 1 or self.Rot == 3 then
 		x = 4
 	elseif self.Rot == 2 or self.Rot == 4 then
 		y = 4
 	end
-	self.Sprite.Rotation = (self.Rot-1) * 90
-	self.Sprite.Offset = self.Rot==1 and Vector(0,0) or self.Rot==2 and Vector(26,0)
+	--if self.Rot == 3 then
+	--	spawnOfsset = Vector(0,-1)
+	--elseif self.Rot == 4 then
+	--	spawnOfsset = Vector(-1,1)
+	--end
+	self.Sprite1.Rotation = (self.Rot-1) * 90
+	--self.Sprite.Offset = self.Rot==1 and Vector(0,0) or self.Rot==2 and Vector(26,0)
+	--	or self.Rot==3 and Vector(52,26) or self.Rot==4 and Vector(0,52)
+	self.OverSpr.Rotation = self.Sprite1.Rotation
+	--self.OverSpr.Offset = self.Sprite.Offset
+	self.RenderOffset = self.Rot==1 and Vector(0,0) or self.Rot==2 and Vector(26,0)
 		or self.Rot==3 and Vector(52,26) or self.Rot==4 and Vector(0,52)
-	gridList:MakeMegaGrid(self.Index, x, y)
+	gridList:MakeMegaGrid(self.XY, x, y)
 end,
 nil,nil,
 function(self, Pos, Offset, scale)
+	local RenderPos = Pos + self.RenderOffset*scale
+	local oldScale = self.Sprite1.Scale / 1
+	self.Sprite1.Scale = self.Sprite1.Scale*scale
+	self.Sprite1:Render(RenderPos)
+	self.Sprite1.Scale = oldScale
+
 	if self.Target then
+		self.Target.Visible = false
 		Isaac_Tower.FlayerRender(nil, self.Target, Offset, Offset, scale)
 	end
 
 	local oldScale = self.OverSpr.Scale / 1
 	self.OverSpr.Scale = self.OverSpr.Scale*scale
-	self.OverSpr:Render(Pos)
+	self.OverSpr:Render(RenderPos)
 	self.OverSpr.Scale = oldScale
 end)
 
----@param _ any
 ---@param player EntityPlayer
 ---@param grid SpecialGrid
 local function teleport_hole_collision(_, player, grid)
 	---@type Flayer
 	local fent = player:GetData().Isaac_Tower_Data
 	if grid.TargetName and fent.State ~= "Cutscene" and not Isaac_Tower.Pause then
+		local transit = false
+
+		local avec
+		local flipX
 		if grid.Rot==1 then
-			if Isaac_Tower.Input.PressDown(player.ControllerIndex) then
-				player.Visible = false
-				fent.Velocity = Vector(0,0)
-				grid.Grid.Target = player
-				grid.Target = player
-				local gridpos = grid.pos+Vector(20,0)
+			if fent.IngoneTransition and fent.IngoneTransition+5>Isaac.GetFrameCount() 
+			and Isaac_Tower.Input.PressDown(player.ControllerIndex) then
+				fent.IngoneTransition = Isaac.GetFrameCount()+1
+				return
+			else
+				fent.IngoneTransition = nil
+			end
+
+			if Isaac_Tower.Input.PressDown(player.ControllerIndex) or 
+			(fent.State == "Стомп_импакт_пол" and fent.OnGround) then
+				--player.Visible = false
+				transit = true
+				avec = Vector(20,25)
+			end
+		elseif grid.Rot==2 then
+			if fent.IngoneTransition and fent.IngoneTransition+45>Isaac.GetFrameCount() then
+				fent.IngoneTransition = Isaac.GetFrameCount()+1
+				return
+			elseif not Isaac_Tower.Input.PressLeft(player.ControllerIndex) then
+				fent.IngoneTransition = nil
+			end
+
+			if fent.LastVelocity.X<-1 and fent.CollideWall then
+				avec = Vector(20,20)
+				transit = true
+				fent.Flayer.Sprite.Rotation = 90
+				fent.Flayer.Sprite.Offset = Vector(-12,0)
+				fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+			end
+		elseif grid.Rot==4 then
+			if fent.IngoneTransition and fent.IngoneTransition+5>Isaac.GetFrameCount() 
+			and fent.LastVelocity.X>1 then
+				fent.IngoneTransition = Isaac.GetFrameCount()+1
+				return
+			else
+				fent.IngoneTransition = nil
+			end
+
+			if fent.LastVelocity.X>1 and fent.CollideWall then
+				avec = Vector(20,0)
+				transit = true
+				fent.Flayer.Sprite.Rotation = 90
+				fent.Flayer.Sprite.Offset = Vector(12,-12)
+				fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+			end
+		elseif grid.Rot==3 then
+			if fent.IngoneTransition and fent.IngoneTransition+45>Isaac.GetFrameCount() then
+				fent.IngoneTransition = Isaac.GetFrameCount()+1
+				return
+			elseif not Isaac_Tower.Input.PressRight(player.ControllerIndex) then
+				fent.IngoneTransition = nil
+			end
+
+			if fent.LastVelocity.Y<-1 and fent.CollideCeiling then
+				if Isaac_Tower.FlayerHandlers.WalkRunState[fent.State] then
+					local fenpos = fent.Position+fent.Velocity
+					if grid.pos.X < fenpos.X and fenpos.X < grid.pos.X+40  then
+						transit = true
+						fent.Flayer.Sprite.Rotation = 180
+						fent.Flayer.Sprite.Offset = -fent.Flayer.DefaultOffset
+						fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+					end
+				else
+					transit = true
+					fent.Flayer.Sprite.Rotation = 180
+					fent.Flayer.Sprite.Offset = -fent.Flayer.DefaultOffset
+					fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+				end
+					
+				avec = Vector(20,10)
+			end
+		end
+
+		if transit then
+			--fent.Flayer.
+			fent.Velocity = Vector(0,0)
+			grid.Grid.Target = player
+			grid.Target = player
+			local gridpos = grid.pos+(avec or Vector(20,0))
+			fent.PreviousState = fent.State
+			fent.State = "Cutscene"
+			fent.StateFrame = 0
+			fent.InputWait = nil
+			--fent.InvulnerabilityFrames = 5
+			local entColl = fent.Self.EntityCollisionClass+0
+			fent.Self.EntityCollisionClass = 0
+			local gridcoll = fent.Self:GetData().TSJDNHC_GridColl+0
+			fent.Self:GetData().TSJDNHC_GridColl = 0
+			Isaac_Tower.SetScale(1.2,0.1)
+
+			Isaac_Tower.scheduleForUpdate(function()
+				player.Visible = true
+				fent.Flayer.Sprite.Offset = fent.Flayer.DefaultOffset
+				if flipX then
+					fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+				end
+
 				fent.PreviousState = fent.State
-				fent.State = "Cutscene"
+				fent.State = "Ходьба"
 				fent.StateFrame = 0
 				fent.InputWait = nil
-				fent.InvulnerabilityFrames = 5
+				fent.CutsceneLogic = nil
+				fent.IngoneTransition = Isaac.GetFrameCount()
+				grid.Grid.Target = nil
+				Isaac_Tower.SetScale(1.0,0.2)
+				fent.Self.EntityCollisionClass = entColl --4
+				fent.Flayer.Sprite.Rotation = 0
+				fent.Self:GetData().TSJDNHC_GridColl = gridcoll
+			end, 1, Isaac_Tower.Callbacks.ROOM_LOADING)
 
-				fent.CutsceneLogic = function(player, fent, spr, idx)
-					fent.Position = gridpos
-					if spr:GetAnimation() ~= "poke" then
-						spr:Play("poke")
-					elseif spr:IsFinished("poke") then
-						Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
-						player.Visible = true
+			fent.CutsceneLogic = function(player, fent, spr, idx)
+				player.Visible = false
+				fent.Position = fent.Position*0.7 + gridpos*0.3
+				--print(spr.Rotation, spr:GetAnimation(), spr:GetFrame(), player.Visible)
+				if spr:GetAnimation() ~= "poke" then
+					spr:Play("poke")
+				elseif spr:IsFinished("poke") then
+					Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
+					--player.Visible = true
 
-						fent.PreviousState = fent.State
-						fent.State = "Ходьба"
-						fent.StateFrame = 0
-						fent.InputWait = nil
-						fent.CutsceneLogic = nil
-					end
+					--fent.PreviousState = fent.State
+					--fent.State = "Ходьба"
+					--fent.StateFrame = 0
+					--fent.InputWait = nil
+					--fent.CutsceneLogic = nil
 				end
 			end
 		end

@@ -2818,10 +2818,10 @@ end, function(str)
 
 				solidTab = solidTab .. "gr=" .. grid.group .. ","
 				solidTab = solidTab .. "chl={"
-				solidTab = solidTab .. "{"..(y+1+Addsize.Y)..","..(x+1+Addsize.X).."},"
-				solidTab = solidTab .. "{"..(y+1+Addsize.Y)..","..(x-1).."},"
-				solidTab = solidTab .. "{"..(y-1)..","..(x+1+Addsize.Y).."},"
-				solidTab = solidTab .. "{"..(y-1)..","..(x-1).."},},"
+				solidTab = solidTab .. "{"..math.ceil(y+1+Addsize.Y)..","..math.ceil(x+1+Addsize.X).."},"
+				solidTab = solidTab .. "{"..math.ceil(y+1+Addsize.Y)..","..math.ceil(x-1).."},"
+				solidTab = solidTab .. "{"..math.ceil(y-1)..","..math.ceil(x+1+Addsize.Y).."},"
+				solidTab = solidTab .. "{"..math.ceil(y-1)..","..math.ceil(x-1).."},},"
 
 				solidTab = solidTab .. "},\n"
 			end
@@ -3677,6 +3677,10 @@ end, function(str)
 								if not ignore[param] then
 									if type(dat) == "string" then
 										solidTab = solidTab..param.."='" .. dat .. "',"
+									elseif type(dat) == "boolean" then
+										solidTab = solidTab..param.."=" .. tostring(dat) .. ","
+									elseif type(dat) == "userdata" and dat.X then
+										solidTab = solidTab .. "XY=Vector(" .. math.ceil(dat.X) .. "," .. math.ceil(dat.Y) .. ")," 
 									else
 										solidTab = solidTab..param.."=" .. dat .. ","
 									end
