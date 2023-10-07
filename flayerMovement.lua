@@ -1136,6 +1136,9 @@ Isaac_Tower.FlayerHandlers.BounceIgnoreState = {
 Isaac_Tower.FlayerHandlers.WalkRunState = {
 	["Ходьба"]=true,["НачалоБега"]=true,["Бег"]=true,
 }
+Isaac_Tower.FlayerHandlers.PushState = {
+	["Ходьба"]=true,["НачалоБега"]=true,
+}
 
 function Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, target)
 	local stateCheck = Isaac_Tower.FlayerHandlers.CrashState[fent.State]
@@ -1152,15 +1155,28 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 	--if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
 	if not ent:GetData().Isaac_Tower_Data.Flags.Invincibility
 	and (not fent.DamageSource or fent.DamageSource.Index and fent.DamageSource.Index ~= ent.Index) then
-		if not (fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0) and
-		fent.OnGround and data.State == Isaac_Tower.EnemyHandlers.EnemyState.STUN then
-			if fent.Position.X < data.Position.X then
+		local sholdJump = data.Position.Y-data.Half.Y>fent.Position.Y
+		if --not (fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0) and fent.OnGround
+		--data.State == Isaac_Tower.EnemyHandlers.EnemyState.STUN and
+		not sholdJump and
+		not Isaac_Tower.FlayerHandlers.BounceIgnoreState[fent.State] and Isaac_Tower.FlayerHandlers.PushState[fent.State] then
+			if not data.Flags.NoStun then
+				data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
+				data.StateFrame = 0
+			end
+			--[[if fent.Position.X < data.Position.X then
 				data.Velocity = Vector(data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(dist/20), data.Velocity.Y )
 			else
 				data.Velocity = Vector(data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(dist/20), data.Velocity.Y )
-			end
+			end]]
+
+			local power = data.FlayerDistanceCheck-dist
+			local vec = (data.Position-fent.Position) --+Vector(0,-math.abs(fent.Velocity.X)-4.5))
+			vec.Y = vec.Y - math.abs(fent.Velocity.X)-4.5
+			data.Position = data.Position + vec:Resized(power)
+			data.Velocity = data.Velocity + vec:Resized(power/2)
 		elseif not Isaac_Tower.FlayerHandlers.BounceIgnoreState[fent.State] and not fent.OnGround 
-		and fent.Position.Y<ent.Position.Y and fent.Velocity.Y>0 and data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then
+		and fent.Velocity.Y>0 and data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then --fent.Position.Y<ent.Position.Y and fent.Velocity.Y>0 and
 			if not data.Flags.NoStun then
 				data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
 				data.StateFrame = 0
@@ -1175,9 +1191,35 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 				nextvel = data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(40-dist)/pow
 				data.Velocity.X = math.max(-(40-dist)/pow, nextvel )
 			end
+			--local power = data.FlayerDistanceCheck-dist
+			--data.Position = data.Position + (fent.Position-data.Position):Resized(power/15)
+			--print(power)
+
+
 			fent.Velocity.Y = -4
 			fent.JumpActive = 15
 			fent.UseApperkot = nil
+		elseif not Isaac_Tower.FlayerHandlers.BounceIgnoreState[fent.State] 
+		and Isaac_Tower.FlayerHandlers.PushState[fent.State] then
+			if not data.Flags.NoStun then
+				data.State = Isaac_Tower.EnemyHandlers.EnemyState.STUN
+				data.StateFrame = 0
+			end
+			if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
+			--[[local nextvel
+			local pow = data.OnGround and 2 or 5
+			if fent.Position.X < ent.Position.X then
+				nextvel = data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(40-dist)/pow
+				data.Velocity.X = math.min((40-dist)/pow, nextvel )
+			else
+				nextvel = data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(40-dist)/pow
+				data.Velocity.X = math.max(-(40-dist)/pow, nextvel )
+			end]]
+			local power = data.FlayerDistanceCheck-dist
+			local vec = (data.Position-fent.Position+Vector(0,-15))
+			data.Position = data.Position + vec:Resized(power)
+			data.Velocity = data.Velocity + vec:Resized(power/5)
+			--print(power)
 		end
 	end
 end

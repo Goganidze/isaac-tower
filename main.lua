@@ -283,7 +283,7 @@ Isaac_Tower.ENT.GibSubType = {
 Isaac_Tower.ENT.Enemy = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_Enemy}
 Isaac_Tower.ENT.Proj = {ID = EntityType.ENTITY_EFFECT, VAR = Isaac.GetEntityVariantByName("PIZTOW Projectile")}
 Isaac_Tower.ENT.AboveRender = {[Isaac_Tower.ENT.GibSubType.SOUND_BARRIER] = true,
-	[Isaac_Tower.ENT.GibSubType.GIB] = true}
+	[Isaac_Tower.ENT.GibSubType.GIB] = true, [Isaac_Tower.ENT.GibSubType.SWEET] = true}
 
 Isaac_Tower.sprites.BlackNotCube = Sprite()
 Isaac_Tower.sprites.BlackNotCube:Load("gfx/doubleRender/black.anm2",true)
@@ -3753,7 +3753,7 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 				end
 			else
 				for y=Isaac_Tower.GridLists.Solid.Y, 0, -1 do
-					for x=0, Isaac_Tower.GridLists.Solid.X do
+					for x=-1, Isaac_Tower.GridLists.Solid.X do
 						local tab = gridlist[y] and gridlist[y][x]
 						if tab and tab.Ps then
 							RenderList[layer] = RenderList[layer] or {}

@@ -679,8 +679,10 @@ function Isaac_Tower.editor.PreGenEmptyRoom()
 		Enemy = {},
 		SolidFake = {},
 		TileSet = {Name = "tutorial"},
+		backgroungName = "tutorial",
 	}
 	Isaac_Tower.editor.SettingMenu.SetTileSetMenu("tutorial")
+	Isaac_Tower.editor.SettingMenu.SetbackgroungMenu("tutorial")
 end
 
 function Isaac_Tower.editor.MakeVersion()
@@ -1017,6 +1019,11 @@ mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function() -- MC_POST_UPDATE MC_POS
 	end
 end)
 
+Isaac_Tower.sprites.Col_1Grid = Sprite()
+Isaac_Tower.sprites.Col_1Grid:Load("gfx/doubleRender/gridDebug/debug.anm2")
+Isaac_Tower.sprites.Col_1Grid.Color = Color(0.5,0.3,1.0,0.2)
+Isaac_Tower.sprites.Col_1Grid:Play(0)
+Isaac_Tower.sprites.Col_1Grid.Scale = Vector(0.58, 0.58)
 
 Isaac_Tower.sprites.Col0Grid = Sprite()
 Isaac_Tower.sprites.Col0Grid:Load("gfx/doubleRender/gridDebug/debug.anm2")
@@ -1892,11 +1899,15 @@ function Isaac_Tower.editor.Render()
 
 	Isaac_Tower.editor.ScreenCenter = Vector(Isaac.GetScreenWidth()/2, Isaac.GetScreenHeight()/2)
 
+	Isaac_Tower.sprites.Col_1Grid.Scale = Vector((Isaac_Tower.editor.Memory.CurrentRoom.Size.X+1)/1.77, (Isaac_Tower.editor.Memory.CurrentRoom.Size.Y+1)/1.77*23)*Isaac_Tower.editor.GridScale
+	Isaac_Tower.sprites.Col_1Grid:Render(Isaac_Tower.editor.GridStartPos-Vector(13,13)*Isaac_Tower.editor.GridScale, nil, Vector(0,22)) 
+
 	for i,k in pairs(Isaac_Tower.editor.Overlay.menus) do
 		if k.render and i ~= Isaac_Tower.editor.Overlay.selectedMenu then
 			k.render(false, k)
 		end
 	end
+
 	if Isaac_Tower.editor.Overlay.menus[Isaac_Tower.editor.Overlay.selectedMenu] 
 	and Isaac_Tower.editor.Overlay.menus[Isaac_Tower.editor.Overlay.selectedMenu].render then
 		Isaac_Tower.editor.Overlay.menus[Isaac_Tower.editor.Overlay.selectedMenu].render(true, Isaac_Tower.editor.Overlay.menus[Isaac_Tower.editor.Overlay.selectedMenu])
@@ -3822,6 +3833,7 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 	--local EndPosRender = -Isaac_Tower.editor.GridStartPos + Vector(26*2,26*2) + Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())
 	--local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(26/2)), math.ceil(EndPosRender.Y/(26/2)))
 
+
 	local selectedGrid
 	if IsSelected then
 		local mouseOffset = Vector(0,0)
@@ -3833,7 +3845,7 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 			Isaac_Tower.editor.SelectedGrid = algMousePos / Gridscale
 		end
 		local xs,ys = math.floor(algMousePos.Y/(26/2)/Gridscale), math.floor(algMousePos.X/(26/2)/Gridscale)
-		if xs>=0 and ys>=0 and Isaac_Tower.editor.Memory.CurrentRoom.Size.Y-1>=xs and Isaac_Tower.editor.Memory.CurrentRoom.Size.X-1>=ys then
+		if xs>=-1 and ys>=-1 and Isaac_Tower.editor.Memory.CurrentRoom.Size.Y-1>=xs and Isaac_Tower.editor.Memory.CurrentRoom.Size.X-1>=ys then
 			selectedGrid = {xs, ys}
 			if Isaac_Tower.editor.EnvironmentGridMode == 1 then
 				Isaac_Tower.editor.SelectedGrid = Vector(ys*13+13/2,xs*13+13/2) --* Gridscale
@@ -3847,6 +3859,9 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 		
 
 		local prescale = Isaac_Tower.sprites.Col0Grid.Scale/1
+
+		--Isaac_Tower.sprites.Col0Grid.Scale = Vector(Isaac_Tower.editor.Memory.CurrentRoom.Size.X/1.77, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y/1.77*23)*Gridscale
+		--Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos, nil, Vector(0,22)) 
 
 		Isaac_Tower.sprites.Col0Grid.Scale = Vector(Isaac_Tower.editor.Memory.CurrentRoom.Size.X/1.77,2)*Gridscale
 		Isaac_Tower.sprites.Col0Grid:Render(Isaac_Tower.editor.GridStartPos+Vector(0,0), nil, Vector(0,22)) --11
@@ -4049,6 +4064,10 @@ Isaac_Tower.editor.AddOverlay("Environment", GenSprite("gfx/editor/ui.anm2","Ð¾Ð
 		local textPos = Vector(Isaac.GetScreenWidth()/2, 50)
 		font:DrawStringScaledUTF8(GetStr("layer") .. " " .. Isaac_Tower.editor.EnvironmentSelectedLayer,
 			textPos.X,textPos.Y,0.5,0.5,KColor(0.8,0.8,0.8,0.7),1,true)
+		if selectedGrid then
+			local str = selectedGrid[2]..","..selectedGrid[1]
+			font:DrawStringScaledUTF8(str,25,50,0.5,0.5,KColor(0.6,0.6,0.6,0.6),1,true)
+		end
 	end
 	if holdMouse and not Input.IsMouseBtnPressed(holdMouse) then
 		holdMouse = nil

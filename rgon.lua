@@ -231,8 +231,14 @@ return function(mod)
 			Isaac_Tower.Renders.Pause_menu_backgroung2(Vector(200,200), Vector(num,num)+CenPos)
 		end
 	end
-
 	mod:AddCallback(ModCallbacks.MC_PRE_PAUSE_SCREEN_RENDER, mod.PauseScreenRender)
+	function mod.PauseScreenMarksRender(_, body, doby)
+		if not Isaac_Tower.InAction then return end
+		if Isaac_Tower.game:GetPauseMenuState() == 1 then
+			return false
+		end
+	end
+	mod:AddCallback(ModCallbacks.MC_PRE_COMPLETION_MARKS_RENDER, mod.PauseScreenMarksRender)
 
 	function Isaac_Tower.FlayerHandlers.GetGrabNullOffset(spr)
 		return spr:GetNullFrame("hold"):GetPos()
@@ -292,4 +298,8 @@ return function(mod)
 		end
 	end
 
+	function Isaac_Tower.editor.RenderQuad(startpos,endpos)
+		local v2,v3 = Vector(endpos.X,startpos.Y), Vector(startpos.X,endpos.Y)
+		Isaac.DrawQuad(startpos,v2,v3,endpos,LineColor,10)
+	end
 end
