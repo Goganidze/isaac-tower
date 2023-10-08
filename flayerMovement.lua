@@ -65,7 +65,7 @@ local function CheckCanUp(ent)
 	local half = fent.Half/1
 	local offset = fent.CollisionOffset/1
 
-	fent.Half = Vector(15,20)
+	fent.Half = fent.DefaultHalf --Vector(15,20)
 	fent.CollisionOffset = Vector(0,0)
 
 	local blockIndex = {}
@@ -442,13 +442,15 @@ end
 function Isaac_Tower.FlayerHandlers.LiftEnemiesInRadius(pos, power, radius)
 	radius = radius or 400
 	local ents = Isaac_Tower.EnemyHandlers.GetRoomEnemies()
-	for i=1,#ents do
-		local ent = ents[i]
-		local edat = ent:GetData().Isaac_Tower_Data
-		if edat.OnGround and edat.Position:Distance(pos) < radius then
-			edat.Velocity = Vector(edat.Velocity.X, edat.Velocity.Y-power)
+	--if #ents>0 then
+		for i=1,#ents do
+			local ent = ents[i]
+			local edat = ent:GetData().Isaac_Tower_Data
+			if edat.OnGround and edat.Position:Distance(pos) < radius then
+				edat.Velocity = Vector(edat.Velocity.X, edat.Velocity.Y-power)
+			end
 		end
-	end
+	--end
 end
 
 local walkanim = {walk = true, walk_jump_down = true}
@@ -870,7 +872,7 @@ Isaac_Tower.FlayerMovementState["Бег_смена_направления"] = fu
 end
 Isaac_Tower.FlayerMovementState["Присел"] = function(player, fent, spr, idx)
 	if player.ControlsEnabled then
-		fent.Half = Vector(15,10)
+		fent.Half = fent.DefaultCroachHalf --Vector(15,10)
 		fent.CollisionOffset = fent.CroachDefaultCollisionOffset/1 --Vector(0,10)
 
 		if Inp.PressLeft(idx)>0 then
@@ -918,7 +920,7 @@ Isaac_Tower.FlayerMovementState["Скольжение"] = function(player, fent,
 		if spr:GetAnimation() ~= "duck_roll" then
 			spr:Play("duck_roll", true)
 		end
-		fent.Half = Vector(15,10)
+		fent.Half = fent.DefaultCroachHalf
 		fent.CollisionOffset = fent.CroachDefaultCollisionOffset/1 --Vector(0,9)
 
 		if not Inp.PressRun(idx) and fent.OnGround then
@@ -982,7 +984,7 @@ Isaac_Tower.FlayerMovementState["Скольжение_Захват"] = function(
 			end
 		end
 
-		fent.Half = Vector(15,10)
+		fent.Half = fent.DefaultCroachHalf
 		fent.CollisionOffset = fent.CroachDefaultCollisionOffset/1 --Vector(0,9)
 
 		--if fent.StateFrame%8 == 0 then
@@ -1137,7 +1139,7 @@ Isaac_Tower.FlayerHandlers.WalkRunState = {
 	["Ходьба"]=true,["НачалоБега"]=true,["Бег"]=true,
 }
 Isaac_Tower.FlayerHandlers.PushState = {
-	["Ходьба"]=true,["НачалоБега"]=true,
+	["НачалоБега"]=true,["Скольжение"]=true,
 }
 
 function Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, target)
@@ -1169,12 +1171,12 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 			else
 				data.Velocity = Vector(data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(dist/20), data.Velocity.Y )
 			end]]
-
-			local power = data.FlayerDistanceCheck-dist
+			local power = data.FlayerDistanceCheck/1.2-dist
 			local vec = (data.Position-fent.Position) --+Vector(0,-math.abs(fent.Velocity.X)-4.5))
-			vec.Y = vec.Y - math.abs(fent.Velocity.X)-4.5
-			data.Position = data.Position + vec:Resized(power)
-			data.Velocity = data.Velocity + vec:Resized(power/2)
+			vec.Y = vec.Y - math.abs(fent.Velocity.X)*2-4.5
+			print(vec, power, vec:Resized(power))
+			data.Position = data.Position + vec:Resized(power/1.8)
+			data.Velocity = data.Velocity + vec:Resized(power/6+math.abs(fent.Velocity.X)/2)
 		elseif not Isaac_Tower.FlayerHandlers.BounceIgnoreState[fent.State] and not fent.OnGround 
 		and fent.Velocity.Y>0 and data.State >= Isaac_Tower.EnemyHandlers.EnemyState.STUN then --fent.Position.Y<ent.Position.Y and fent.Velocity.Y>0 and
 			if not data.Flags.NoStun then
@@ -1184,12 +1186,13 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 			if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
 			local nextvel
 			local pow = data.OnGround and 2 or 5
+			local adist = data.FlayerDistanceCheck --40
 			if fent.Position.X < ent.Position.X then
-				nextvel = data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(40-dist)/pow
-				data.Velocity.X = math.min((40-dist)/pow, nextvel )
+				nextvel = data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(adist-dist)/pow
+				data.Velocity.X = math.min((adist-dist)/pow, nextvel )
 			else
-				nextvel = data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(40-dist)/pow
-				data.Velocity.X = math.max(-(40-dist)/pow, nextvel )
+				nextvel = data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(adist-dist)/pow
+				data.Velocity.X = math.max(-(adist-dist)/pow, nextvel )
 			end
 			--local power = data.FlayerDistanceCheck-dist
 			--data.Position = data.Position + (fent.Position-data.Position):Resized(power/15)
@@ -1215,11 +1218,11 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 				nextvel = data.Velocity.X*0.8 + sign(data.Position.X-fent.Position.X)*(40-dist)/pow
 				data.Velocity.X = math.max(-(40-dist)/pow, nextvel )
 			end]]
-			local power = data.FlayerDistanceCheck-dist
-			local vec = (data.Position-fent.Position+Vector(0,-15))
-			data.Position = data.Position + vec:Resized(power)
-			data.Velocity = data.Velocity + vec:Resized(power/5)
-			--print(power)
+			local power = data.FlayerDistanceCheck/1.2-dist
+			local vec = (data.Position-fent.Position) --+Vector(0,-math.abs(fent.Velocity.X)-4.5))
+			vec.Y = vec.Y - math.abs(fent.Velocity.X)-8.5
+			data.Position = data.Position + vec:Resized(power/3)
+			data.Velocity = data.Velocity + vec:Resized(power/9)
 		end
 	end
 end
@@ -1293,6 +1296,7 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 		elseif Inp.PressDown(idx) then
 			if fent.OnGround then
 				SetState(fent,"Присел")
+				fent.GrabTarget:GetData().Isaac_Tower_Data.Position = fent.Position+Vector(0,-20)
 				Isaac_Tower.EnemyHandlers.UngrabEnemy(fent.GrabTarget)
 				fent.GrabTarget = nil
 			end
@@ -1324,7 +1328,7 @@ Isaac_Tower.FlayerMovementState["Захватил"] = function(player, fent, spr
 		fent.GrabTarget:Update()
 		fent.GrabTarget.DepthOffset = 110
 		--fent.GrabTarget.SpriteOffset = TargetPos
-		fent.GrabTarget:GetData().TSJDNHC_GridColl = 0
+		--fent.GrabTarget:GetData().TSJDNHC_GridColl = 0
 
 		if fent.StateFrame%8 == 0 then
 			local rot = spr.FlipX and -1 or 1
@@ -1385,7 +1389,7 @@ Isaac_Tower.FlayerMovementState["Захватил ударил"] = function(play
 		edata.Position = edata.Position - edata.Velocity
 		--print(fent.GrabTarget.Velocity, fent.PunchRot,  fent.PunchRot:Resized(29))
 		edata.GrabbedBy = nil
-		fent.GrabTarget:GetData().TSJDNHC_GridColl = 1
+		--fent.GrabTarget:GetData().TSJDNHC_GridColl = 1
 		edata.CanBreakPoop = true
 		edata.prePosition = edata.Position/1
 		edata.StateFrame = 0

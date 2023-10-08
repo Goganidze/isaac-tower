@@ -2127,6 +2127,9 @@ function Isaac_Tower.ENT.LOGIC.EnemyTrireLogic(_,ent)
 					vel.Y = vel.Y - 3
 				end
 				vel:Resize(math.min(15,vel:Length()))
+				if not data.OnGround then
+					vel = vel * 0.2
+				end
 				data.Velocity = vel
 				data.refvelocity = vel
 				spr:Play("up", true)

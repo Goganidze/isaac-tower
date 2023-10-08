@@ -1,4 +1,6 @@
 ---@class Flayer
+---@field GridPoints table
+---@field InsideGridPoints table
 ---@field Position Vector
 ---@field Velocity Vector
 ---@field RunSpeed number
@@ -7,6 +9,7 @@
 ---@field TrueVelocity Vector
 ---@field Half Vector
 ---@field DefaultHalf Vector
+---@field DefaultCroachHalf Vector
 ---@field CollisionOffset Vector
 ---@field CroachDefaultCollisionOffset Vector
 ---@field jumpDelay integer
