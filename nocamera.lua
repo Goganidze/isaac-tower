@@ -1380,6 +1380,7 @@ TSJDNHC.FGrid = {}
 ---@field ListID integer
 ---@field TileStyle integer
 ---@field MapStyle mapStyle
+---@field SpritesToUpdate table
 TSJDNHC.Grid = {}
 local MaxIndex = 0
 
@@ -1642,8 +1643,28 @@ function TSJDNHC.Grid.UpdateGridSprites(self)
 			spr:Update()
 		end
 	end
+	if self.SpritesToUpdate then
+		for i=1,#self.SpritesToUpdate do
+			self.SpritesToUpdate[i]:Update()
+		end
+	else
+		self:MakeSpriteUpdateTab()
+	end
 end
 
+function TSJDNHC.Grid.MakeSpriteUpdateTab(self)
+	self.SpritesToUpdate = {}
+	local ignoreList = {}
+	for i=self.Y, 1,-1 do
+		for j=self.X, 1,-1 do
+			local spr = self.Grid[i][j].Sprite
+			if spr and not ignoreList[spr] then
+				ignoreList[spr] = true
+				self.SpritesToUpdate[#self.SpritesToUpdate+1] = spr
+			end
+		end
+	end
+end
 
 function TSJDNHC.Grid.UpdateRenderTab(self)
 	self.RenderGridList = {}

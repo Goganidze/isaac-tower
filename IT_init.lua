@@ -57,7 +57,7 @@ end
 local sprites = {}
 local function GenSprite(gfx,anim, scale, frame, offset)
   if gfx and anim then
-	if not sprites[anim] then
+	--if not sprites[anim] then
 		local spr --= sprites[anim]
 		spr = Sprite()
 		spr:Load(gfx, true)
@@ -72,9 +72,9 @@ local function GenSprite(gfx,anim, scale, frame, offset)
 			spr.Offset = offset
 		end
 		return spr
-	else
-		return sprites[anim]
-	end
+	--else
+	--	return sprites[anim]
+	--end
   end
 end
 
@@ -1248,8 +1248,101 @@ local function teleport_hole_collision(_, player, grid)
 		end
 	end
 end
-
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_POINT_COLLISION, teleport_hole_collision, "teleport_hole")
+
+Isaac_Tower.editor.AddSpecial("secretroom_enter", nil, 
+	GenSprite("gfx/fakegrid/secretroom_enter.anm2","idle_lightglow"),
+	{TargetRoom = -1, Name = ""},
+	GenSprite("gfx/fakegrid/secretroom_enter.anm2","idle_lightglow"),
+	function(solidTab, grid)
+		if grid.TargetName then
+			solidTab = solidTab.."TargetName='"..grid.TargetName.."',"
+		end
+		if grid.TargetRoom ~= -1 then
+			solidTab = solidTab.."TargetRoom='"..grid.TargetRoom.."',"
+		end
+		if grid.Name then
+			solidTab = solidTab.."Name='"..grid.Name.."',"
+		end
+		--solidTab = solidTab.."Size=Vector("..math.ceil(grid.Size.X)..","..math.ceil(grid.Size.Y).."),"
+		return solidTab
+	end,
+	function(tab)
+		for idx, grid in pairs(tab) do
+			local Gtype = "secretroom_enter"
+			local x,y = math.ceil(grid.XY.X), math.ceil(grid.XY.Y)
+			--local size = grid.Size/1
+			--grid.Size = nil
+			Isaac_Tower.editor.PlaceSpecial(Gtype,x,y,grid)
+			local list = Isaac_Tower.editor.Memory.CurrentRoom.Special[Gtype]
+			list[y][x].EditData = {name = {Text = grid.Name},
+				tarname = {Text = grid.TargetName},
+				tarroom = {Text = grid.TargetRoom},}
+		end
+	end)
+	Isaac_Tower.editor.AddSpecialEditData("secretroom_enter", "name", 1, {HintText = GetStr("special_obj_name"), ResultCheck = function(info, result)
+		if not result then
+			return true
+		else
+			if #result < 1 or not string.find(result,"%S") then
+				return GetStr("emptyField")
+			end
+			info.Name = result
+			return true
+		end
+	end})
+	Isaac_Tower.editor.AddSpecialEditData("secretroom_enter", "tarname", 1, {HintText = GetStr("nameTarget"), ResultCheck = function(info, result)
+		if not result then
+			return true
+		else
+			if #result < 1 or not string.find(result,"%S") then
+				return GetStr("emptyField")
+			end
+			info.TargetName = result
+			return true
+		end
+	end})
+	Isaac_Tower.editor.AddSpecialEditData("secretroom_enter", "tarroom", 2, {HintText = GetStr("Transition Target"), ResultCheck = function(info,result)
+		if not result then
+			return false
+		else
+			info.TargetRoom = result
+			return true
+		end
+	end, Generation = function(info)
+		local tab = {}
+		for rnam, romdat in pairs(Isaac_Tower.Rooms) do
+			if rnam ~= Isaac_Tower.editor._EditorTestRoom then
+				tab[#tab+1] = rnam
+			end
+		end
+		return tab
+	end})
+
+local function secretroom_enter_init(_,_, grid)
+	if grid.Name then
+		Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
+			Name = grid.Name,
+			pos = grid.pos + Vector(20,20)
+		}
+	end
+	if Isaac_Tower.LevelHandler.RoomHasSavedData(Isaac_Tower.CurrentRoom.Name) then
+		local muv = Vector(-1,-1)
+		grid.Grid = Isaac_Tower.GridLists.Obs:GetGridByXY(grid.XY*2+muv)
+	else
+		local muv = Vector(-1,-1)
+		grid.Grid = Isaac_Tower.GridLists.Obs:PlaceGrid({Collision=0}, grid.XY*2+muv, "secretroom_enter_block")
+	end
+end
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_INIT, secretroom_enter_init, "secretroom_enter")
+
+TSJDNHC_PT.AddGridType("secretroom_enter_block", function(self, gridList)
+	self.Sprite = GenSprite("gfx/fakegrid/secretroom_enter.anm2", "idle")
+	gridList:MakeMegaGrid(self.XY, 2, 2)
+end)
+
+
+
 
 
 
@@ -1982,9 +2075,9 @@ function Isaac_Tower.ENT.LOGIC.EnemyHorhLogic(_,ent)
 				data.Velocity = Vector(data.Velocity.X*0.8, math.min(0,data.Velocity.Y))
 			else
 				data.Velocity = data.Velocity.Y<12 and (Vector(data.Velocity.X, math.min(12, data.Velocity.Y+1.8))) or data.Velocity
-				if data.StateFrame == 0 then
-					data.Velocity = data.Velocity * Vector(.1,1)
-				end
+				--if data.StateFrame == 0 then
+				--	data.Velocity = data.Velocity * Vector(.1,1)
+				--end
 			end
 		elseif data.State == Isaac_Tower.EnemyHandlers.EnemyState.IDLE then
 			if data.rage then

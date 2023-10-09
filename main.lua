@@ -3029,6 +3029,7 @@ function Isaac_Tower.GameRenderUpdate()
 	local updatePos = false
 	Isaac_Tower.UpdateSpeedHandler30(function()
 		Isaac_Tower.SpecialGridUpdate()
+		Isaac_Tower.GridLists.Obs:UpdateGridSprites()
 
 		for i=1,#array do
 			local ent = array[i]

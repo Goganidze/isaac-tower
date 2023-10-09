@@ -1174,7 +1174,7 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 			local power = data.FlayerDistanceCheck/1.2-dist
 			local vec = (data.Position-fent.Position) --+Vector(0,-math.abs(fent.Velocity.X)-4.5))
 			vec.Y = vec.Y - math.abs(fent.Velocity.X)*2-4.5
-			print(vec, power, vec:Resized(power))
+			--print(vec, power, vec:Resized(power))
 			data.Position = data.Position + vec:Resized(power/1.8)
 			data.Velocity = data.Velocity + vec:Resized(power/6+math.abs(fent.Velocity.X)/2)
 		elseif not Isaac_Tower.FlayerHandlers.BounceIgnoreState[fent.State] and not fent.OnGround 
@@ -1186,7 +1186,7 @@ function Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 			if fent.InvulnerabilityFrames and fent.InvulnerabilityFrames>0 then return end
 			local nextvel
 			local pow = data.OnGround and 2 or 5
-			local adist = data.FlayerDistanceCheck --40
+			local adist = data.FlayerDistanceCheck+5 --40
 			if fent.Position.X < ent.Position.X then
 				nextvel = data.Velocity.X*0.8 - sign(fent.Position.X-data.Position.X)*(adist-dist)/pow
 				data.Velocity.X = math.min((adist-dist)/pow, nextvel )
