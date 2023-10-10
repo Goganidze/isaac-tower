@@ -4683,7 +4683,7 @@ Special={
 
 
 
-local roomdata = {Name='tutorial_secret1',Size=Vector(45.0,20.0),DefSpawnPoint=Vector(180.0,360.0),bg='tutorial',
+local roomdata = {Name='tutorial_secret1',Size=Vector(45.0,20.0),DefSpawnPoint=Vector(180.0,360.0),bg='secret',
 ObsList={
   gfx='gfx/fakegrid/tutorial.png',
 },
@@ -4697,6 +4697,9 @@ Special={
  spawnpoint={
     {XY=Vector(5,7),Name='',IsSpawnPoint=true,},
  },
+ secretroom_enter={
+  {XY=Vector(38,7),Name='',},
+},
 },
 SolidList={
   TileSet='secret',

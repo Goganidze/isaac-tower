@@ -1011,7 +1011,7 @@ function Isaac_Tower.RoomPostCompilator(roomdata)
 	if tiledata and tiledata.Replaces then
 		chains = {}
 		for i,k in pairs(tiledata.Replaces) do
-			chains[i] = 5+#k
+			chains[i] = 3+#k
 		end
 	end
 	---@type RNG
@@ -1019,7 +1019,7 @@ function Isaac_Tower.RoomPostCompilator(roomdata)
 
 	for i, grid in pairs(Isaac_Tower.GridLists.Solid:GetGridsAsTable()) do
 		if chains and grid.SpriteAnim and tiledata.Replaces[grid.SpriteAnim] then
-			local new = rng:RandomInt(chains[grid.SpriteAnim])-4
+			local new = rng:RandomInt(chains[grid.SpriteAnim])-2
 			if new>0 then
 				grid.SpriteAnim = tiledata.Replaces[grid.SpriteAnim][new]
 			end
@@ -3069,6 +3069,22 @@ function Isaac_Tower.GameRenderUpdate()
 			end
 		end
 		updatePos = true
+
+
+		if Isaac_Tower.Backgroung.Data then
+			for i=1, #Isaac_Tower.Backgroung.Data do
+				local data = Isaac_Tower.Backgroung.Data[i]
+				if data.spr then
+					data.spr:Update()
+					
+				end
+				if data.mov then
+					data.pos = data.pos or Vector(0,0)
+					data.pos.X = (data.pos.X + data.mov.X) % data.size.X
+					data.pos.Y = (data.pos.Y + data.mov.Y) % data.size.Y
+				end
+			end
+		end
 	end)
 	--Isaac_Tower.EnemyUpdate
 
@@ -4263,11 +4279,13 @@ background.spr:Load("gfx/backgrounds/background.anm2",true)
 background.spr:Play(1)
 
 Isaac_Tower.Backgroung = {
-	Data = {background}, types = {},
+	Data = {background}, List = {}, types = {}, sort = {},
 }
 
 function Isaac_Tower.Backgroung.SetBG(name)
-	Isaac_Tower.Backgroung.Data = Isaac_Tower.Backgroung.GetBackgroung(name) or Isaac_Tower.Backgroung.Data
+	local data, sort = Isaac_Tower.Backgroung.GetBackgroung(name)
+	Isaac_Tower.Backgroung.Data = data or Isaac_Tower.Backgroung.Data
+	Isaac_Tower.Backgroung.List = sort or Isaac_Tower.Backgroung.List
 end
 
 function Isaac_Tower.Backgroung.SetBGGfx(gfx, size)
@@ -4285,11 +4303,23 @@ function Isaac_Tower.Backgroung.AddBackgroung(name, data)
 	if name then
 		--table.sort(data, function()   end)
 		Isaac_Tower.Backgroung.types[name] = data
+		Isaac_Tower.Backgroung.sort[name] = {}
+		for i=1,#data do
+			local sloi = data[i]
+			if not sloi.sortlayer then
+				local tab = SafePlacingTable(Isaac_Tower.Backgroung.sort[name],-1)
+				tab[#tab+1] = sloi
+			elseif sloi.sortlayer then
+				local tab = SafePlacingTable(Isaac_Tower.Backgroung.sort[name],sloi.sortlayer)
+				tab[#tab+1] = sloi
+			end
+		end
 	end
 end
 function Isaac_Tower.Backgroung.GetBackgroung(name)
-	return Isaac_Tower.Backgroung.types[name]
+	return Isaac_Tower.Backgroung.types[name], Isaac_Tower.Backgroung.sort[name]
 end
+
 
 function Isaac_Tower.Backgroung.standart_render(background, _, Offset, Scale)
 	--local zero = Isaac.WorldToRenderPosition(v40100)
@@ -4298,28 +4328,36 @@ function Isaac_Tower.Backgroung.standart_render(background, _, Offset, Scale)
 	
 	--Offset = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition + Isaac.WorldToRenderPosition(v40100)*(Scale-1)
 	local bSe = background.distancing
-	local BScale = Scale
+	--local BScale = Scale
 	Scale = 1-1/bSe + Scale/bSe
 
 	local w,h = ScrenX,ScrenY   --Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
 	local start = Vector(ScrenX,ScrenY)/2*(Scale-1)
+	if background.pos then
+		start = start - background.pos
+	end
 	
 	--Offset = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition -- Vector(ScrenX,ScrenY)*(Scale-1)
-	local oldScale = background.spr.Scale/1
-	background.spr.Scale = background.spr.Scale * Scale
+	if background.spr then
+		local oldScale = background.spr.Scale/1
+		background.spr.Scale = background.spr.Scale * Scale
 
-	local x, y = math.ceil(w/background.size.X/Scale) + 1, math.ceil(h/background.size.Y/Scale) + 1
-	local off = Vector(Offset.X%(background.size.X*bSe), Offset.Y%(background.size.Y*bSe))/bSe * Scale
-	--print(off, start, oldScale, background.spr.Scale)
-	for i=0, x do
-		for j=0, y do
-			local rpos = Vector(i*background.size.X-1, j*background.size.Y-1)*Scale + off - background.size*Scale - start  --Vector(background.size,background.size)
-			rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
-			--background.spr.Scale = Vector(Scale, Scale)
-			background.spr:Render(rpos)
+		local x, y = math.ceil(w/background.size.X/Scale) + 1, math.ceil(h/background.size.Y/Scale) + 1
+		local off = Vector(Offset.X%(background.size.X*bSe), Offset.Y%(background.size.Y*bSe))/bSe * Scale
+		--print(off, start, oldScale, background.spr.Scale)
+		for i=-1, x do
+			for j=-1, y do
+				local rpos = Vector(i*background.size.X-1, j*background.size.Y-1)*Scale + off - background.size*Scale - start  --Vector(background.size,background.size)
+				rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
+				--background.spr.Scale = Vector(Scale, Scale)
+				background.spr:Render(rpos)
+			end
 		end
+		background.spr.Scale = oldScale
 	end
-	background.spr.Scale = oldScale
+	if background.func then
+		background.func(background, Offset, Scale)
+	end
 end
 function Isaac_Tower.Backgroung.updown_render(background, _, Offset, Scale)
 	local bSe = background.distancing
@@ -4327,40 +4365,84 @@ function Isaac_Tower.Backgroung.updown_render(background, _, Offset, Scale)
 
 	local w,h = ScrenX,ScrenY
 	local start = Vector(ScrenX,ScrenY)/2*(Scale-1)
-	local oldScale = background.spr.Scale/1
-	background.spr.Scale = background.spr.Scale * Scale
-
-	local x = math.ceil(w/background.size.X/Scale) + 1 --, math.ceil(h/background.size.Y/Scale) + 1
-	local off = Vector(Offset.X%(background.size.X*bSe), Offset.Y%(background.size.Y*bSe))/bSe * Scale
-	for i=0, x do
-
-		local rpos = Vector(i*background.size.X-1, background.size.Y)*Scale + off - background.size*Scale - Vector(start.X,0)
-		rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
-		--background.spr.Scale = Vector(Scale, Scale)
-		background.spr:RenderLayer(background.updown[1], rpos)
-		local rpos = Vector(i*background.size.X-1, h/Scale+background.size.Y)*Scale + off - background.size*Scale - Vector(start.X,0)
-		rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
-		--background.spr.Scale = Vector(Scale, Scale)
-		background.spr:RenderLayer(background.updown[2], rpos)
+	if background.pos then
+		start = start - background.pos
 	end
-	background.spr.Scale = oldScale
+	if background.spr then
+		local oldScale = background.spr.Scale/1
+		background.spr.Scale = background.spr.Scale * Scale
+
+		local x = math.ceil(w/background.size.X/Scale) + 1 --, math.ceil(h/background.size.Y/Scale) + 1
+		local off = Vector(Offset.X%(background.size.X*bSe), Offset.Y%(background.size.Y*bSe))/bSe * Scale
+		for i=-1, x do
+
+			local rpos = Vector(i*background.size.X-1, background.size.Y)*Scale + off - background.size*Scale - Vector(start.X,0)
+			rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
+			--background.spr.Scale = Vector(Scale, Scale)
+			background.spr:RenderLayer(background.updown[1], rpos)
+			local rpos = Vector(i*background.size.X-1, h/Scale+background.size.Y)*Scale + off - background.size*Scale - Vector(start.X,0)
+			rpos = rpos - Isaac_Tower.game.ScreenShakeOffset*0.5
+			--background.spr.Scale = Vector(Scale, Scale)
+			background.spr:RenderLayer(background.updown[2], rpos)
+		end
+		background.spr.Scale = oldScale
+	end
+	if background.func then
+		background.func(background, Offset, Scale)
+	end
 end
-function Isaac_Tower.Renders.full_backgroung_render(_, Pos, _, Scale)
+function Isaac_Tower.Renders.early_backgroung_render(_, Pos, _, Scale)
 	if Isaac_Tower.Backgroung.Data then
 		local actPos = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition
-		for i=1, #Isaac_Tower.Backgroung.Data do
-			local bg = Isaac_Tower.Backgroung.Data[i]
-			if bg.updown then
-				local Offset = Vector(actPos.X, 0)
-				Isaac_Tower.Backgroung.updown_render(bg, Pos, Offset, Scale)
-			else
-				local Offset = Vector(bg.scrollX and actPos.X or 0, bg.scrollY and actPos.Y or 0)
-				Isaac_Tower.Backgroung.standart_render(bg, Pos, Offset, Scale)
+		if Isaac_Tower.Backgroung.List then 
+			if Isaac_Tower.Backgroung.List[-1] then
+				for i=1, #Isaac_Tower.Backgroung.List[-1] do
+					local bg = Isaac_Tower.Backgroung.List[-1][i]
+					if bg.updown then
+						local Offset = Vector(actPos.X, 0)
+						Isaac_Tower.Backgroung.updown_render(bg, Pos, Offset, Scale)
+					else
+						local Offset = Vector(bg.scrollX and actPos.X or 0, bg.scrollY and actPos.Y or 0)
+						Isaac_Tower.Backgroung.standart_render(bg, Pos, Offset, Scale)
+					end
+				end
+			end
+		else
+			for i=1, #Isaac_Tower.Backgroung.Data do
+				local bg = Isaac_Tower.Backgroung.Data[i]
+				if bg.updown then
+					local Offset = Vector(actPos.X, 0)
+					Isaac_Tower.Backgroung.updown_render(bg, Pos, Offset, Scale)
+				else
+					local Offset = Vector(bg.scrollX and actPos.X or 0, bg.scrollY and actPos.Y or 0)
+					Isaac_Tower.Backgroung.standart_render(bg, Pos, Offset, Scale)
+				end
 			end
 		end
 	end
 end
-mod:AddCallback(TSJDNHC_PT.Callbacks.PRE_BACKDROP_RENDER, Isaac_Tower.Renders.full_backgroung_render)
+mod:AddCallback(TSJDNHC_PT.Callbacks.PRE_BACKDROP_RENDER, Isaac_Tower.Renders.early_backgroung_render)
+
+function Isaac_Tower.Renders.Above_backgroung_render(_, Pos, _, Scale)
+	if Isaac_Tower.Backgroung.Data then
+		local actPos = -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition
+		if Isaac_Tower.Backgroung.List then 
+			if Isaac_Tower.Backgroung.List[2] then
+				for i=1, #Isaac_Tower.Backgroung.List[2] do
+					local bg = Isaac_Tower.Backgroung.List[2][i]
+					if bg.updown then
+						local Offset = Vector(actPos.X, 0)
+						Isaac_Tower.Backgroung.updown_render(bg, Pos, Offset, Scale)
+					else
+						local Offset = Vector(bg.scrollX and actPos.X or 0, bg.scrollY and actPos.Y or 0)
+						Isaac_Tower.Backgroung.standart_render(bg, Pos, Offset, Scale)
+					end
+				end
+			end
+		end
+	end
+end
+mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, Isaac_Tower.Renders.Above_backgroung_render)
 
 
 --function Isaac_Tower.Renders.BonusPickupRender(_, Pos, Offset, Scale)

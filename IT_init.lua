@@ -1725,6 +1725,63 @@ do
 	},
 	})
 
+	local spr = GenSprite("gfx/backgrounds/magic_secret.anm2", "bg", Vector(1,1))
+	spr.PlaybackSpeed = 0.5
+	local spr2 = GenSprite("gfx/backgrounds/magic_secret.anm2", "layer1", Vector(1,1))
+	local spr3 = GenSprite("gfx/backgrounds/magic_secret.anm2", "layer2", Vector(1,1))
+	local spr4 = GenSprite("gfx/backgrounds/magic_secret.anm2", "down", Vector(1,1))
+	local moon = GenSprite("gfx/backgrounds/magic_secret_extra.anm2", "moon", Vector(1,1))
+	spr4.Offset = Vector(0,-64)
+	Isaac_Tower.Backgroung.AddBackgroung("secret", {
+		{
+			spr = spr,
+			size = Vector(300,200),
+			visible = true,
+			scrollX = true,
+			--scrollY = true,
+			distancing = 4,
+			func = function(background, Offset, Scale)
+				local center = Isaac_Tower.GetScreenCenter()
+				moon:Render(center + center*Vector(0.5,-1.1))
+			end,
+		},
+		{
+			spr = spr2,
+			size = Vector(300,200),
+			visible = true,
+			scrollX = true,
+			--scrollY = true,
+			distancing = 3,
+			mov = Vector(0.2,0)
+		},
+		{
+			spr = spr3,
+			size = Vector(300,200),
+			visible = true,
+			scrollX = true,
+			--scrollY = true,
+			distancing = 2,
+			mov = Vector(0.3,0)
+		},
+		{
+			spr = spr4,
+			size = Vector(300,128),
+			visible = true,
+			updown = {0,14},
+			distancing = .8,
+			mov = Vector(0.5,0),
+			sortlayer = 2,
+		},
+		{
+			spr = GenSprite("gfx/backgrounds/magic_secret.anm2", "cloud1", Vector(1,1)),
+			size = Vector(200,100),
+			visible = true,
+			distancing = 1.2,
+			mov = Vector(0.35,0),
+			--sortlayer = 2,
+		},
+		})
+
 end
 
 -------------------------------------------------------------------ВРАГИ------------------------------------------------
