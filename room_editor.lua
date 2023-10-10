@@ -2597,7 +2597,8 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 				and selGrid and not Isaac_Tower.game:IsPaused() then
 					Isaac_Tower.sprites.chosenGrid:Render(renderpos)
 
-					local pGrid = Isaac_Tower.editor.GridTypes.Grid[Isaac_Tower.editor.SelectedGridType or ""]
+					local pGrid = type(Isaac_Tower.editor.SelectedGridType) == "table" and Isaac_Tower.editor.SelectedGridType
+						or Isaac_Tower.editor.GridTypes.Grid[Isaac_Tower.editor.SelectedGridType or ""]
 					if pGrid then
 						
 						if Input.IsMouseBtnPressed(0) then
@@ -2617,13 +2618,14 @@ Isaac_Tower.editor.AddOverlay("Grid", GenSprite("gfx/editor/ui.anm2","оверл
 								end
 								if pGrid.size then
 									for i,k in pairs(GetLinkedGrid(list, Vector(x,y), pGrid.size, true)) do
-										if not list[k[1]] then
-											list[k[1]] = {}
-										end
-										if not list[k[1]][k[2]] then
-											list[k[1]][k[2]] = {}
-										end
-										list[k[1]][k[2]].Parent = Vector(x,y)
+										--if not list[k[1]] then
+										--	list[k[1]] = {}
+										--end
+										--if not list[k[1]][k[2]] then
+										--	list[k[1]][k[2]] = {}
+										--end
+										--list[k[1]][k[2]].Parent = Vector(x,y)
+										SafePlacingTable(list,k[1],k[2]).Parent = Vector(x,y)
 									end
 								end
 							end
@@ -3691,8 +3693,8 @@ end, function(str)
 									elseif type(dat) == "boolean" then
 										solidTab = solidTab..param.."=" .. tostring(dat) .. ","
 									elseif type(dat) == "userdata" and dat.X then
-										solidTab = solidTab .. "XY=Vector(" .. math.ceil(dat.X) .. "," .. math.ceil(dat.Y) .. ")," 
-									else
+										solidTab = solidTab .. param.. "=Vector(" .. math.ceil(dat.X) .. "," .. math.ceil(dat.Y) .. ")," 
+									elseif type(dat) ~= "userdata" and type(dat) ~= "table" then
 										solidTab = solidTab..param.."=" .. dat .. ","
 									end
 								end
@@ -5006,7 +5008,75 @@ do
 	Solidmenu.Layer = 0
 	Solidmenu.CustomGenTileList = function(menuName, page)
 		local StartPos = Vector(Isaac.GetScreenWidth()/2, Isaac.GetScreenHeight()/2) - Vector(200, 160)
-		Isaac_Tower.editor.BasicGenGridListMenuBtn(menuName, page)
+		
+		-----------
+		--function Isaac_Tower.editor.BasicGenGridListMenuBtn(menuName, page)
+			local StartPos = Vector(Isaac.GetScreenWidth() / 2, Isaac.GetScreenHeight() / 2) - Vector(200, 160)
+			Isaac_Tower.editor.MenuData["GridList"] = { sortList = {}, Buttons = {} }
+		
+			--if Isaac_Tower.editor.GridListMenus[page] then
+			if Isaac_Tower.editor.TilesListMenus[menuName][page] then
+				for i = 1, 15 do
+					--local grid = Isaac_Tower.editor.GridListMenus[page][i]
+					local grid = Isaac_Tower.editor.TilesListMenus[menuName][page][i]
+		
+					if grid and grid.type then
+						local pos = StartPos + grid.pos
+						Isaac_Tower.editor.AddButton("GridList", i, pos, 48, 48, UIs.Box48(), function(button)
+							if button ~= 0 then return end
+							--Isaac_Tower.editor.SelectedGridType = grid.type
+							Isaac_Tower.editor.Overlay.menus[menuName].selectedTile = grid.type
+							Isaac_Tower.editor.SelectedGridType = grid.type
+		
+							local menu = Isaac_Tower.editor.GridTypes[Isaac_Tower.editor.Overlay.selectedMenu]
+							if menu then
+								local grid = menu[Isaac_Tower.editor.Overlay.menus[menuName].selectedTile]
+								--Isaac_Tower.editor.Overlay.menus[menuName].selectedTile
+								--local grid = Isaac_Tower.editor.GridTypes[Isaac_Tower.editor.Overlay.selectedMenu]
+								--and Isaac_Tower.editor.GridTypes[Isaac_Tower.editor.Overlay.selectedMenu][Isaac_Tower.editor.Overlay.menus[menuName].selectedTile or ""]
+								if grid and grid.spr then
+									Isaac_Tower.editor.Overlay.SelectedTileSprite = grid.spr
+								end
+							end
+						end, function(pos)
+							if grid.sprite then
+								grid.sprite:Render(pos + Vector(12, 12))
+							end
+						end)
+					else
+						--Isaac_Tower.editor.MenuButtons["GridList"][i] = nil
+						Isaac_Tower.editor.RemoveButton("GridList", i)
+					end
+				end
+			end
+			--if Isaac_Tower.editor.GridListMenus[page-1] then
+			if Isaac_Tower.editor.TilesListMenus[menuName][page - 1] then
+				local pos = StartPos + Vector(25, 240)
+				Isaac_Tower.editor.AddButton("GridList", "pre", pos, 32, 32, UIs.PrePage(), function(button)
+					if button ~= 0 then return end
+					Isaac_Tower.editor.GridListMenuPage = page - 1
+					Isaac_Tower.editor.GenGridListMenuBtn(Isaac_Tower.editor.Overlay.selectedMenu,
+						Isaac_Tower.editor.GridListMenuPage)
+				end, nil)
+			else
+				Isaac_Tower.editor.RemoveButton("GridList", "pre")
+				--Isaac_Tower.editor.MenuButtons["GridList"].pre = nil
+			end
+			--if Isaac_Tower.editor.GridListMenus[page+1] then
+			if Isaac_Tower.editor.TilesListMenus[menuName][page + 1] then
+				local pos = StartPos + Vector(350, 240)
+				Isaac_Tower.editor.AddButton("GridList", "next", pos, 32, 32, UIs.NextPage(), function(button)
+					if button ~= 0 then return end
+					Isaac_Tower.editor.GridListMenuPage = page + 1
+					Isaac_Tower.editor.GenGridListMenuBtn(Isaac_Tower.editor.Overlay.selectedMenu,
+						Isaac_Tower.editor.GridListMenuPage)
+				end, nil)
+			else
+				Isaac_Tower.editor.RemoveButton("GridList", "next")
+				--Isaac_Tower.editor.MenuButtons["GridList"].next = nil
+			end
+		------end
+
 
 		local pos = StartPos + Vector(80, 256)
 		local SolidMode1
@@ -5094,28 +5164,82 @@ do
 
 		Isaac_Tower.editor.TilesListMenus[menuName] = {}
 		local num = 0
-		local names = {}
-		for i,k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
-			names[#names+1] = i
-		end
-		table.sort(names)
+		--local names = Isaac_Tower.editor.GridTypes[menuName] --{}
 		--for i,k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
-		for i=1,#names do
-			if not tilesetList or tilesetList[ names[i] ] then
-				local k = Isaac_Tower.editor.GridTypes[menuName][names[i] ]
-				num = num + 1
-				local page = math.ceil(num/15)
-				local index = (num - 1) % 15 + 1
-				local xpos, ypos = (num-1)%5+1, math.ceil( ((num-1)%15+1)/5 )
-				SafePlacingTable(Isaac_Tower.editor.TilesListMenus,menuName,page)[index] = {
-					pos = Vector(60*xpos, 60*ypos), --Vector(52*xpos, 49*ypos),
-					sprite = k.spr,
-					type = names[i],
-				}
-				local TileListAnm = Isaac_Tower.TileData.EditorData[tilesetNaem] and  Isaac_Tower.TileData.EditorData[tilesetNaem].Anm2
-				if TileListAnm then
-					Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite = GenSprite(TileListAnm, k.spr:GetAnimation(),k.spr:GetFrame())
-					Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite.Scale = k.spr.Scale
+		--	names[#names+1] = i
+		--end
+		--table.sort(names)
+		--for i,k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
+		if tilesetList then
+			local names = {}
+			for i,k in pairs(tilesetList) do
+				names[#names+1] = k
+			end
+			table.sort(names)
+			for i=1,#tilesetList do
+				--if not tilesetList or tilesetList[ names[i] ] then
+				local ty = names[i]
+				if ty and Isaac_Tower.editor.GridTypes[menuName][ty] then
+					local k = Isaac_Tower.editor.GridTypes[menuName][ty]
+					num = num + 1
+					local page = math.ceil(num/15)
+					local index = (num - 1) % 15 + 1
+					local xpos, ypos = (num-1)%5+1, math.ceil( ((num-1)%15+1)/5 )
+					SafePlacingTable(Isaac_Tower.editor.TilesListMenus,menuName,page)[index] = {
+						pos = Vector(60*xpos, 60*ypos), --Vector(52*xpos, 49*ypos),
+						sprite = k.spr,
+						type = names[i],
+					}
+					local TileListAnm = Isaac_Tower.TileData.EditorData[tilesetNaem] and  Isaac_Tower.TileData.EditorData[tilesetNaem].Anm2
+					if TileListAnm then
+						Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite = GenSprite(TileListAnm, k.spr:GetAnimation(),k.spr:GetFrame())
+						Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite.Scale = k.spr.Scale
+					end
+				elseif ty then
+					local sprite = GenSprite("gfx/fakegrid/grid2.anm2",ty)
+					local k = {spr = sprite, 
+						info = {Collision = 1, SpriteAnim = ty }, 
+						trueSpr = sprite}
+					num = num + 1
+					local page = math.ceil(num/15)
+					local index = (num - 1) % 15 + 1
+					local xpos, ypos = (num-1)%5+1, math.ceil( ((num-1)%15+1)/5 )
+					SafePlacingTable(Isaac_Tower.editor.TilesListMenus,menuName,page)[index] = {
+						pos = Vector(60*xpos, 60*ypos), --Vector(52*xpos, 49*ypos),
+						sprite = sprite,
+						type = ty,
+						auto = k,
+					}
+					local TileListAnm = Isaac_Tower.TileData.EditorData[tilesetNaem] and  Isaac_Tower.TileData.EditorData[tilesetNaem].Anm2
+					if TileListAnm then
+						Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite = GenSprite(TileListAnm, sprite:GetAnimation(),sprite:GetFrame())
+						Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite.Scale = sprite.Scale
+					end
+				end
+			end
+		else
+			local names = {}
+			for i,k in pairs(Isaac_Tower.editor.GridTypes[menuName]) do
+				names[#names+1] = i
+			end
+			table.sort(names)
+			for i=1,#names do
+				if not tilesetList or tilesetList[ names[i] ] then
+					local k = Isaac_Tower.editor.GridTypes[menuName][names[i] ]
+					num = num + 1
+					local page = math.ceil(num/15)
+					local index = (num - 1) % 15 + 1
+					local xpos, ypos = (num-1)%5+1, math.ceil( ((num-1)%15+1)/5 )
+					SafePlacingTable(Isaac_Tower.editor.TilesListMenus,menuName,page)[index] = {
+						pos = Vector(60*xpos, 60*ypos), --Vector(52*xpos, 49*ypos),
+						sprite = k.spr,
+						type = names[i],
+					}
+					local TileListAnm = Isaac_Tower.TileData.EditorData[tilesetNaem] and  Isaac_Tower.TileData.EditorData[tilesetNaem].Anm2
+					if TileListAnm then
+						Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite = GenSprite(TileListAnm, k.spr:GetAnimation(),k.spr:GetFrame())
+						Isaac_Tower.editor.TilesListMenus[menuName][page][index].sprite.Scale = k.spr.Scale
+					end
 				end
 			end
 		end
@@ -6656,6 +6780,8 @@ do
 			175, list, function(btn, par1, par2)
 				if btn ~= 0 then return end
 				Isaac_Tower.editor.SettingMenu.SetTileSetMenu(par2)
+				Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name = par2
+				Isaac_Tower.editor.PreGenerateGridListMenu("Grid")
 			end)
 	end, function(pos)
 		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,36)
@@ -6719,14 +6845,14 @@ do
 		if button ~= 0 then return end
 		Isaac_Tower.OpenEditor()
 	end, function(pos)
-		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,5+offset)
+		self.pos = Vector(12,5+offset)
 	end)
 	local self
 	self = Isaac_Tower.editor.AddButton("__debug_menu", "luamod", Vector(46,5), 32, 32, UIs.luamod_debug, function(button) 
 		if button ~= 0 then return end
 		Isaac.ExecuteCommand("luamod isaac tower")
 	end, function(pos)
-		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(46,5+offset)
+		self.pos = Vector(46,5+offset)
 	end)
 end
 

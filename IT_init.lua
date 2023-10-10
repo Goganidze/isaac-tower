@@ -109,7 +109,7 @@ end
 
 
 for i=1,9 do
-	Isaac_Tower.editor.AddGrid(tostring(i), tostring(i), GenSprite("gfx/fakegrid/grid2.anm2",tostring(i)), {Collision = 1, SpriteAnim = i })
+	Isaac_Tower.editor.AddGrid(tostring(i), tostring(i), GenSprite("gfx/fakegrid/grid2.anm2",tostring(i)), {Collision = 1, SpriteAnim = tostring(i) })
 end
 --for i=1,9 do
 --	local name = "black"..i
@@ -235,6 +235,17 @@ Isaac_Tower.TileData.AddTileSet("cellar", {
 	EditorImage = "gfx/editor/tileset_cellar.png",
 	EditorAnm2 = "gfx/fakegrid/grid2cellar_editor.anm2",
 	EditorGridTypesList = {'30l','half_up','45l','1_3x3','3','4','5','6','platform3','1','45r','7','8','9','30r','platform','3_3x1','platform2','platform1','2','infis',},
+})
+for i,k in pairs({"g2a","g3a","g2b","g1a","1a","1b"}) do
+	Isaac_Tower.editor.AddGrid(k, k, GenSprite("gfx/fakegrid/grid2secret.anm2",k), {Collision = 1, SpriteAnim = k })
+end
+Isaac_Tower.TileData.AddTileSet("secret", {
+	Anm2 ='gfx/fakegrid/grid2secret.anm2',
+	Gfx = 'gfx/fakegrid/secret.png',
+	EditorImage = "gfx/editor/tileset_secret.png",
+	EditorAnm2 = "gfx/fakegrid/grid2secret.anm2",
+	EditorGridTypesList = {'8','9','1_3x3','45l','half_up','30l','1_5x5','3_3x1','platform1','1_2x2','30r','platform3','infis','platform2','platform','7','1','2','3','4','5','6','45r',"g2b","g3a","g1a"},
+	Replaces = {["1"] = {"1a","1b"}, ["g2b"] = {"g2a"}}
 })
 
 

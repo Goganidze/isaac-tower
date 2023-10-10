@@ -627,7 +627,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				end
 			end
 
-			Isaac_Tower.RoomPostCompilator()
+			Isaac_Tower.RoomPostCompilator(newRoom)
 		end
 
 		local fakelist = {}
@@ -1003,10 +1003,27 @@ mod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, Init_Player,0)
 
 ------------------------------к
 
-function Isaac_Tower.RoomPostCompilator()
+function Isaac_Tower.RoomPostCompilator(roomdata)
 	local t = Isaac.GetTime()
 	local ignorelist = {}
+	local tiledata = Isaac_Tower.TileData.GetTileSetData(roomdata.SolidList.TileSet)
+	local chains --= {} --tiledata.Replaces
+	if tiledata and tiledata.Replaces then
+		chains = {}
+		for i,k in pairs(tiledata.Replaces) do
+			chains[i] = 5+#k
+		end
+	end
+	---@type RNG
+	local rng = Isaac_Tower.LevelHandler.GetCurrentRoomData().deco_rng
+
 	for i, grid in pairs(Isaac_Tower.GridLists.Solid:GetGridsAsTable()) do
+		if chains and grid.SpriteAnim and tiledata.Replaces[grid.SpriteAnim] then
+			local new = rng:RandomInt(chains[grid.SpriteAnim])-4
+			if new>0 then
+				grid.SpriteAnim = tiledata.Replaces[grid.SpriteAnim][new]
+			end
+		end
 		if not ignorelist[i] then
 			if grid.slope then
 				local num = 1
@@ -4365,17 +4382,31 @@ do  --Конец файла, хорошее место для этого
 		tab.extra = data.ExtraAnimSuffix or {}
 		tab.anm2 = data.Anm2 --or 'gfx/fakegrid/grid2.anm2'
 		tab.gfx = data.Gfx
+		tab.Replaces = data.Replaces
+		--[[for tile, list in pairs(data.Replaces) do
+			tab.Replaces[tile] = {}
+			for i,k in pairs(list) do
+				tab.Replaces[tile][k] = 0.2
+			end
+		end]]
 
 		Isaac_Tower.TileData.TileSets[name] = tab
 
 		local tab = {}
 		tab.EditorImage = data.EditorImage
 		tab.Anm2 = data.EditorAnm2
-		local GridTypesList = {}
-		for i=1,#data.EditorGridTypesList do
-			GridTypesList[data.EditorGridTypesList[i]] = true
-		end
-		tab.GridTypesList = GridTypesList --data.EditorGridTypesList
+		--[[tab.Replaces = {} --data.Replaces
+		for tile, list in pairs(data.Replaces) do
+			tab.Replaces[tile] = {}
+			for i,k in pairs(list) do
+				tab.Replaces[tile][k] = 0.2
+			end
+		end]]
+		--local GridTypesList = {}
+		--for i=1,#data.EditorGridTypesList do
+		--	GridTypesList[data.EditorGridTypesList[i]] = true
+		--end
+		tab.GridTypesList = data.EditorGridTypesList
 
 		Isaac_Tower.TileData.EditorData[name] = tab
 	end
