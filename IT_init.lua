@@ -236,7 +236,7 @@ Isaac_Tower.TileData.AddTileSet("cellar", {
 	EditorAnm2 = "gfx/fakegrid/grid2cellar_editor.anm2",
 	EditorGridTypesList = {'30l','half_up','45l','1_3x3','3','4','5','6','platform3','1','45r','7','8','9','30r','platform','3_3x1','platform2','platform1','2','infis',},
 })
-for i,k in pairs({"g2a","g3a","g2b","g1a","1a","1b"}) do
+for i,k in pairs({"g2a","g3a","g2b","g1a","1a","1b","5a","6a"}) do
 	Isaac_Tower.editor.AddGrid(k, k, GenSprite("gfx/fakegrid/grid2secret.anm2",k), {Collision = 1, SpriteAnim = k })
 end
 Isaac_Tower.TileData.AddTileSet("secret", {
@@ -245,7 +245,7 @@ Isaac_Tower.TileData.AddTileSet("secret", {
 	EditorImage = "gfx/editor/tileset_secret.png",
 	EditorAnm2 = "gfx/fakegrid/grid2secret.anm2",
 	EditorGridTypesList = {'8','9','1_3x3','45l','half_up','30l','1_5x5','3_3x1','platform1','1_2x2','30r','platform3','infis','platform2','platform','7','1','2','3','4','5','6','45r',"g2b","g3a","g1a"},
-	Replaces = {["1"] = {"1a","1b"}, ["g2b"] = {"g2a"}}
+	Replaces = {["1"] = {"1a","1b"}, ["g2b"] = {"g2a"},["5"] = {"5a"},["6"] = {"6a"}}
 })
 
 
@@ -1654,7 +1654,7 @@ do
 			tab[4])
 	end
 
-	local EnviList = {
+	local EnviList = {   ---cellar
 		{"cel_","black3_3",Vector(78,78),Vector(39,39),Vector(0.4,0.4),Vector(13,13)},
 		{"cel_","black5_5",Vector(130,130),Vector(65,65),Vector(0.3,0.3),Vector(13,13)},
 		{"cel_","1_1x3",Vector(86,32),Vector(3,4),Vector(0.5,0.5),Vector(-8,5)},
@@ -1678,6 +1678,28 @@ do
 			GenSprite("gfx/evrom/cellar.anm2",tab[2],scale,nil,off), 
 			function() return GenSprite("gfx/evrom/cellar.anm2",tab[2]) end, 
 			GenSprite("gfx/evrom/cellar.anm2",tab[2], Vector(.5,.5)), 
+			tab[3],
+			tab[4])
+	end
+
+	local EnviList = {  ---secret room
+		{"sr_","1",Vector(16,16),Vector(8,8),Vector(1,1),Vector(13,13)},
+		{"sr_","2",Vector(16,16),Vector(8,8),Vector(1,1),Vector(13,13)},
+		{"sr_","3",Vector(16,16),Vector(8,8),Vector(1,1),Vector(13,13)},
+		{"sr_","4",Vector(16,16),Vector(8,8),Vector(1.0,1.0),Vector(13,13)},
+		{"sr_","5",Vector(16,16),Vector(8,8),Vector(1.0,1.0),Vector(13,13)},
+		{"sr_","6",Vector(32,48),Vector(16,24),Vector(1.0,1.0),Vector(13,13)},
+		{"sr_","7",Vector(32,16),Vector(16,8),Vector(1,1),Vector(13,13)},
+	}
+	local path = "gfx/evrom/secretroom.anm2"
+	for i, tab in ipairs(EnviList) do
+		local name = tab[1] .. tab[2]
+		local scale = tab[5] or Vector(1,1)
+		local off = tab[6] or Vector(10,10)
+		Isaac_Tower.editor.AddEnvironment(name, 
+			GenSprite(path,tab[2],scale,nil,off), 
+			function() return GenSprite(path,tab[2]) end, 
+			GenSprite(path,tab[2], Vector(.5,.5)), 
 			tab[3],
 			tab[4])
 	end
@@ -1731,18 +1753,63 @@ do
 	local spr3 = GenSprite("gfx/backgrounds/magic_secret.anm2", "layer2", Vector(1,1))
 	local spr4 = GenSprite("gfx/backgrounds/magic_secret.anm2", "down", Vector(1,1))
 	local moon = GenSprite("gfx/backgrounds/magic_secret_extra.anm2", "moon", Vector(1,1))
+	local star = GenSprite("gfx/backgrounds/magic_secret_extra.anm2", "stars", Vector(.5,.5))
+	star.PlaybackSpeed = 0.5
+	moon.PlaybackSpeed = 0.5
 	spr4.Offset = Vector(0,-64)
 	Isaac_Tower.Backgroung.AddBackgroung("secret", {
 		{
 			spr = spr,
+			shines = {},
 			size = Vector(300,200),
 			visible = true,
 			scrollX = true,
 			--scrollY = true,
 			distancing = 4,
 			func = function(background, Offset, Scale)
+				local scrX, scrY = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
+				local Offset = Vector(0,0) -- -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition 
+
 				local center = Isaac_Tower.GetScreenCenter()
-				moon:Render(center + center*Vector(0.5,-1.1))
+				for i=#background.shines,1,-1 do
+					local k=background.shines[i]
+					local pp = Offset + k[2]
+					local renderPos = Vector(pp.X % scrX, pp.Y % scrY)
+					k[1]:Render(renderPos)
+					k[1]:Update()
+					if k[1]:IsFinished(k[1]:GetAnimation()) then
+						table.remove(background.shines,i)
+					end
+				end
+
+				if not Isaac_Tower.InAction or Isaac_Tower.Pause or Isaac_Tower.game:IsPaused() then return end
+				if Isaac.GetFrameCount()%5 == 0 and #background.shines<20 then
+					local rng = Isaac_Tower.LevelHandler.GetCurrentRoomData().deco_rng
+					local spr = GenSprite("gfx/backgrounds/magic_secret_extra.anm2", rng:RandomInt(2)==0 and "shine" or "shine2") -- .. (rng:RandomInt(2)+1))
+					spr.Color = Color(1,1,1,0.5)
+					spr.Scale = spr.Scale * rng:RandomFloat()
+					spr.PlaybackSpeed = 0.5
+					local pos = Offset-- TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition 
+						+ Vector(rng:RandomInt(scrX),rng:RandomInt(scrY))
+					background.shines[#background.shines+1] = {
+						spr, pos
+					}
+				end
+			end,
+		},
+		{
+			spr = star,
+			moon = moon,
+			size = Vector(200,100),
+			visible = true,
+			--scrollX = true,
+			--scrollY = true,
+			distancing = 1000,
+			--mov = Vector(0.3,0)
+			func = function(background, Offset, Scale)
+				local center = Isaac_Tower.GetScreenCenter()
+				background.moon:Render(center + center*Vector(0.5,-1.1))
+				background.moon:Update()
 			end,
 		},
 		{
@@ -1771,6 +1838,37 @@ do
 			distancing = .8,
 			mov = Vector(0.5,0),
 			sortlayer = 2,
+			shines = {},
+			--[[func = function(background, Offset, Scale)
+				local scrX, scrY = Isaac.GetScreenWidth(), Isaac.GetScreenHeight()
+				local Offset = Vector(0,0) -- -TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition 
+
+				local center = Isaac_Tower.GetScreenCenter()
+				for i=#background.shines,1,-1 do
+					local k=background.shines[i]
+					local pp = Offset + k[2]
+					local renderPos = Vector(pp.X % scrX, pp.Y % scrY)
+					k[1]:Render(renderPos)
+					k[1]:Update()
+					if k[1]:IsFinished(k[1]:GetAnimation()) then
+						table.remove(background.shines,i)
+					end
+				end
+
+				if not Isaac_Tower.InAction or Isaac_Tower.Pause or Isaac_Tower.game:IsPaused() then return end
+				if Isaac.GetFrameCount()%5 == 0 and #background.shines<20 then
+					local rng = Isaac_Tower.LevelHandler.GetCurrentRoomData().deco_rng
+					local spr = GenSprite("gfx/backgrounds/magic_secret_extra.anm2", rng:RandomInt(2)==0 and "shine" or "shine2") -- .. (rng:RandomInt(2)+1))
+					spr.Color = Color(1,1,1,0.5)
+					spr.Scale = spr.Scale * rng:RandomFloat()
+					spr.PlaybackSpeed = 0.5
+					local pos = Offset-- TSJDNHC_PT:GetCameraEnt():GetData().CurrentCameraPosition 
+						+ Vector(rng:RandomInt(scrX),rng:RandomInt(scrY))
+					background.shines[#background.shines+1] = {
+						spr, pos
+					}
+				end
+			end,]]
 		},
 		{
 			spr = GenSprite("gfx/backgrounds/magic_secret.anm2", "cloud1", Vector(1,1)),

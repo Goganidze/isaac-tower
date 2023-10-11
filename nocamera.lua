@@ -1157,9 +1157,9 @@ end
 
 ---@return Entity|nil
 function TSJDNHC:GetCameraEnt()
-	if CameraEntity and CameraEntity.Ref then
-		return CameraEntity.Ref
-	end
+	--if CameraEntity and CameraEntity.Ref then
+		return CameraEntity and CameraEntity.Ref
+	--end
 end
 
 function TSJDNHC:EnableCamera(bool,force)

@@ -1017,10 +1017,14 @@ function Isaac_Tower.RoomPostCompilator(roomdata)
 	---@type RNG
 	local rng = Isaac_Tower.LevelHandler.GetCurrentRoomData().deco_rng
 
-	for i, grid in pairs(Isaac_Tower.GridLists.Solid:GetGridsAsTable()) do
+	local gridlist = Isaac_Tower.GridLists.Solid:GetGridsAsTable()
+	--for i, grid in pairs(Isaac_Tower.GridLists.Solid:GetGridsAsTable()) do
+	for i=1,#gridlist do
+		local grid = gridlist[i]
 		if chains and grid.SpriteAnim and tiledata.Replaces[grid.SpriteAnim] then
 			local new = rng:RandomInt(chains[grid.SpriteAnim])-2
 			if new>0 then
+				print(grid.SpriteAnim,tiledata.Replaces[grid.SpriteAnim][new])
 				grid.SpriteAnim = tiledata.Replaces[grid.SpriteAnim][new]
 			end
 		end
@@ -3019,7 +3023,7 @@ function Isaac_Tower.GameUpdate()
 	end
 end
 function Isaac_Tower.GameRenderUpdate()
-	if Game():IsPaused() then return end
+	if not Isaac_Tower.InAction or Isaac_Tower.Pause or Isaac_Tower.game:IsPaused() then return end
 	--[[if flayerList then
 		for i=0, #flayerList-1 do
 			
