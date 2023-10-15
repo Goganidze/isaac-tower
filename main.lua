@@ -543,6 +543,21 @@ do
 		local d = Isaac_Tower.LevelHandler.GetCurrentRoomData().VisitCount
 		return d and d == 1 or false
 	end
+
+	function Isaac_Tower.LevelHandler.GetRoomType()
+		local d = Isaac_Tower.CurrentRoom.roomtype
+		return d or "basic"
+	end
+	function Isaac_Tower.LevelHandler.GetSpawnPosition()
+		return Isaac_Tower.SpawnPoint/1
+	end
+
+	function Isaac_Tower.LevelHandler.AddEnterSpawn(name, pos)
+		Isaac_Tower.GridLists.UnSave.EntersSpawn[name] = {
+			Name = name,
+			pos = pos
+		}
+	end
 end
 
 
@@ -796,6 +811,10 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 								Name = grid.Name,
 								pos = Isaac_Tower.GridLists.Special[gType][index].pos
 							}
+							Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
+								Name = grid.Name,
+								pos = Isaac_Tower.GridLists.Special[gType][index].pos
+							}
 						end
 						if Isaac_Tower.GridLists.Special[gType][index].Name then
 							Isaac_Tower.GridLists.ObjByName[Isaac_Tower.GridLists.Special[gType][index].Name] = Isaac_Tower.GridLists.Special[gType][index]
@@ -832,7 +851,6 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				useOffset = k.HasOffset
 			end
 		end]]
-
 			if not TargetSpawnPoint then
 				if k.FromRoom and preRoomName == k.FromRoom then
 					Isaac_Tower.SpawnPoint = k.pos
@@ -1024,7 +1042,6 @@ function Isaac_Tower.RoomPostCompilator(roomdata)
 		if chains and grid.SpriteAnim and tiledata.Replaces[grid.SpriteAnim] then
 			local new = rng:RandomInt(chains[grid.SpriteAnim])-2
 			if new>0 then
-				print(grid.SpriteAnim,tiledata.Replaces[grid.SpriteAnim][new])
 				grid.SpriteAnim = tiledata.Replaces[grid.SpriteAnim][new]
 			end
 		end

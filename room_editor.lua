@@ -495,6 +495,13 @@ function Isaac_Tower.editor.ConvertRoomToEditor(RoomName)
 		Isaac_Tower.editor.Memory.CurrentRoom.backgroungName = roomdata.bg
 		Isaac_Tower.editor.SettingMenu.SetbackgroungMenu(roomdata.bg)
 	end
+	if not roomdata.roomtype then
+		Isaac_Tower.editor.Memory.CurrentRoom.roomtype = "basic"
+		Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu("basic")
+	else
+		Isaac_Tower.editor.Memory.CurrentRoom.roomtype = roomdata.roomtype
+		Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu(roomdata.roomtype)
+	end
 
 
 	Isaac.RunCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, Isaac_Tower.editor.Memory, roomdata, RoomName) -- Isaac_Tower.GridLists)
@@ -565,6 +572,9 @@ function Isaac_Tower.editor.GetConvertedEditorRoomForDebug()
 
 	if Isaac_Tower.editor.Memory.CurrentRoom.backgroungName then
 		str = str .. "bg='" .. Isaac_Tower.editor.Memory.CurrentRoom.backgroungName .. "',"
+	end
+	if Isaac_Tower.editor.Memory.CurrentRoom.roomtype then
+		str = str .. "roomtype='" .. Isaac_Tower.editor.Memory.CurrentRoom.roomtype .. "',"
 	end
 
 	--[[str = str .. "\nSolidList={\n"
@@ -784,7 +794,12 @@ function Isaac_Tower.editor.AddBonusPickup(name, sprite, BonusName, ingridSpr, s
 		--SafePlacingTable(Isaac_Tower.editor.Overlay.menus,"Enemies","groups","Bonus")[name] = true
 	end
 end
-
+Isaac_Tower.sprites.roomtypes = {}
+---@param name string
+function Isaac_Tower.editor.AddRoomType(name)
+	SafePlacingTable(Isaac_Tower.editor, "RoomTypes")[name] = true
+	Isaac_Tower.sprites.roomtypes[name] = GenSprite("gfx/editor/roomtypes.anm2",name)
+end
 
 local IsaacTower_Type = Isaac.GetPlayerTypeByName("Isaac Tower")
 function Isaac_Tower.OpenEditor()
@@ -2171,7 +2186,7 @@ end, function(pos)
 	font:DrawStringScaledUTF8(GetStr("TestRun2"),pos.X+16,pos.Y+10,0.5,0.5,KColor(0.1,0.1,0.2,1),1,true) 
 end)
 
-Isaac_Tower.editor.SettingMenu = {Name = "Menu_setting", Frame = 0, StartPos = Vector(0,0), CurSubMenu = "_current_room", submenus = {{"_current_room","tileset"}} }
+Isaac_Tower.editor.SettingMenu = {Name = "Menu_setting", Frame = 0, StartPos = Vector(0,0), CurSubMenu = "_current_room", submenus = {{"_current_room","current_room"}} }
 function Isaac_Tower.editor.SettingMenu.AddSubMenu(Menuname, tabName)
 	if Menuname and type(Menuname) == "string" then
 		Isaac_Tower.editor.SettingMenu.submenus[#Isaac_Tower.editor.SettingMenu.submenus+1] = {"_setmenu_"..Menuname,tabName}
@@ -6764,13 +6779,23 @@ do
 		local img = Isaac_Tower.Backgroung.types[name] and  Isaac_Tower.Backgroung.types[name][1].spr
 		if img then
 			Isaac_Tower.sprites.bagroundImage = img
-			rendercrop = Isaac_Tower.Backgroung.types[name][1].size/img.Scale - Vector(48,48)/img.Scale
+			if Isaac_Tower.RG then
+				local scale = Vector(img.Scale.X,img.Scale.Y)
+				rendercrop = Isaac_Tower.Backgroung.types[name][1].size/scale - Vector(48,48)/scale
+			else
+				local scale = Vector(img.Scale.X,img.Scale.Y)
+				local size = Isaac_Tower.Backgroung.types[name][1].size
+				rendercrop = Vector(size.X/scale.X, size.Y/scale.Y) - Vector(48/scale.X,48/scale.Y)
+			end
 			rendercrop = Vector(math.max(0,rendercrop.X), math.max(0,rendercrop.Y))
 		end
 	end
+	function Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu(name)
+		Isaac_Tower.editor.Memory.CurrentRoom.roomtype = name
+	end
 
 	local self
-	self = Isaac_Tower.editor.AddButton(menuName, "changeList", Vector(12,42), 175, 16, UIs.TextBox(), function(button) 
+	self = Isaac_Tower.editor.AddButton(menuName, "changeList", Vector(12,40), 175, 16, UIs.TextBox(), function(button) 
 		if button ~= 0 then return end
 		local list = {}
 		for i,k in pairs(Isaac_Tower.TileData.TileSets) do
@@ -6784,7 +6809,8 @@ do
 				Isaac_Tower.editor.PreGenerateGridListMenu("Grid")
 			end)
 	end, function(pos)
-		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,36)
+		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,40)
+		font:DrawStringScaledUTF8(GetStr("tileset"),pos.X+4,pos.Y-8,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
 		local str = Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name
 		font:DrawStringScaledUTF8(GetStr(str),pos.X+4,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
 
@@ -6795,7 +6821,7 @@ do
 	end)
 
 	local self
-	self = Isaac_Tower.editor.AddButton(menuName, "changeList2", Vector(12,60), 175, 16, UIs.TextBox(), function(button) 
+	self = Isaac_Tower.editor.AddButton(menuName, "changeList2", Vector(12,68), 175, 16, UIs.TextBox(), function(button) 
 		if button ~= 0 then return end
 		local list = {}
 		for i,k in pairs(Isaac_Tower.Backgroung.types) do
@@ -6807,16 +6833,39 @@ do
 				Isaac_Tower.editor.SettingMenu.SetbackgroungMenu(par2)
 			end)
 	end, function(pos)
-		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,54)
+		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,68)
+		font:DrawStringScaledUTF8(GetStr("backgroung"),pos.X+4,pos.Y-8,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
 		local str = Isaac_Tower.editor.Memory.CurrentRoom.backgroungName
 		font:DrawStringScaledUTF8(GetStr(str),pos.X+4,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
+
 
 		local RenderPos = pos + Vector(350,32)
 		UIs.HintTextBG1.Scale = Vector(26,26)
 		UIs.HintTextBG1:Render(RenderPos + Vector(-2,-2))
 		Isaac_Tower.sprites.bagroundImage:Render(RenderPos, nil, rendercrop)
 	end)
+	local self
+	self = Isaac_Tower.editor.AddButton(menuName, "changeList3", Vector(12,96), 175, 16, UIs.TextBox(), function(button) 
+		if button ~= 0 then return end
+		local list = {}
+		for i,k in pairs(Isaac_Tower.editor.RoomTypes) do
+			list[#list+1] = i
+		end
+		Isaac_Tower.editor.FastCreatelist(menuName, self.pos, --Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,36),
+			175, list, function(btn, par1, par2)
+				if btn ~= 0 then return end
+				Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu(par2)
+			end)
+	end, function(pos)
+		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,96)
+		font:DrawStringScaledUTF8(GetStr("room_type"),pos.X+4,pos.Y-8,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
+		local str = Isaac_Tower.editor.Memory.CurrentRoom.roomtype or "basic"
+		font:DrawStringScaledUTF8(GetStr(str),pos.X+4,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
 
+		if Isaac_Tower.sprites.roomtypes[str] then
+			Isaac_Tower.sprites.roomtypes[str]:Render(pos+Vector(159,0))
+		end
+	end)
 
 
 

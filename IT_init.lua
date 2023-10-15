@@ -212,6 +212,17 @@ Isaac_Tower.editor.AddGrid("platform3", "platform3", GenSprite("gfx/fakegrid/gri
 	{Collision = 1, Type = "platform", SpriteAnim = "platform3" }, GenSprite("gfx/fakegrid/grid2.anm2","platform3"))
 
 
+---------------------------------------------Типы комнат------------------------------------------------------------
+
+do
+	Isaac_Tower.editor.RoomTypes = Isaac_Tower.editor.RoomTypes or {}
+	Isaac_Tower.editor.RoomTypes.basic = "basic"
+	Isaac_Tower.editor.RoomTypes.secretroom = "secretroom"
+
+	Isaac_Tower.sprites.roomtypes["basic"] = GenSprite("gfx/editor/roomtypes.anm2","basic")
+	Isaac_Tower.sprites.roomtypes["secretroom"] = GenSprite("gfx/editor/roomtypes.anm2","secretroom")
+end
+
 ---==================================================================================================================================
 ---==================================================================================================================================
 ---==================================================================================================================================
@@ -1060,10 +1071,11 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 
 local function teleport_hole_init(_,_, grid)
 	if grid.Name then
-		Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
-			Name = grid.Name,
-			pos = grid.pos + Vector(20,20)
-		}
+		--Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
+		--	Name = grid.Name,
+		--	pos = grid.pos + Vector(20,20)
+		--}
+		Isaac_Tower.LevelHandler.AddEnterSpawn(grid.Name, grid.pos + Vector(20,20))
 	end
 	if Isaac_Tower.LevelHandler.RoomHasSavedData(Isaac_Tower.CurrentRoom.Name) then
 		local muv = grid.Rot==1 and Vector(-1,1) or grid.Rot==4 and Vector(1,-1) or Vector(-1,-1)
@@ -1332,10 +1344,7 @@ Isaac_Tower.editor.AddSpecial("secretroom_enter", nil,
 
 local function secretroom_enter_init(_,_, grid)
 	if grid.Name then
-		Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
-			Name = grid.Name,
-			pos = grid.pos + Vector(20,20)
-		}
+		Isaac_Tower.LevelHandler.AddEnterSpawn(grid.Name, grid.pos + Vector(20,20))
 	end
 	if Isaac_Tower.LevelHandler.RoomHasSavedData(Isaac_Tower.CurrentRoom.Name) then
 		local muv = Vector(-1,-1)
@@ -1352,7 +1361,65 @@ TSJDNHC_PT.AddGridType("secretroom_enter_block", function(self, gridList)
 	gridList:MakeMegaGrid(self.XY, 2, 2)
 end)
 
+Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, function(_, player, grid)
+	local fent = player:GetData().Isaac_Tower_Data
+	if Isaac_Tower.LevelHandler.GetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom then
+		
+	else
+		fent.Velocity = Vector(0,0)
+		grid.Grid.Target = player
+		grid.Target = player
+		local gridpos = grid.pos+Vector(0,-20)
+		fent.PreviousState = fent.State
+		fent.State = "Cutscene"
+		fent.StateFrame = 0
+		fent.InputWait = 30
+		--fent.InvulnerabilityFrames = 5
+		local entColl = fent.Self.EntityCollisionClass+0
+		fent.Self.EntityCollisionClass = 0
+		local gridcoll = fent.Self:GetData().TSJDNHC_GridColl+0
+		fent.Self:GetData().TSJDNHC_GridColl = 0
+		local returnScale
 
+		Isaac_Tower.scheduleForUpdate(function()
+			player.Visible = true
+			fent.Flayer.Sprite.Offset = fent.Flayer.DefaultOffset
+
+			grid.Grid.Target = nil
+			player.EntityCollisionClass = entColl
+			fent.Flayer.Sprite.Rotation = 0
+			player:GetData().TSJDNHC_GridColl = gridcoll
+
+			fent.CutsceneLogic = function(player, fent, spr, idx)
+				fent.Position = fent.Position*0.7 + Isaac_Tower.LevelHandler.GetSpawnPosition()*0.3
+				spr.Scale = spr.Scale * 0.9 + returnScale*0.15
+	
+				if spr.Scale.X > returnScale.X then
+					spr.Scale = returnScale
+					fent.CutsceneLogic = nil
+					fent.PreviousState = fent.State
+					fent.State = "Ходьба"
+					fent.StateFrame = 0
+					fent.InputWait = nil
+				end
+			end
+		end, 1, Isaac_Tower.Callbacks.ROOM_LOADING)
+
+		
+
+		fent.CutsceneLogic = function(player, fent, spr, idx)
+			returnScale = returnScale or spr.Scale/1
+			fent.Position = fent.Position*0.7 + gridpos*0.3
+			spr.Scale = spr.Scale * 0.9
+
+			if fent.InputWait <= 0 then
+				Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
+			end
+			fent.InputWait = fent.InputWait - 1
+		end
+
+	end
+end, "secretroom_enter")
 
 
 
