@@ -7,6 +7,7 @@ local ET = "EditorType"
 local SA = "SpriteAnim"
 
 local roomdata = {Name='tutorial_1',Size=V(40.0,22.0),DefSpawnPoint=V(380.0,640.0),
+bg='tutorial',roomtype='basic',level='tutorial',
 ObsList={
   gfx='gfx/fakegrid/tutorial.png',
 },
@@ -294,6 +295,7 @@ Special={
 Isaac_Tower.AddRoom(roomdata)
 
 local roomdata = {Name='test_custEnvi',Size=V(25.0,15.0),DefSpawnPoint=V(260.0,480.0),
+bg='tutorial',roomtype='basic',level='tutorial',
 Special={
 },
 SolidList={
@@ -330,6 +332,7 @@ EnviList={
 Isaac_Tower.AddRoom(roomdata)
 
 local roomdata = {Name='tutorial_2',Size=V(47.0,43.0),DefSpawnPoint=V(380.0,640.0),
+bg='tutorial',roomtype='basic',level='tutorial',
 ObsList={
   gfx='gfx/fakegrid/tutorial.png',
   {pos=V(47,43),[C]=1,Type='kick_breakable',[ET]='kick_breakable',},
@@ -1901,7 +1904,8 @@ EnviList={
 },
 } Isaac_Tower.AddRoom(roomdata)]]
 
-local roomdata = {Name='tutorial_3',Size=Vector(67.0,41.0),DefSpawnPoint=Vector(100.0,800.0),bg='tutorial',
+local roomdata = {Name='tutorial_3',Size=Vector(67.0,41.0),DefSpawnPoint=Vector(100.0,800.0),
+bg='tutorial',roomtype='basic',level='tutorial',
 SolidList={
   TileSet='tutorial',
   anm2='gfx/fakegrid/grid2.anm2',
@@ -2823,7 +2827,7 @@ Isaac_Tower.ScriptHandler.AddLocalScript('tutorial_3', "1",
   end
 )
 
-local roomdata = {Name='tutorial_4',Size=Vector(85.0,42.0),DefSpawnPoint=Vector(60.0,1240.0),bg='tutorial',
+local roomdata = {Name='tutorial_4',Size=Vector(85.0,42.0),DefSpawnPoint=Vector(60.0,1240.0),bg='tutorial',roomtype='basic',level='tutorial',
 Enemy={
   {pos=Vector(124,44),name='horh',st=0,EditorType='horh',},
   {pos=Vector(104,50),name='horh',st=0,EditorType='horh',},
@@ -3349,7 +3353,7 @@ EnviList={
 },
 } Isaac_Tower.AddRoom(roomdata)
 
-local roomdata = {Name='tutorial_5',Size=Vector(88.0,47.0),DefSpawnPoint=Vector(900.0,520.0),bg="cellar",
+local roomdata = {Name='tutorial_5',Size=Vector(88.0,47.0),DefSpawnPoint=Vector(900.0,520.0),bg='cellar',roomtype='basic',level='tutorial',
 Enemy={
   {pos=Vector(64,22),name='trire',st=0,EditorType='trire',},
   {pos=Vector(88,26),name='trire',st=0,EditorType='trire',},
@@ -4327,7 +4331,7 @@ SolidFakeList={
 
 
 
-local roomdata = {Name='tutorial_6',Size=Vector(96.0,35.0),DefSpawnPoint=Vector(20.0,1120.0),bg='cellar',
+local roomdata = {Name='tutorial_6',Size=Vector(96.0,35.0),DefSpawnPoint=Vector(20.0,1120.0),bg='cellar',roomtype='basic',level='tutorial',
 Enemy={
   {pos=Vector(177,44),name='trire',st=0,EditorType='trire',},
   {pos=Vector(103,52),name='trire',st=0,EditorType='trire',},
@@ -4720,13 +4724,13 @@ Special={
 
 
 
-local roomdata = {Name='tutorial_secret1',Size=Vector(45.0,20.0),DefSpawnPoint=Vector(180.0,360.0),bg='secret',
+local roomdata = {Name='tutorial_secret1',Size=Vector(45.0,20.0),DefSpawnPoint=Vector(140.0,320.0),bg='secret',roomtype='secretroom',level='tutorial',
 Special={
  secretroom_enter={
     {XY=Vector(38,7),TargetName='s1',TargetRoom='tutorial_4',Name='',},
  },
  spawnpoint={
-    {XY=Vector(5,6),IsSpawnPoint=true,Name='s1',},
+    {XY=Vector(5,7),IsSpawnPoint=true,Name='s1',},
  },
 },
 EnviList={

@@ -502,6 +502,10 @@ function Isaac_Tower.editor.ConvertRoomToEditor(RoomName)
 		Isaac_Tower.editor.Memory.CurrentRoom.roomtype = roomdata.roomtype
 		Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu(roomdata.roomtype)
 	end
+	if roomdata.LevelName then
+		Isaac_Tower.editor.Memory.CurrentRoom.LevelName = roomdata.LevelName
+		Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu(roomdata.LevelName)
+	end
 
 
 	Isaac.RunCallback(Isaac_Tower.Callbacks.EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR, Isaac_Tower.editor.Memory, roomdata, RoomName) -- Isaac_Tower.GridLists)
@@ -568,13 +572,16 @@ function Isaac_Tower.editor.GetConvertedEditorRoomForDebug()
 	local str = "local roomdata = {"
 	str = str .. "Name='" .. Isaac_Tower.editor.Memory.CurrentRoom.Name .. "',"
 	str = str .. "Size=Vector(" .. Isaac_Tower.editor.Memory.CurrentRoom.Size.X .. "," .. Isaac_Tower.editor.Memory.CurrentRoom.Size.Y .. "),"
-	str = str .. "DefSpawnPoint=Vector(".. Isaac_Tower.editor.Memory.CurrentRoom.DefSpawnPoint.X .. "," .. Isaac_Tower.editor.Memory.CurrentRoom.DefSpawnPoint.Y .. "),"
+	str = str .. "DefSpawnPoint=Vector(".. Isaac_Tower.editor.Memory.CurrentRoom.DefSpawnPoint.X .. "," .. Isaac_Tower.editor.Memory.CurrentRoom.DefSpawnPoint.Y .. "),\n"
 
 	if Isaac_Tower.editor.Memory.CurrentRoom.backgroungName then
 		str = str .. "bg='" .. Isaac_Tower.editor.Memory.CurrentRoom.backgroungName .. "',"
 	end
 	if Isaac_Tower.editor.Memory.CurrentRoom.roomtype then
 		str = str .. "roomtype='" .. Isaac_Tower.editor.Memory.CurrentRoom.roomtype .. "',"
+	end
+	if Isaac_Tower.editor.Memory.CurrentRoom.LevelName then
+		str = str .. "level='" .. Isaac_Tower.editor.Memory.CurrentRoom.LevelName .. "',"
 	end
 
 	--[[str = str .. "\nSolidList={\n"
@@ -6793,6 +6800,9 @@ do
 	function Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu(name)
 		Isaac_Tower.editor.Memory.CurrentRoom.roomtype = name
 	end
+	function Isaac_Tower.editor.SettingMenu.SetLevelMenu(name)
+		Isaac_Tower.editor.Memory.CurrentRoom.LevelName = name
+	end
 
 	local self
 	self = Isaac_Tower.editor.AddButton(menuName, "changeList", Vector(12,40), 175, 16, UIs.TextBox(), function(button) 
@@ -6865,6 +6875,27 @@ do
 		if Isaac_Tower.sprites.roomtypes[str] then
 			Isaac_Tower.sprites.roomtypes[str]:Render(pos+Vector(159,0))
 		end
+	end)
+	local self
+	self = Isaac_Tower.editor.AddButton(menuName, "levelSet", Vector(12,124), 175, 16, UIs.TextBox(), function(button) 
+		if button ~= 0 then return end
+		Isaac_Tower.editor.OpenTextboxPopup(false, function(result)
+			if not result then
+				return true
+			else
+				if #result < 1 or not string.find(result,"%S") then
+					return GetStr("emptyField")
+				end
+				Isaac_Tower.editor.Memory.CurrentRoom.LevelName = result
+				return true
+			end
+		end, Isaac_Tower.editor.Memory.CurrentRoom.LevelName 
+		and tostring(Isaac_Tower.editor.Memory.CurrentRoom.LevelName) or "")
+	end, function(pos)
+		self.pos = Isaac_Tower.editor.SettingMenu.StartPos + Vector(12,124)
+		font:DrawStringScaledUTF8(GetStr("level"),pos.X+4,pos.Y-8,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
+		local str = Isaac_Tower.editor.Memory.CurrentRoom.LevelName or "no_level"
+		font:DrawStringScaledUTF8(GetStr(str),pos.X+4,pos.Y+3,0.5,0.5,KColor(0.1,0.1,0.2,1),0,false)
 	end)
 
 

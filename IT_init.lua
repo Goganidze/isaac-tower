@@ -799,27 +799,6 @@ Isaac_Tower.editor.AddSpecialEditData("Room_Transition", "Test3", 1, {HintText =
 		return true
 	end
 end})
---[[Isaac_Tower.editor.AddSpecialEditData("Room_Transition", "Test4", 1, {HintText = "OnlyNumber Test", ResultCheck = function(info,result)
-	if not result then
-		return true
-	else
-		if not tonumber(result) then
-			return GetStr("incorrectNumber")
-		end
-		return true
-	end
-end, onlyNumber = true})
-Isaac_Tower.editor.AddSpecialEditData("Room_Transition", "Test5", 1, {HintText = "Text Test", ResultCheck = function(info,result)
-	if not result then
-		return true
-	else
-		if #result < 1 or not string.find(result,"%S") then
-			return "emptyField"
-		end
-		return true
-	end
-end})]]
-
 
 local nilSpr = GenSprite("gfx/editor/special_tiles.anm2","trigger")
 nilSpr.Color = Color(1,1,1,0)
@@ -974,7 +953,8 @@ nilSpr.Color = Color(1,1,1,0)
 Isaac_Tower.editor.AddSpecial("teleport_hole", nil, 
 	GenSprite("gfx/fakegrid/teleport_hole.anm2","blu",Vector(0.5,.5)),
 	{TargetRoom = -1, Name = "", Size = Vector(2,2), Rot = 1},
-	nilSpr, --GenSprite("gfx/fakegrid/teleport_hole.anm2","blu"),
+	nilSpr,
+	--editor converting to gameplay room. Converts data to a string for later copying by the user
 	function(solidTab, grid)
 		if grid.TargetName then
 			solidTab = solidTab.."TargetName='"..grid.TargetName.."',"
@@ -994,6 +974,7 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 		solidTab = solidTab.."Size=Vector("..math.ceil(grid.Size.X)..","..math.ceil(grid.Size.Y).."),"
 		return solidTab
 	end,
+	--converting data to editor room
 	function(tab)
 		for idx, grid in pairs(tab) do
 			local Gtype = "teleport_hole"
@@ -1011,6 +992,7 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 			--list[y][x].Size = size
 		end
 	end)
+	--textbox
 	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "name", 1, {HintText = GetStr("special_obj_name"), ResultCheck = function(info, result)
 		if not result then
 			return true
@@ -1022,6 +1004,7 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 			return true
 		end
 	end})
+	--textbox
 	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "tarname", 1, {HintText = GetStr("nameTarget"), ResultCheck = function(info, result)
 		if not result then
 			return true
@@ -1033,6 +1016,7 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 			return true
 		end
 	end})
+	--selector
 	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "tarroom", 2, {HintText = GetStr("Transition Target"), ResultCheck = function(info,result)
 		if not result then
 			return false
@@ -1040,7 +1024,7 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 			info.TargetRoom = result
 			return true
 		end
-	end, Generation = function(info)
+	end, Generation = function(info) --generate list
 		local tab = {}
 		for rnam, romdat in pairs(Isaac_Tower.Rooms) do
 			if rnam ~= Isaac_Tower.editor._EditorTestRoom then
@@ -1049,6 +1033,7 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 		end
 		return tab
 	end})
+	--selector
 	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "rot", 2, {HintText = GetStr("Rotation"), ResultCheck = function(info,_,result)
 		if not result then
 			return false
@@ -1065,6 +1050,7 @@ Isaac_Tower.editor.AddSpecial("teleport_hole", nil,
 			info.Rot = 1
 		end
 	end})
+	--flagbox
 	Isaac_Tower.editor.AddSpecialEditData("teleport_hole", "color", 3, {HintText = GetStr("use_alt_skin"), ResultCheck = function(info, result)
 		info.AltSkin = result
 	end})
@@ -1344,11 +1330,14 @@ Isaac_Tower.editor.AddSpecial("secretroom_enter", nil,
 
 local function secretroom_enter_init(_,_, grid)
 	if grid.Name then
-		Isaac_Tower.LevelHandler.AddEnterSpawn(grid.Name, grid.pos + Vector(20,20))
+		Isaac_Tower.LevelHandler.AddEnterSpawn(grid.Name, grid.pos) -- - Vector(20,20))
 	end
 	if Isaac_Tower.LevelHandler.RoomHasSavedData(Isaac_Tower.CurrentRoom.Name) then
 		local muv = Vector(-1,-1)
 		grid.Grid = Isaac_Tower.GridLists.Obs:GetGridByXY(grid.XY*2+muv)
+		if Isaac_Tower.LevelHandler.IsVisited(grid.TargetRoom) then
+			Isaac_Tower.GridLists.Obs:DestroyGrid(grid.Grid.XY)
+		end
 	else
 		local muv = Vector(-1,-1)
 		grid.Grid = Isaac_Tower.GridLists.Obs:PlaceGrid({Collision=0}, grid.XY*2+muv, "secretroom_enter_block")
@@ -1363,9 +1352,9 @@ end)
 
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, function(_, player, grid)
 	local fent = player:GetData().Isaac_Tower_Data
-	if Isaac_Tower.LevelHandler.GetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom then
+	if Isaac_Tower.LevelHandler.GetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom
+		or not Isaac_Tower.LevelHandler.IsVisited(grid.TargetRoom) then
 		
-	else
 		fent.Velocity = Vector(0,0)
 		grid.Grid.Target = player
 		grid.Target = player
@@ -1390,20 +1379,26 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 			fent.Flayer.Sprite.Rotation = 0
 			player:GetData().TSJDNHC_GridColl = gridcoll
 
+			local ent = Isaac.Spawn(Isaac_Tower.ENT.GIB.ID,Isaac_Tower.ENT.GIB.VAR,
+				Isaac_Tower.ENT.GibSubType.SECRETROOM_ENTER_EFFECT,
+				player:GetData().Isaac_Tower_Data.Position+Vector(-20,-40),Vector(0,0),player)
+
 			fent.CutsceneLogic = function(player, fent, spr, idx)
 				fent.Position = fent.Position*0.7 + Isaac_Tower.LevelHandler.GetSpawnPosition()*0.3
-				spr.Scale = spr.Scale * 0.9 + returnScale*0.15
-	
-				if spr.Scale.X > returnScale.X then
-					spr.Scale = returnScale
-					fent.CutsceneLogic = nil
-					fent.PreviousState = fent.State
-					fent.State = "Ходьба"
-					fent.StateFrame = 0
-					fent.InputWait = nil
+				if not ent or ent:GetSprite():GetFrame()>6 then
+					spr.Scale = spr.Scale * 0.9 + returnScale*0.15
+		
+					if spr.Scale.X > returnScale.X then
+						spr.Scale = returnScale
+						fent.CutsceneLogic = nil
+						fent.PreviousState = fent.State
+						fent.State = "Ходьба"
+						fent.StateFrame = 0
+						fent.InputWait = nil
+					end
 				end
 			end
-		end, 1, Isaac_Tower.Callbacks.ROOM_LOADING)
+		end, 1, Isaac_Tower.Callbacks.POST_NEW_ROOM, true)
 
 		
 
@@ -1413,7 +1408,12 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 			spr.Scale = spr.Scale * 0.9
 
 			if fent.InputWait <= 0 then
-				Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
+				if Isaac_Tower.LevelHandler.GetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom then
+					Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
+				else
+					Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
+					Isaac_Tower.LevelHandler.GetLevelData().SecretRoomEnter = gridpos/1
+				end
 			end
 			fent.InputWait = fent.InputWait - 1
 		end

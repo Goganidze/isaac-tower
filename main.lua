@@ -114,6 +114,7 @@ local Isaac_TowerCallbacks = {
 	FLAYER_GRID_SCANING = {},
 	GRID_SHOULD_COLLIDE = {},
 	ROOM_LOADING = {},
+	POST_NEW_ROOM = {},
 	EDITOR_POST_MENUS_RENDER = {},
 	EDITOR_CONVERTING_CURRENT_ROOM_TO_EDITOR = {},
 	EDITOR_CONVERTING_EDITOR_ROOM = {},
@@ -279,6 +280,7 @@ Isaac_Tower.ENT.GibSubType = {
 	SOUND_BARRIER = 110,
 	BONUS_EFFECT = 200,
 	BONUS_EFFECT2 = 201,
+	SECRETROOM_ENTER_EFFECT = 202,
 }
 Isaac_Tower.ENT.Enemy = {ID = EntityType.ENTITY_EFFECT, VAR = IsaacTower_Enemy}
 Isaac_Tower.ENT.Proj = {ID = EntityType.ENTITY_EFFECT, VAR = Isaac.GetEntityVariantByName("PIZTOW Projectile")}
@@ -404,13 +406,19 @@ do
 	Isaac_Tower.LevelHandler = {RoomData = {}, LevelData = {}}
 
 	function Isaac_Tower.LevelHandler.GetLevelData(name)
-		return SafePlacingTable(Isaac_Tower.LevelHandler.LevelData, name or Isaac_Tower.CurrentRoom.Name)
+		return SafePlacingTable(Isaac_Tower.LevelHandler.LevelData, name or Isaac_Tower.CurrentRoom.level)
 	end
 	function Isaac_Tower.LevelHandler.ClearLevelData(name)
-		if Isaac_Tower.LevelHandler.LevelData[name or Isaac_Tower.CurrentRoom.Name] then
-			Isaac_Tower.LevelHandler.LevelData[name or Isaac_Tower.CurrentRoom.Name] = {}
+		if Isaac_Tower.LevelHandler.LevelData[name or Isaac_Tower.CurrentRoom.level] then
+			Isaac_Tower.LevelHandler.LevelData[name or Isaac_Tower.CurrentRoom.level] = {}
 		end
 	end
+	function Isaac_Tower.LevelHandler.LevelRoomTracker(name, roomName)
+		local data = SafePlacingTable(Isaac_Tower.LevelHandler.GetLevelData(name), "VisitedRoom")
+		data[roomName or Isaac_Tower.CurrentRoom.Name] = {}
+	end
+
+
 
 	function Isaac_Tower.LevelHandler.SpawnRoomEnemies(newRoom)
 		if newRoom.Enemy then
@@ -460,9 +468,11 @@ do
 			Isaac_Tower.LevelHandler.RoomData[roomName].deco_rng:SetSeed(Isaac_Tower.LevelHandler.RoomData[roomName].seed, 35)
 		end
 	end
+	---@return IT_RoomData
 	function Isaac_Tower.LevelHandler.GetCurrentRoomData()
 		return SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, Isaac_Tower.CurrentRoom.Name)
 	end
+	---@return IT_RoomData
 	function Isaac_Tower.LevelHandler.GetRoomData(roomName)
 		return SafePlacingTable(Isaac_Tower.LevelHandler.RoomData, roomName)
 	end
@@ -544,6 +554,11 @@ do
 		return d and d == 1 or false
 	end
 
+	function Isaac_Tower.LevelHandler.IsVisited(name)
+		return SafePlacingTable(Isaac_Tower.LevelHandler.GetLevelData(), "VisitedRoom")[name] 
+			or Isaac_Tower.LevelHandler.GetRoomData(name).VisitCount
+	end
+
 	function Isaac_Tower.LevelHandler.GetRoomType()
 		local d = Isaac_Tower.CurrentRoom.roomtype
 		return d or "basic"
@@ -569,15 +584,11 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
 		local newRoom = Isaac_Tower.Rooms[roomName]
 
-
-		--if Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name then
-		--	Isaac_Tower.CurrentRoom.Name = roomName
-		--else
-
 		Isaac_Tower.CurrentRoom = {Name = roomName}
 		local roomdata = Isaac_Tower.LevelHandler.GetRoomData(roomName)
 		roomdata.VisitCount = roomdata.VisitCount and (roomdata.VisitCount+1) or 1
 		roomdata.FrameCount = 0
+		Isaac_Tower.LevelHandler.LevelRoomTracker(newRoom.level, roomName)
 		--end
 		TSJDNHC_PT.DeleteAllGridList()
 		Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
@@ -811,10 +822,10 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 								Name = grid.Name,
 								pos = Isaac_Tower.GridLists.Special[gType][index].pos
 							}
-							Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
-								Name = grid.Name,
-								pos = Isaac_Tower.GridLists.Special[gType][index].pos
-							}
+							--Isaac_Tower.GridLists.UnSave.EntersSpawn[grid.Name] = {
+							--	Name = grid.Name,
+							--	pos = Isaac_Tower.GridLists.Special[gType][index].pos
+							--}
 						end
 						if Isaac_Tower.GridLists.Special[gType][index].Name then
 							Isaac_Tower.GridLists.ObjByName[Isaac_Tower.GridLists.Special[gType][index].Name] = Isaac_Tower.GridLists.Special[gType][index]
@@ -899,6 +910,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		end
 
 		Isaac_Tower.cancelScheduledFunctions()
+		Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.POST_NEW_ROOM, nil, Isaac_Tower.GridLists, newRoom, roomName, oldRoomName)
 	end
 end
 
@@ -3654,7 +3666,14 @@ GibsLogic = {
 		[Isaac_Tower.ENT.GibSubType.BLOOD] = function(e)
 			GibsLogic.Init[101](e)
 			e:GetSprite():Play("blood_drop")
-		end
+		end,
+		[Isaac_Tower.ENT.GibSubType.SECRETROOM_ENTER_EFFECT] = function(e)
+			local spr = e:GetSprite()
+			spr:Load("gfx/fakegrid/secretroom_enter.anm2",true)
+			spr:Play("break", true)
+			e:GetData().RA = true
+			e.DepthOffset = 50
+		end,
 	},
 	Update = {
 		[Isaac_Tower.ENT.GibSubType.GIB] = function(e)
@@ -3746,9 +3765,23 @@ GibsLogic = {
 				e:Remove()
 			end
 		end,
-		[Isaac_Tower.ENT.GibSubType.BONUS_EFFECT]= function(e)
+		[Isaac_Tower.ENT.GibSubType.BONUS_EFFECT] = function(e)
 			e.Velocity = e.Velocity * 0.95
 			if e:GetSprite():IsFinished(e:GetSprite():GetAnimation()) then
+				e:Remove()
+			end
+		end,
+		[Isaac_Tower.ENT.GibSubType.SECRETROOM_ENTER_EFFECT] = function(e)
+			local spr = e:GetSprite()
+			if spr:GetFrame() == 7 then
+				for i=1,5 do
+					local f = Isaac.Spawn(1000,EffectVariant.HAEMO_TRAIL,0,e.Position+Vector(20+i*3-6,20+i*3-6),Vector(0,5),e)
+					f.Color = Color(.5,.5,.6,1,.4,.15,.3)
+					f:GetData().RA = true
+					f.DepthOffset = 50
+				end
+			end
+			if spr:IsFinished(spr:GetAnimation()) then
 				e:Remove()
 			end
 		end,

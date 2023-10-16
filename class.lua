@@ -61,3 +61,11 @@
 ---@field TargetName any|nil
 ---@field Target any|nil
 ---@field TargetRoom any
+
+---@class IT_RoomData
+---@field rng RNG
+---@field deco_rng RNG
+---@field GridLists table
+---@field EnemiesList table
+---@field VisitCount integer
+---@field FrameCount integer
