@@ -302,4 +302,8 @@ return function(mod)
 		local v2,v3 = Vector(endpos.X,startpos.Y), Vector(startpos.X,endpos.Y)
 		Isaac.DrawQuad(startpos,v2,v3,endpos,LineColor,10)
 	end
+
+	function Isaac_Tower.editor.GetNullLayer(spr,layer)
+		return spr:GetNullFrame(layer)
+	end
 end

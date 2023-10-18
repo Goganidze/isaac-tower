@@ -1338,7 +1338,8 @@ local function secretroom_enter_init(_,_, grid)
 		if Isaac_Tower.LevelHandler.IsVisited(grid.TargetRoom) then
 			Isaac_Tower.GridLists.Obs:DestroyGrid(grid.Grid.XY)
 		end
-	else
+	elseif Isaac_Tower.LevelHandler.CurrentGetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom 
+	or not Isaac_Tower.LevelHandler.IsVisited(grid.TargetRoom) then
 		local muv = Vector(-1,-1)
 		grid.Grid = Isaac_Tower.GridLists.Obs:PlaceGrid({Collision=0}, grid.XY*2+muv, "secretroom_enter_block")
 	end
@@ -1352,7 +1353,7 @@ end)
 
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, function(_, player, grid)
 	local fent = player:GetData().Isaac_Tower_Data
-	if Isaac_Tower.LevelHandler.GetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom
+	if Isaac_Tower.LevelHandler.CurrentGetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom
 		or not Isaac_Tower.LevelHandler.IsVisited(grid.TargetRoom) then
 		
 		fent.Velocity = Vector(0,0)
@@ -1369,8 +1370,16 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 		local gridcoll = fent.Self:GetData().TSJDNHC_GridColl+0
 		fent.Self:GetData().TSJDNHC_GridColl = 0
 		local returnScale
+		local movePlayer = false
 
 		Isaac_Tower.scheduleForUpdate(function()
+			if movePlayer then
+				for i=0,Isaac_Tower.game:GetNumPlayers()-1 do
+					Isaac_Tower.GetFlayer().Position = Isaac_Tower.LevelHandler.GetLevelData().SecretRoomEnter
+				end
+				TSJDNHC_PT:SetFocusPosition(Isaac_Tower.LevelHandler.GetLevelData().SecretRoomEnter, 1)
+				Isaac_Tower.SmoothPlayerPos = Isaac_Tower.LevelHandler.GetLevelData().SecretRoomEnter
+			end
 			player.Visible = true
 			fent.Flayer.Sprite.Offset = fent.Flayer.DefaultOffset
 
@@ -1384,8 +1393,15 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 				player:GetData().Isaac_Tower_Data.Position+Vector(-20,-40),Vector(0,0),player)
 
 			fent.CutsceneLogic = function(player, fent, spr, idx)
-				fent.Position = fent.Position*0.7 + Isaac_Tower.LevelHandler.GetSpawnPosition()*0.3
-				if not ent or ent:GetSprite():GetFrame()>6 then
+				if movePlayer and Isaac_Tower.LevelHandler.GetLevelData().SecretRoomEnter then
+					for i=0,Isaac_Tower.game:GetNumPlayers()-1 do
+						Isaac_Tower.GetFlayer().Position = Isaac_Tower.LevelHandler.GetLevelData().SecretRoomEnter
+					end
+				else
+					fent.Position = fent.Position*0.7 + Isaac_Tower.LevelHandler.GetSpawnPosition()*0.3
+				end
+
+				if not ent or ent:GetSprite():WasEventTriggered("break") then
 					spr.Scale = spr.Scale * 0.9 + returnScale*0.15
 		
 					if spr.Scale.X > returnScale.X then
@@ -1408,8 +1424,10 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 			spr.Scale = spr.Scale * 0.9
 
 			if fent.InputWait <= 0 then
-				if Isaac_Tower.LevelHandler.GetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom then
-					Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
+				if Isaac_Tower.LevelHandler.CurrentGetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom then
+					local roomName = grid.TargetRoom or Isaac_Tower.LevelHandler.GetLevelData().PreviousRoom
+					Isaac_Tower.RoomTransition(roomName, false, nil, grid.TargetName)
+					movePlayer = not grid.TargetName
 				else
 					Isaac_Tower.RoomTransition(grid.TargetRoom, false, nil, grid.TargetName)
 					Isaac_Tower.LevelHandler.GetLevelData().SecretRoomEnter = gridpos/1

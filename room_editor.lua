@@ -502,9 +502,9 @@ function Isaac_Tower.editor.ConvertRoomToEditor(RoomName)
 		Isaac_Tower.editor.Memory.CurrentRoom.roomtype = roomdata.roomtype
 		Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu(roomdata.roomtype)
 	end
-	if roomdata.LevelName then
-		Isaac_Tower.editor.Memory.CurrentRoom.LevelName = roomdata.LevelName
-		Isaac_Tower.editor.SettingMenu.SetRoomTypeMenu(roomdata.LevelName)
+	if roomdata.level then
+		Isaac_Tower.editor.Memory.CurrentRoom.LevelName = roomdata.level
+		Isaac_Tower.editor.SettingMenu.SetLevelMenu(roomdata.level)
 	end
 
 
@@ -2172,6 +2172,7 @@ end)
 Isaac_Tower.editor.AddButton("menuUp", "Test", Vector(332,12), 32, 32, UIs.TestRun, function(button) 
 	if button ~= 0 then return end
 	Isaac_Tower.LevelHandler.ClearRoomData()
+	Isaac_Tower.LevelHandler.ClearLevelData(name)
 	--Isaac_Tower.Rooms[Isaac_Tower.editor._EditorTestRoom] = Isaac_Tower.editor.GetConvertedEditorRoom()
 	Isaac_Tower.Rooms[Isaac_Tower.editor.Memory.CurrentRoom.Name] = Isaac_Tower.editor.GetConvertedEditorRoom()
 	Isaac_Tower.editor.Memory.LastRoom = TabDeepCopy(Isaac_Tower.editor.Memory.CurrentRoom)

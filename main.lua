@@ -406,7 +406,9 @@ do
 	Isaac_Tower.LevelHandler = {RoomData = {}, LevelData = {}}
 
 	function Isaac_Tower.LevelHandler.GetLevelData(name)
-		return SafePlacingTable(Isaac_Tower.LevelHandler.LevelData, name or Isaac_Tower.CurrentRoom.level)
+		if name or Isaac_Tower.CurrentRoom.level then
+			return SafePlacingTable(Isaac_Tower.LevelHandler.LevelData, name or Isaac_Tower.CurrentRoom.level)
+		end
 	end
 	function Isaac_Tower.LevelHandler.ClearLevelData(name)
 		if Isaac_Tower.LevelHandler.LevelData[name or Isaac_Tower.CurrentRoom.level] then
@@ -414,8 +416,9 @@ do
 		end
 	end
 	function Isaac_Tower.LevelHandler.LevelRoomTracker(name, roomName)
-		local data = SafePlacingTable(Isaac_Tower.LevelHandler.GetLevelData(name), "VisitedRoom")
-		data[roomName or Isaac_Tower.CurrentRoom.Name] = {}
+		local data = Isaac_Tower.LevelHandler.GetLevelData(name)
+		SafePlacingTable(data, "VisitedRoom")[roomName or Isaac_Tower.CurrentRoom.Name] = {}
+		--data[roomName or Isaac_Tower.CurrentRoom.Name] = {}
 	end
 
 
@@ -555,11 +558,22 @@ do
 	end
 
 	function Isaac_Tower.LevelHandler.IsVisited(name)
-		return SafePlacingTable(Isaac_Tower.LevelHandler.GetLevelData(), "VisitedRoom")[name] 
-			or Isaac_Tower.LevelHandler.GetRoomData(name).VisitCount
+		local ret = SafePlacingTable(Isaac_Tower.LevelHandler.GetLevelData(), "VisitedRoom")[name]
+
+		if ret then
+			return ret
+		else
+			local count = Isaac_Tower.LevelHandler.GetRoomData(name).VisitCount
+			local raz = Isaac_Tower.CurrentRoom.Name == name and 1 or 0
+			if count and count > raz then
+				return true
+			--else
+			--	return Isaac_Tower.LevelHandler.GetRoomData(name).VisitCount
+			end
+		end
 	end
 
-	function Isaac_Tower.LevelHandler.GetRoomType()
+	function Isaac_Tower.LevelHandler.CurrentGetRoomType()
 		local d = Isaac_Tower.CurrentRoom.roomtype
 		return d or "basic"
 	end
@@ -584,12 +598,16 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 		local oldRoomName = preRoomName or Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name
 		local newRoom = Isaac_Tower.Rooms[roomName]
 
-		Isaac_Tower.CurrentRoom = {Name = roomName}
+		Isaac_Tower.CurrentRoom = newRoom --{Name = roomName}
 		local roomdata = Isaac_Tower.LevelHandler.GetRoomData(roomName)
 		roomdata.VisitCount = roomdata.VisitCount and (roomdata.VisitCount+1) or 1
 		roomdata.FrameCount = 0
 		Isaac_Tower.LevelHandler.LevelRoomTracker(newRoom.level, roomName)
-		--end
+		local leveldata = Isaac_Tower.LevelHandler.GetLevelData(newRoom.level)
+		if leveldata then
+			leveldata.PreviousRoom = oldRoomName
+			leveldata.CurrentRoom = roomName
+		end
 		TSJDNHC_PT.DeleteAllGridList()
 		Isaac_Tower.LevelHandler.TrySetSeedForRoom(roomName)
 		
@@ -892,7 +910,7 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 
 		--Isaac_Tower.RunDirectCallbacks(Isaac_Tower.Callbacks.ROOM_LOADING, nil, Isaac_Tower.GridLists, newRoom, roomName, oldRoomName)
 
-		Isaac_Tower.CurrentRoom = newRoom
+		--Isaac_Tower.CurrentRoom = newRoom
 
 		--Isaac_Tower.RoomPostCompilator()
 
@@ -3777,6 +3795,26 @@ GibsLogic = {
 				for i=1,5 do
 					local f = Isaac.Spawn(1000,EffectVariant.HAEMO_TRAIL,0,e.Position+Vector(20+i*3-6,20+i*3-6),Vector(0,5),e)
 					f.Color = Color(.5,.5,.6,1,.4,.15,.3)
+					f:GetData().RA = true
+					f.DepthOffset = 50
+				end
+			end
+			if Isaac_Tower.RG and e.FrameCount % math.ceil((e.FrameCount+5)/3) == 0 then
+				local null1 = Isaac_Tower.editor.GetNullLayer(spr,"плю1")
+				local pos = null1 and null1:GetPos()
+				if pos and null1:IsVisible() then
+					local f = Isaac.Spawn(1000,EffectVariant.HAEMO_TRAIL,0,e.Position+pos*Wtr,Vector(0,5),e)
+					f:GetSprite().Scale = Vector(.5,.5)
+					f.Color = Color(.5,.5,.6,1-(e.FrameCount/50),.4,.15,.3)
+					f:GetData().RA = true
+					f.DepthOffset = 50
+				end
+				local null2 = Isaac_Tower.editor.GetNullLayer(spr,"плю2")
+				local pos = null2 and null2:GetPos()
+				if pos and null2:IsVisible() then
+					local f = Isaac.Spawn(1000,EffectVariant.HAEMO_TRAIL,0,e.Position+pos*Wtr,Vector(0,5),e)
+					f:GetSprite().Scale = Vector(.5,.5)
+					f.Color = Color(.5,.5,.6,1-(e.FrameCount/50),.4,.15,.3)
 					f:GetData().RA = true
 					f.DepthOffset = 50
 				end
