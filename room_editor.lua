@@ -542,8 +542,24 @@ end
 
 local function GetGridListAnimNamesStr()
 	local str = ""
-	for name in pairs(Isaac_Tower.editor.GridAnimNames) do
-		str = str .. "'" .. name .. "',"
+	local tilesetNaem = Isaac_Tower.editor.Memory.CurrentRoom.TileSet and Isaac_Tower.editor.Memory.CurrentRoom.TileSet.Name
+	local tiledata = Isaac_Tower.TileData.EditorData[tilesetNaem]
+	if tiledata then
+		local tilesetList = tiledata.GridTypesList
+		for _, name in pairs(tilesetList or Isaac_Tower.editor.GridAnimNames) do
+			str = str .. "'" .. name .. "',"
+		end
+		local extra = tiledata.ExtraAnims
+		if extra then
+			for _, name in pairs(extra) do
+				str = str .. "'" .. name .. "',"
+			end
+		end
+		return str
+	else
+		for _, name in pairs(Isaac_Tower.editor.GridAnimNames) do
+			str = str .. "'" .. name .. "',"
+		end
 	end
 	return str
 end
@@ -845,7 +861,6 @@ function Isaac_Tower.OpenEditor()
 		--[[for i,y in pairs(Isaac_Tower.editor.Memory.CurrentRoom.Special) do
 			for j,x in pairs(y) do
 				local pGrid = Isaac_Tower.editor.GridTypes.Special[x.type or ""]
-				print(pGrid,pGrid.trueSpr)
 				local index = (i-1)*Isaac_Tower.editor.Memory.CurrentRoom.Size.Y + j
 				Isaac_Tower.editor.SpecialSpriteTab[index] = {spr = pGrid.trueSpr, pos = Vector(j*26/2, 26*i/2), info = x}
 			end
@@ -2753,8 +2768,9 @@ end, function(str)
 	
 
 	local solidTab = "  extraAnim={" .. GetGridListAnimNamesStr() .. "},\n"
-	--solidTab = solidTab .. "  useWorldPos = true,"
-	
+	--local extraStr =  "  extraAnim={" --.. GetGridListAnimNamesStr() .. "},\n"
+	--local extralist = {}
+
 	local startPos = Vector(-40,100)
 	for y=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y do
 		local ycol = Isaac_Tower.editor.Memory.CurrentRoom.Solid[y]
@@ -2775,6 +2791,9 @@ end, function(str)
 							solidTab = solidTab..param.."=" .. dat .. ","
 						end
 					end
+					--if param == "SpriteAnim" then
+					--	extralist[dat] = true
+					--end
 				end
 				--EditorType
 				solidTab = solidTab .. "EditorType='" .. grid.type .. "',"
@@ -2783,7 +2802,16 @@ end, function(str)
 
 		end
 	end
+	--for name in pairs(extralist) do
+	--	extraStr = extraStr .. "'" .. name .. "',"
+	--end
+	--extraStr = extraStr .. "},\n"
+	--print(extraStr)
+	--solidTab = extraStr .. solidTab
+	--print(solidTab)
+
 	str = str .. solidTab .. "},"
+
 
 	str = str .. "\nSolidFakeList={\n"
 	local solidTab = "  gfx='gfx/fakegrid/tutorial.png',\n"
@@ -3497,8 +3525,6 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 												list[k[1] ][k[2] ].Parent = Vector(x,y)
 											end
 										end]]
-										--print("hii", Input.IsMouseBtnPressed(0), grid)
-										--PrintTab(pGrid)
 										Isaac_Tower.editor.PlaceSpecial(Isaac_Tower.editor.SelectedGridType,x,y,pGrid)
 										holdMouse = 0
 									end
@@ -3644,7 +3670,6 @@ Isaac_Tower.editor.AddOverlay("Special", GenSprite("gfx/editor/ui.anm2","ове�
 
 end, function(tab)
 	tab.Special = {}
-	print("specail")
 	for typ, gtab in pairs(Isaac_Tower.editor.Memory.CurrentRoom.Special) do
 		if typ ~= "spawnpoint_def" and typ ~= "" then
 			tab.Special[typ] = {}

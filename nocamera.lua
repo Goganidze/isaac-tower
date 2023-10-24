@@ -562,7 +562,7 @@ local maxTime = 0
 local t = 0
 function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
   local d = e:GetData()
-  --t = Isaac.GetTime()
+  t = Isaac.GetTime()
   if e.SubType == 2 and e:Exists() and d.renderlist and d.WallSprite and d.IsEnable then
 	local s = e:GetSprite()
 	local d = e:GetData()
@@ -941,13 +941,13 @@ function TSJDNHC.FakeCamfloorRender(_, e, ofsset)
 	end
 	d.IsCamRender = false
 
-	--[[local time = Isaac.GetTime()-t
-	font:DrawStringUTF8(time,100,20,KColor(1,1,1,1),1,true)
+	local time = Isaac.GetTime()-t
+	font:DrawStringUTF8(time,100,40,KColor(1,1,1,1),1,true)
 	maxTime = maxTime*0.8+time*0.2   --math.max(maxTime, time)
-	font:DrawStringUTF8(math.ceil(maxTime),70,20,KColor(1,1,1,1),1,true)
+	font:DrawStringUTF8(math.ceil(maxTime),70,40,KColor(1,1,1,1),1,true)
 	if Isaac.GetFrameCount()%200 == 0 then
 		maxTime = 0
-	end]]
+	end
 	--t = Isaac.GetTime()
   elseif e.SubType == 2 and e:Exists() and d.renderlist and d.WallSprite and not d.IsEnable then
 	if d.State then
@@ -1347,6 +1347,19 @@ local DeepPrint = function(...)
 	end
 end
 
+---@return table
+local function SafePlacingTable(tab,...)
+	tab = tab or {}
+	local itab = tab
+	for i,k in pairs({...}) do
+		if not itab[k] then
+			itab[k] = {}
+		end
+		itab = itab[k]
+	end
+	return itab
+end
+
 ---@class mapStyle
 ---@field size Vector
 ---@field animName string
@@ -1381,6 +1394,7 @@ TSJDNHC.FGrid = {}
 ---@field TileStyle integer
 ---@field MapStyle mapStyle
 ---@field SpritesToUpdate table
+---@field RenderCubes table
 TSJDNHC.Grid = {}
 local MaxIndex = 0
 
@@ -1398,6 +1412,9 @@ end
 ---@field CenterPos Vector
 ---@field Collision integer
 ---@field Type any
+---@field Sprite Sprite
+---@field SpriteAnim string
+---@field Parent table
 
 ---@param pos Vector
 ---@param y number 
@@ -1427,10 +1444,21 @@ function TSJDNHC:MakeGridList(pos,y,x,xs,ys) --y = столбцы, x = ячей�
 			--tab.CornerAngles = {CornerAngles, (180-math.abs(CornerAngles))/(math.abs(CornerAngles)/CornerAngles),
 			--	-CornerAngles, -(180-math.abs(CornerAngles))/(math.abs(CornerAngles)/CornerAngles)  }
 
+			local needCubeRender = false -- xs < 100 or ys < 100
+			local cubX,cubY
+			if needCubeRender then
+				tab.RenderCubes = {}
+				cubX,cubY = math.ceil(100/xs), math.ceil(100/ys)
+			end
 			tab.FirstIndex = MaxIndex / 1
 			local lastIndex = 0
 			for i = 1, y do
 				tab.Grid[i] = {}
+				local cubYtab
+				if needCubeRender then
+					tab.RenderCubes[i // cubY] = tab.RenderCubes[i // cubY] or {}
+					cubYtab = tab.RenderCubes[i // cubY]
+				end
 				for j = 1, x do
 					tab.Grid[i][j] = {}
 
@@ -1447,6 +1475,11 @@ function TSJDNHC:MakeGridList(pos,y,x,xs,ys) --y = столбцы, x = ячей�
 
 					lastIndex = tab.Grid[i][j].Index
 					TSJDNHC.IndexsList[tab.Grid[i][j].Index] = tab.Grid[i][j]
+
+					if needCubeRender then
+						cubYtab[j // cubX] = cubYtab[j // cubX] or {}
+						cubYtab[j // cubX][#cubYtab[j // cubX]+1] = tab.Grid[i][j]
+					end
 				end
 			end
 			MaxIndex = lastIndex
@@ -1570,10 +1603,14 @@ function TSJDNHC.Grid.SetTileStyle(self, num, ...)
 		self.MapStyle = {
 			animName = tab[1],
 			size = tab[2],
-			affl = tab[3],
+			affl = {}, --tab[3],
 			bigs = {}, --tab[4],
 			sprs = {},
 		}
+		for i=1,#tab[3] do
+			local dat = tab[3][i]
+			self.MapStyle.affl[dat] = dat
+		end
 		if self.GridSprites[tab[1]] then
 			self.GridSprites[tab[1]].Color = Color(1,1,1,0)
 		end
@@ -1674,7 +1711,6 @@ function TSJDNHC.Grid.UpdateRenderTab(self)
 		for j=self.X, 1,-1 do
 			local cnum = num
 			if self.Grid[i][j].SpriteAnim then
-				--print(self.Grid[i][j].SpriteAnim, self.GridSprites[self.Grid[i][j].SpriteAnim])
 				self.RenderGridList[cnum+1] = {
 					pos = self.Grid[i][j].RenderPos,
 					spr = self.GridSprites[self.Grid[i][j].SpriteAnim] or self.GridSprites[tostring(self.Grid[i][j].SpriteAnim)],
@@ -1821,6 +1857,7 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 		--for y=math.max(1,StartPosRenderGrid.Y), math.min(EndPosRenderGrid.Y, self.Y) do
 		for y=math.min(EndPosRenderGrid.Y, self.Y), math.max(1,StartPosRenderGrid.Y),-1 do
 			for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, self.X) do
+				---@type Frid
 				local tab = self.Grid[y][x]
 				if tab.Sprite or tab.SpriteAnim or tab.Parent then
 					local renderPos = tab.RenderPos*vScale + startPos
@@ -1832,13 +1869,12 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 						renderPos = renderPos -zeroOffset --+ vec
 						--renderPos = renderPos
 						--renderPos = Vector(math.floor(renderPos.X), math.floor(renderPos.Y))
-						--print(y,x, renderPos, revScale,vScale)
 					end
 
-					if not ignoreList[tab] then
+					if not ignoreList[tab.Index] then
 						if tab.Mapspr then
 							tab.Mapspr:Render(renderPos)
-							ignoreList[tab] = true
+							ignoreList[tab.Index] = true
 						end
 						if tab.Sprite then
 							if scale ~= 1 then
@@ -1851,14 +1887,13 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 							else
 								tab.Sprite:Render(renderPos)
 							end
-							ignoreList[tab] = true
+							ignoreList[tab.Index] = true
 						end
 						local anim = tab.SpriteAnim and (self.GridSprites[tab.SpriteAnim] or self.GridSprites[tostring(tab.SpriteAnim)])
 						if anim then
 							--if scale ~= 1 then
 							--	local preScale = anim.Scale/1
 							--	anim.Scale = anim.Scale*(scaleComp)
-							--	--print(anim.Scale)
 							--	--anim.Scale = Vector(math.ceil(anim.Scale.X*20)/20,math.ceil(anim.Scale.Y*20)/20)
 							--	anim:Render(renderPos)
 							--	--if scale>1 then
@@ -1870,16 +1905,16 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 								toRender[toRenderNum] = {anim,renderPos,nil,tab}
 								toRenderNum = toRenderNum + 1
 							--end
-							ignoreList[tab] = true
+							ignoreList[tab.Index] = true
 						end
 					end
 
-					if tab.Parent and not ignoreList[tab.Parent] then
+					if tab.Parent and not ignoreList[tab.Parent.Index] then
 						local renderPos = tab.Parent.RenderPos*vScale + startPos
 						if scale ~= 1 then
 							renderPos = renderPos -zeroOffset
 						end
-						ignoreList[tab.Parent] = true
+						ignoreList[tab.Parent.Index] = true
 						if tab.Parent.Sprite then
 							if scale ~= 1 then
 								--local preScale = tab.Parent.Sprite.Scale/1
@@ -1911,6 +1946,137 @@ function TSJDNHC.Grid.Render(self, vec, scale)
 								--anim.Scale = preScale
 							else
 								anim:Render((tab.Parent.RenderPos + startPos)*scale)
+							end
+						end
+					end
+				end
+			end
+		end
+		for i=1, toRenderNum-1 do
+			local k = toRender[i]
+			local spr= k[1]
+			local renderPos = k[2]
+			if k[3] then
+				local preScale = spr.Scale/1
+				spr.Scale = spr.Scale*scale
+				spr:Render(renderPos)
+				spr.Scale = preScale
+			else
+				spr:Render(renderPos)
+			end
+			if k[4]._render then
+				k[4]._render(k[4],renderPos,vec,scale)
+			end
+		end
+
+		if scale ~= 1 then
+			for i,l in pairs(self.GridSprites) do
+				l.Scale = backscale[l]
+			end
+			if self.MapStyle then
+				for i,l in pairs(self.MapStyle.sprs) do
+					l.Scale = mbackscale[l]
+				end
+			end
+		end
+	elseif self.RenderMethod == 2 then
+		local modScale = math.abs(scale)
+		local zer = -vec - Isaac.WorldToRenderPosition(self.StartPos)
+		local modZer = Vector(math.abs(zer.X), math.abs(zer.Y))
+		local startPosRender = modZer - Vector(26,26) + (zeroOffset or Vector(0,0))
+		local StartPosRenderGrid = Vector(math.ceil(startPosRender.X/(100/Wtr*modScale)), math.ceil(startPosRender.Y/(100/Wtr*modScale)))
+		local EndPosRender = modZer + Vector(Isaac.GetScreenWidth(), Isaac.GetScreenHeight())*(math.max(1,modScale)) -- + Vector(26*2,26*2)
+		local EndPosRenderGrid = Vector(math.ceil(EndPosRender.X/(100/Wtr*modScale)), math.ceil(EndPosRender.Y/(100/Wtr*modScale)))
+		
+		local startPos = -zer --Isaac.WorldToRenderPosition(self.StartPos) + vec
+
+		local ignoreList = {}
+		local revScale = scale-1 
+		local vScale = scale 
+		local scaleComp = scale
+
+		local backscale = {}
+		local mbackscale = {}
+		if scale ~= 1 then
+			for i,l in pairs(self.GridSprites) do
+				backscale[l] = l.Scale/1
+				l.Scale = l.Scale*(scaleComp)
+			end
+			if self.MapStyle then
+				for i,l in pairs(self.MapStyle.sprs) do
+					mbackscale[l] = l.Scale/1
+					l.Scale = l.Scale*(scaleComp)
+				end
+			end
+		end
+
+		local toRender = {} ---Что за?
+		local toRenderNum = 1
+
+		for y=math.min(EndPosRenderGrid.Y, #self.RenderCubes), math.max(1,StartPosRenderGrid.Y),-1 do
+			for x=math.max(1,StartPosRenderGrid.X), math.min(EndPosRenderGrid.X, #self.RenderCubes[y]) do
+				local cube = self.RenderCubes[y][x]
+				for i=1, #cube do
+					local tab = cube[i]
+					if tab.Sprite or tab.SpriteAnim or tab.Parent then
+						local renderPos = tab.RenderPos*vScale + startPos
+						
+						if scale ~= 1 then
+							renderPos = renderPos -zeroOffset 
+						end
+
+						if not ignoreList[tab] then
+							if tab.Mapspr then
+								tab.Mapspr:Render(renderPos)
+								ignoreList[tab] = true
+							end
+							if tab.Sprite then
+								if scale ~= 1 then
+									toRender[toRenderNum] = {tab.Sprite,renderPos,true,tab}
+									toRenderNum = toRenderNum + 1
+								else
+									tab.Sprite:Render(renderPos)
+								end
+								ignoreList[tab] = true
+							end
+							local anim = tab.SpriteAnim and (self.GridSprites[tab.SpriteAnim] or self.GridSprites[tostring(tab.SpriteAnim)])
+							if anim then
+								toRender[toRenderNum] = {anim,renderPos,nil,tab}
+								toRenderNum = toRenderNum + 1
+									
+								ignoreList[tab] = true
+							end
+						end
+
+						if tab.Parent and not ignoreList[tab.Parent] then
+							local renderPos = tab.Parent.RenderPos*vScale + startPos
+							if scale ~= 1 then
+								renderPos = renderPos -zeroOffset
+							end
+							ignoreList[tab.Parent] = true
+							if tab.Parent.Sprite then
+								if scale ~= 1 then
+									toRender[toRenderNum] = {tab.Parent.Sprite,renderPos,true,tab.Parent}
+									toRenderNum = toRenderNum + 1
+								else
+									tab.Parent.Sprite:Render(renderPos)
+								end
+							end
+							if tab.Parent.Mapspr then
+								tab.Parent.Mapspr:Render(renderPos)
+							end
+							local anim = tab.Parent.SpriteAnim and (self.GridSprites[tab.Parent.SpriteAnim] or self.GridSprites[tostring(tab.Parent.SpriteAnim)])
+							if anim then
+								if scale ~= 1 then
+									local renderPos = tab.Parent.RenderPos + startPos
+									local scaledOffset = (scale*tab.Parent.RenderPos-tab.Parent.RenderPos) or Vector(0,0)
+									renderPos = renderPos + scaledOffset-zeroOffset
+
+									toRender[toRenderNum] = {anim,renderPos,nil,tab.Parent}
+									toRenderNum = toRenderNum + 1
+								else
+									anim:Render((tab.Parent.RenderPos + startPos)*scale)
+								end
 							end
 						end
 					end
@@ -2150,7 +2316,6 @@ function TSJDNHC.Grid.LinkGrids(self, parent, child, autoSize)
 			end
 			parent.Half = Vector(math.abs(xsize/2),math.abs(ysize/2))
 			parent.CenterPos = Vector(xpos/2,ypos/2)
-			--print("inside", parent.Half, parent.CenterPos)
 		end
 	end
 end
@@ -2177,7 +2342,9 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 	end
 
 	local toInit = {}
-	for i, tab in ipairs(list) do
+	--for i, tab in ipairs(list) do
+	for i=1, #list do
+		local tab = list[i]
 		---@type Frid
 		local grid
 		if list.useWorldPos then
@@ -2200,7 +2367,6 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 				local id = (grid.XY.X%self.MapStyle.size.X)+((grid.XY.Y-1)%self.MapStyle.size.Y)*self.MapStyle.size.Y
 				local mapSpr = self.MapStyle.sprs[id]
 				grid.Mapspr = mapSpr
-				print(grid.SpriteAnim, grid.SpriteAnim .. "_" .. id)
 				if self.MapStyle.bigs[grid.SpriteAnim] then
 					grid.Mapspr = self.MapStyle.sprs[grid.SpriteAnim .. "_" .. id]
 				end
@@ -2212,7 +2378,9 @@ function TSJDNHC.Grid.SetGridFromList(self, list)
 		--grid.Type = tab.Type or grid.Type
 		--grid.Slip = tab.Slip or grid.Slip
 	end
-	for i, grid in pairs(toInit) do
+	--for i, grid in pairs(toInit) do
+	for i=1, #toInit do
+		local grid = toInit[i]
 		local gtype = grid.Type and TSJDNHC.GridTypes[grid.Type]
 		if gtype and gtype.Init then
 			gtype.Init(grid, self)
@@ -2502,7 +2670,7 @@ function TSJDNHC.TestGridColl()
 			d.TSJDNHC_fallspeed = -8
 			d.TSJDNHC_JumpFrame = 0
 		end
-		--print(d.TSJDNHC_OnFloor,ent.Velocity.Y)
+		
 		d.TSJDNHC_OnFloor = d.TSJDNHC_OnFloor and (d.TSJDNHC_OnFloor - 1) or 0
 		d.TSJDNHC_JumpFrame = d.TSJDNHC_JumpFrame and (d.TSJDNHC_JumpFrame + 1) or 0
 
@@ -2521,9 +2689,8 @@ function TSJDNHC.TestGridColl()
 		local collidedGrid = {}
 		for i,k in pairs(d.TSJDNHC_GridPoints) do
 			--[[local grid = TSJDNHC.GetGrid(curPos + k[1])
-			--print(i, i, k[1], k[2], "col", grid and grid.Index)
+			
 			if grid and d.TSJDNHC_GridColl == 1 and grid.Collision == 1 then
-				--print(i, k[1], k[2])
 				
 				--ent.Position = ent.Position + k[2] * 0.10
 				curPos = curPos + k[2] * 0.10
@@ -2561,23 +2728,18 @@ function TSJDNHC.TestGridColl()
 			local nearPoint 
 			local maxd = 1000000
 			for num,pos in pairs(k) do
-				local dist = gridpos:Distance(pos)  --i.CenterPos:Distance(pos)
-				--print(num,pos,dist,gridpos,entpos)
+				local dist = gridpos:Distance(pos)
 				if dist<maxd then
-					--print(num,pos,dist,pos+entpos)
 					nearPoint = pos-i.Position
 					maxd = dist
 				end
 			end
-			--print(nearPoint )
 			--GridCollVer:Render(Isaac.WorldToRenderPosition(nearPoint+i.Position))
 			ent:GetData().DebugGridRen[i] = nearPoint + i.Position
 			local ang = (i.CenterPos - nearPoint ):GetAngleDegrees()
 			
-			--print(ang, i.angles[1],i.angles[2],i.angles[3],i.angles[4] )
 			if ang > i.angles[1] and ang <= i.angles[2] then
 				local movePos = -0.0 - (nearPoint.Y)
-				--print(movePos,nearPoint.Y,i.CenterPos.Y )
 				ent.Position = ent.Position + Vector(0,movePos) --ofsetPos:Resized(2.4)
 				--ent.Velocity = ent.Velocity - Vector(0,-1):Resized(0.33)
 
@@ -2586,15 +2748,12 @@ function TSJDNHC.TestGridColl()
 				end
 
 			elseif ang > i.angles[2] or ang < i.angles[4] then
-				--print(ang,nearPoint, 40 - (nearPoint.X))
 				local movePos = 40 - (nearPoint.X)
 				ent.Position = ent.Position + Vector(movePos,0) 
 			elseif ang < i.angles[1] or ang >= i.angles[3] then
-				--print(ang,nearPoint, 40 - (nearPoint.X))
 				local movePos = 0 - (nearPoint.X)
 				ent.Position = ent.Position + Vector(movePos,0) 
 			elseif ang < i.angles[1] or ang >= i.angles[3] then
-				--print(ang,nearPoint, 40 - (nearPoint.X))
 				local movePos = 0 - (nearPoint.X)
 				ent.Position = ent.Position + Vector(movePos,0) 
 			end
@@ -2602,12 +2761,10 @@ function TSJDNHC.TestGridColl()
 		--ent.Position = curPos --ent.Position + 
 
 		--ent.Position = ent.Position + ofsetPos:Resized(0.2)
-		--print("off",ofsetVec)
 		if ofsetVec:Length()>0 then
 
 			local angle = math.floor(ofsetVec:GetAngleDegrees()/90)*90
 			ofsetVec = Vector.FromAngle(angle)
-			--print(ofsetVec)
 
 			if ofsetVec.Y<0.5 and d.TSJDNHC_fallspeed>0 then
 				d.TSJDNHC_fallspeed = d.TSJDNHC_fallspeed * 0.8 + -0.0
@@ -2631,7 +2788,6 @@ function TSJDNHC.TestGridColl()
 			local nvec = ent.Velocity:Clamped(revvec[1]*50,revvec[2]*50,revvec[3]*50,revvec[4]*50)
 			nvec = Vector(nvec.X < 0.01 and nvec.X > -0.01 and 0 or nvec.X, 
 				nvec.Y < 0.01 and nvec.Y > -0.01 and 0 or nvec.Y)
-			--print(ent.Velocity,nvec) --,revvec[1],revvec[2],revvec[3],revvec[4]
 			--ent.Velocity = nvec --+ ofsetVec*0.1 --* pow --ent.Velocity + ofsetVec:Resized(1.0)
 
 			--ent.Position = ent.Position + ofsetPos:Resized(2.4)

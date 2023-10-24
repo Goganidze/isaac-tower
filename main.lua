@@ -425,7 +425,9 @@ do
 
 	function Isaac_Tower.LevelHandler.SpawnRoomEnemies(newRoom)
 		if newRoom.Enemy then
-			for i, k in pairs(newRoom.Enemy) do
+			--for i, k in pairs(newRoom.Enemy) do
+			for i=1, #newRoom.Enemy do
+				local k = newRoom.Enemy[i]
 				local data = Isaac_Tower.EnemyHandlers.Enemies[k.name]
 				if data then
 					Isaac_Tower.Spawn(k.name, k.st, k.pos * 20 + Vector(-60, 80 - data.spawnOffset), Vector(0, 0))
@@ -622,7 +624,9 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			ObjByName = {},
 		}
 
-		for i, ent in pairs(Isaac.FindByType(1000, -1, -1)) do
+		local toRemove = Isaac.FindByType(1000, -1, -1)
+		for i=1, #toRemove do
+			local ent = toRemove[i]
 			if not RemoveimmutyEnt[ent.Variant] and not ent:HasEntityFlags(EntityFlag.FLAG_PERSISTENT) then
 				Isaac_Tower.EnemyHandlers.RemoveEnemyFromArray(ent)
 				ent:Remove()
@@ -652,14 +656,15 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			Isaac_Tower.GridLists.Obs:SetManualRender(true)
 			local fakelist = {}
 			
-			if newRoom.Enemy then
+			--[[if newRoom.Enemy then
 				for i, k in pairs(newRoom.Enemy) do
 					local data = Isaac_Tower.EnemyHandlers.Enemies[k.name]
 					if data then
 						Isaac_Tower.Spawn(k.name, k.st, k.pos * 20 + Vector(-60, 80 - data.spawnOffset), Vector(0, 0))
 					end
 				end
-			end
+			end]]
+			Isaac_Tower.LevelHandler.SpawnRoomEnemies(newRoom)
 			if newRoom.Bonus then
 				Isaac_Tower.GridLists.Bonus.Grid = {}
 				Isaac_Tower.GridLists.Bonus.Ref = {}
@@ -749,7 +754,9 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 			end
 			Fake:Delete()
 		end
+		
 		if newRoom.EnviList then
+			local maxindex, minindex = 0,0
 			local list = Isaac_Tower.GridLists.Evri
 			list.List = {}
 			local CustomType = {}
@@ -782,9 +789,11 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 					list.List[i] = { pos = k.pos, spr = spr, l = k.l or 0 }
 					local layer = k.l or 0
 
+					maxindex = math.max(maxindex, layer)
+					minindex = math.min(minindex, layer)
 					list[layer] = list[layer] or {}
+					local gridlist = list[layer]
 					for _, index in pairs(k.chl) do
-						local gridlist = list[layer]
 						gridlist[index[1] ] = gridlist[index[1] ] or {}
 						gridlist[index[1] ][index[2] ] = gridlist[index[1] ][index[2] ] or {}
 						gridlist[index[1] ][index[2] ].Ps = gridlist[index[1] ][index[2] ].Ps or {}
@@ -798,14 +807,32 @@ function Isaac_Tower.SetRoom(roomName, preRoomName, TargetSpawnPoint)
 				local layer = "fake"
 
 				list[layer] = list[layer] or {}
+				local gridlist = list[layer]
 				for _, index in pairs(k.chl) do
-					local gridlist = list[layer]
 					gridlist[index[1] ] = gridlist[index[1] ] or {}
 					gridlist[index[1] ][index[2] ] = gridlist[index[1] ][index[2] ] or {}
 					gridlist[index[1] ][index[2] ].Ps = gridlist[index[1] ][index[2] ].Ps or {}
 					gridlist[index[1] ][index[2] ].Ps[id] = true
 				end
 			end
+			--[[if minindex then
+				for i=minindex, maxindex do
+					local gridlist = list[i]
+					if gridlist then
+						for y, yp in pairs(gridlist) do
+							for x, xp in pairs(yp) do
+								local new = {}
+								print("ha")
+								for id in pairs(xp.Ps) do
+									print(x,y, id)
+									new[#new+1] = id
+								end
+								xp.Ps = new
+							end
+						end
+					end
+				end
+			end]]
 		end
 
 		local toInit = {}
@@ -3986,13 +4013,17 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 	local list = Isaac_Tower.GridLists.Evri 
 	for layer, gridlist in pairs(list) do  --Спрайты с эффектом параллакса не оптимизируются, мне лень
 		if layer ~= "List" then
+			RenderList[layer] = RenderList[layer] or {}
 			if type(layer) == "string" or layer>-2 and layer<2 then
 				for y=math.min(EndPosRenderGrid.Y-1, Isaac_Tower.GridLists.Solid.Y-1), math.max(0,StartPosRenderGrid.Y-1),-1 do
 					for x=math.max(0,StartPosRenderGrid.X-1), math.min(EndPosRenderGrid.X-1, Isaac_Tower.GridLists.Solid.X-1) do
 						local tab = gridlist[y] and gridlist[y][x]
 						if tab and tab.Ps then
-							RenderList[layer] = RenderList[layer] or {}
+							local ps = tab.Ps
+							--RenderList[layer] = RenderList[layer] or {}
 							for id in pairs(tab.Ps) do
+							--for id=1, #ps do
+								--local da = ps[id]
 								RenderList[layer][id] = id
 							end
 						end
@@ -4003,8 +4034,10 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 					for x=-1, Isaac_Tower.GridLists.Solid.X do
 						local tab = gridlist[y] and gridlist[y][x]
 						if tab and tab.Ps then
-							RenderList[layer] = RenderList[layer] or {}
+							--RenderList[layer] = RenderList[layer] or {}
+							local ps = tab.Ps
 							for id in pairs(tab.Ps) do
+							--for id=1, #ps do
 								RenderList[layer][id] = id
 							end
 						end
@@ -4058,10 +4091,12 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 
 	local minindex,maxindex = 0,0
 	local tab = {}
+	--local num = 0
 	for layer, gridlist in pairs(RenderList) do
 		tab[layer] = tab[layer] or {}
 		for i,k in pairs(gridlist) do
 			tab[layer][#tab[layer]+1] = k
+			--num = num + 1
 		end
 		table.sort(tab[layer])
 		if type(layer) == "number" then
@@ -4069,6 +4104,7 @@ function Isaac_Tower.Renders.PreGridRender(_, Pos, Offset, Scale)
 			maxindex = math.max(maxindex, layer)
 		end
 	end
+	--print(num)
 	--table.sort(tab)
 	tab.Bonus = Bonuslist
 	Isaac_Tower.Renders.EnviRender = tab
@@ -4347,7 +4383,6 @@ function Isaac_Tower.Renders.HUDRender()
 	if not Isaac_Tower.InAction and not (Isaac_Tower.GridLists and Isaac_Tower.GridLists.Solid) then return end
 
 	if Isaac_Tower.ScoreHandler.Active then
-		--print(Isaac_Tower.ScoreHandler.RenderPos)
 		Isaac_Tower.ScoreHandler.Render(Isaac_Tower.ScoreHandler.RenderPos)
 		--Isaac_Tower.ScoreHandler.RenderTextArray(Isaac_Tower.ScoreHandler.RenderPos)
 		Isaac_Tower.ScoreHandler.UpdateTextArray()
@@ -4436,7 +4471,6 @@ function Isaac_Tower.Backgroung.standart_render(background, _, Offset, Scale)
 
 		local x, y = math.ceil(w/background.size.X/Scale) + 1, math.ceil(h/background.size.Y/Scale) + 1
 		local off = Vector(Offset.X%(background.size.X*bSe), Offset.Y%(background.size.Y*bSe))/bSe * Scale
-		--print(off, start, oldScale, background.spr.Scale)
 		for i=-1, x do
 			for j=-1, y do
 				local rpos = Vector(i*background.size.X-1, j*background.size.Y-1)*Scale + off - background.size*Scale - start  --Vector(background.size,background.size)
@@ -4581,6 +4615,7 @@ do  --Конец файла, хорошее место для этого
 		--	GridTypesList[data.EditorGridTypesList[i]] = true
 		--end
 		tab.GridTypesList = data.EditorGridTypesList
+		tab.ExtraAnims = data.EditorHidedList
 
 		Isaac_Tower.TileData.EditorData[name] = tab
 	end

@@ -167,12 +167,12 @@ TSJDNHC_PT.AddGridType("30l", function(self, gridList)
 end)
 Isaac_Tower.editor.AddGrid("30l", "30l", GenSprite("gfx/fakegrid/grid2.anm2","30l", Vector(0.5,0.5)), {Collision = 1, Type = "30l" }, GenSprite("gfx/fakegrid/grid2.anm2","30l"), Vector(2,1))
 
-TSJDNHC_PT.AddGridType("half", function(self, gridList)
+TSJDNHC_PT.AddGridType("half_up", function(self, gridList)
 	self.SpriteAnim = "half_up"
 	self.CenterPos = Vector(self.CenterPos.X,self.CenterPos.Y-self.Half.Y/2)
 	self.Half.Y = self.Half.Y/2
 end)
-Isaac_Tower.editor.AddGrid("half", "half_up", GenSprite("gfx/fakegrid/grid2.anm2", "half_up"), {Collision = 1, Type = "half" })
+Isaac_Tower.editor.AddGrid("half_up", "half_up", GenSprite("gfx/fakegrid/grid2.anm2", "half_up"), {Collision = 1, Type = "half_up" })
 
 TSJDNHC_PT.AddGridType("1_2x2", function(self, gridList)
 	self.SpriteAnim = "1_2x2"
@@ -256,6 +256,7 @@ Isaac_Tower.TileData.AddTileSet("secret", {
 	EditorImage = "gfx/editor/tileset_secret.png",
 	EditorAnm2 = "gfx/fakegrid/grid2secret.anm2",
 	EditorGridTypesList = {'8','9','1_3x3','45l','half_up','30l','1_5x5','3_3x1','platform1','1_2x2','30r','platform3','infis','platform2','platform','7','1','2','3','4','5','6','45r',"g2b","g3a","g1a"},
+	EditorHidedList = {'g2a',"1a","1b","5a","6a"},
 	Replaces = {["1"] = {"1a","1b"}, ["g2b"] = {"g2a"},["5"] = {"5a"},["6"] = {"6a"}}
 })
 
@@ -615,7 +616,8 @@ TSJDNHC_PT.AddGridType("runaway_switch_block_rev", function(self, gridList)
 		gridList:MakeMegaGrid(self.Index, 2, 2)
 	end,
 	function(self, gridList)
-		if not self.Updated and Isaac_Tower.LevelHandler.GetLevelData().IsRunAway then
+		if not self.Updated and Isaac_Tower.LevelHandler.GetLevelData()
+		and Isaac_Tower.LevelHandler.GetLevelData().IsRunAway then
 			self.Updated = true
 			self.Collision = 0
 			self.Sprite:Play("выкл_" .. self.extrasuffix)
