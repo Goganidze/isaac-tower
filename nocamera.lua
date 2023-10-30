@@ -1415,6 +1415,7 @@ end
 ---@field Sprite Sprite
 ---@field SpriteAnim string
 ---@field Parent table
+---@field OnCollisionFunc function
 
 ---@param pos Vector
 ---@param y number 
@@ -2404,6 +2405,12 @@ function TSJDNHC.DeleteAllGridList()
 end
 
 TSJDNHC.GridTypes = {}
+
+---@param name any
+---@param initFunc? fun(self:Frid, gridlist:GridList )
+---@param updateFunc? fun(self:Frid, gridlist:GridList )
+---@param destroyFunc? fun(self:Frid, gridlist:GridList )
+---@param renderFunc? fun(self:Frid, Pos:Vector, Offset:Vector, scale:number )
 function TSJDNHC.AddGridType(name, initFunc, updateFunc, destroyFunc, renderFunc)
 	if name and initFunc then
 		TSJDNHC.GridTypes[name] = TSJDNHC.GridTypes[name] or {}

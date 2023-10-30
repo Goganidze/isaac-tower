@@ -598,6 +598,37 @@ function Isaac_Tower.editor.GetConvertedEditorRoomForDebug()
 	end
 	if Isaac_Tower.editor.Memory.CurrentRoom.LevelName then
 		str = str .. "level='" .. Isaac_Tower.editor.Memory.CurrentRoom.LevelName .. "',"
+	else --поиск уровня по соединённым комнатам
+		local potencial_level
+		local transition = {"secretroom_enter", "teleport_hole", "Room_Transition" }
+		for typ, typename in pairs(transition) do
+			local gtab = Isaac_Tower.editor.Memory.CurrentRoom.Special[typename]
+			if gtab then
+				for y=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.Y do
+					local ycol = gtab[y]
+					for x=1, Isaac_Tower.editor.Memory.CurrentRoom.Size.X do
+						local grid = ycol and ycol[x] 
+						if grid and grid.TargetRoom and grid.TargetRoom ~= -1 then
+							if Isaac_Tower.Rooms[grid.TargetRoom] and Isaac_Tower.Rooms[grid.TargetRoom].level then
+								if potencial_level and potencial_level ~= Isaac_Tower.Rooms[grid.TargetRoom].level then
+									if Isaac_Tower.RG then
+										Isaac_Tower.game:GetConsole():PrintWarning("[Isaac Tower] Auto level search found that the room is connected to different levels. Set level manually")
+									else
+										print("[Isaac Tower] Auto level search found that the room is connected to different levels. Set level manually")
+									end
+									potencial_level = nil
+									break
+								end
+								potencial_level = Isaac_Tower.Rooms[grid.TargetRoom].level
+							end
+						end
+					end
+				end
+			end
+		end
+		if potencial_level then
+			str = str .. "level='" .. potencial_level .. "',"
+		end
 	end
 
 	--[[str = str .. "\nSolidList={\n"

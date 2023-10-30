@@ -3178,6 +3178,7 @@ function Isaac_Tower.GameRenderUpdate()
 	end
 end
 
+---@return Flayer
 function Isaac_Tower.GetFlayer(num)
 	local player = Isaac.GetPlayer(num)
 	return player:GetData().Isaac_Tower_Data

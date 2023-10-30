@@ -628,6 +628,67 @@ Isaac_Tower.editor.AddObstacle("runaway_switch_block_rev", "вкл_1",
 	{Collision = 1, Type = "runaway_switch_block_rev" }, 
 	GenSprite("gfx/fakegrid/switch.anm2","вкл_1"), Vector(2,2))
 
+---@param grid Frid
+local function SatanStatueCollision(ent, grid)
+	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
+	if fent and fent.CanBreakPoop then
+		local fentPos = fent.Position
+		grid.HitAngle = fentPos.X < grid.CenterPos.X
+		grid.HitPower = math.abs(fent.Velocity:Length())
+		if not ent:ToPlayer() then
+			grid.HitPower = grid.HitPower / 4
+		end
+			
+		grid.GridList:DestroyGrid(grid.XY)
+		grid.Collision = 0
+		return true
+	end
+end
+
+TSJDNHC_PT.AddGridType("satan_statue", 
+	function(self, gridList)
+		self.Sprite = GenSprite("gfx/fakegrid/satan statue.anm2","idle")
+		gridList:MakeMegaGrid(self.Index, 4, 8)
+		self.OnCollisionFunc = SatanStatueCollision
+	end,
+	function(self, gridList)
+		local scared = false
+		for i=1, Isaac_Tower.game:GetNumPlayers() do
+			local fent = Isaac_Tower.GetFlayer(i)
+			if fent.Position:Distance(self.CenterPos) < 400 and fent.OnAttack then
+				self.Sprite:Play("scared")
+				scared = true
+			end
+		end
+		if not scared then
+			self.Sprite:Play("idle")
+		end
+	end,
+	function(self, gridList)
+		Isaac_Tower.LevelHandler.GetLevelData().IsRunAway = true
+		self.Collision = 0
+		local rng = Isaac_Tower.LevelHandler.GetCurrentRoomData().deco_rng
+	
+		for i=1,6 do
+			local vec = Vector.FromAngle(rng:RandomInt(360) or 0):Resized((rng:RandomInt(15)+11)/10)
+			if self.HitAngle then
+				vec = vec + Vector(-self.HitPower,-3)
+			else
+				vec = vec + Vector(self.HitPower,-3)
+			end
+			local grid = Isaac.Spawn(1000,IsaacTower_GibVariant,Isaac_Tower.ENT.GibSubType.SWEET, self.CenterPos+Vector(0,-15), vec ,nil)
+		end
+
+		local vec = self.HitAngle and Vector(self.HitPower*2,-4) or Vector(-self.HitPower*2,-4)
+		local grid = Isaac.Spawn(1000,IsaacTower_GibVariant,0,self.Position,vec ,nil)
+		grid:GetSprite():Load(self.Sprite:GetFilename(),true)
+		grid:GetSprite():Play(self.Sprite:GetAnimation(), true)
+	end)
+Isaac_Tower.editor.AddObstacle("satan_statue", "idle", 
+	GenSprite("gfx/fakegrid/satan statue.anm2","idle", Vector(0.5,.5),nil, Vector(0,-13)), 
+	{Collision = 1, Type = "satan_statue" }, 
+	GenSprite("gfx/fakegrid/satan statue.anm2","idle"), Vector(4,8))
+
 
 ---==================================================================================================================================
 ---==================================================================================================================================
