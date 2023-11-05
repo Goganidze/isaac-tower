@@ -28,6 +28,35 @@ local function sign0(num)
 	return num < 0 and -1 or num == 0 and 0 or 1
 end
 
+local function PrintTab(tab, level)
+	level = level or 0
+	
+	if type(tab) == "table" then
+		for i,k in pairs(tab) do
+			local offset = ""
+			if level and level>0 then
+				for j = 0, level do
+					offset = offset .. " "
+				end
+			end
+			print(offset .. i,k)
+			if type(k) == "table" then
+				PrintTab(k, level+1)
+			end
+		end
+	end
+end
+local DeepPrint = function(...)
+	for i,k in pairs({...}) do
+		if type(k) == "table" then 
+			print(k)
+			PrintTab(k,1)
+		else
+			print(k)
+		end
+	end
+end
+
 local sizecache = {}
 local function GetLinkedGrid(grid, pos, size, fill, sizeY)
 	if size and pos then
@@ -302,6 +331,7 @@ local function poopObsLogic(ent, grid)
 end
 
 local function stonePoopObsLogic(ent, grid)
+	---@type Flayer
 	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
 	if fent and fent.CanBreakMetal then
 		local gridType = grid.EditorType
@@ -322,11 +352,13 @@ local function stonePoopObsLogic(ent, grid)
 				return true
 			end]]
 			local ang = math.ceil(fent.AttackAngle/90)*90
-			local fentPos = fent.Position + Vector(10,0):Rotated(fent.AttackAngle)
+			local fentPos = fent.Position + Vector(10 or fent.Velocity:Length(),0):Rotated(fent.AttackAngle)
 			local box1,box2 = {fentPos, fent.Half}, {grid.CenterPos, grid.Half}
 			local hit = Isaac_Tower.NoType_intersectAABB(box1,box2)
 
 			if hit then
+				PrintTab(hit)
+
 				local result =  ang == 0 and hit.normal.X == 1
 					or ang == 180 and hit.normal.X == -1
 					or ang == 90 and hit.normal.Y == 1
@@ -344,6 +376,8 @@ local function stonePoopObsLogic(ent, grid)
 					grid.GridList:DestroyGrid(grid.XY)
 					---grid.EditorType = gridType
 					return true
+				else
+					fent.Position = hit.pos
 				end
 			end
 		else

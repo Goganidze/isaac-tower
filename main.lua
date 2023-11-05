@@ -2037,6 +2037,39 @@ end
 
 ---@param box1 table
 ---@param box2 table
+--box = { [1] = Vector position, [2] = Vector half }
+function Isaac_Tower.NoType_intersectAABB2(box1,box2)
+	local dx = box2[1].X - box1[1].X
+    local px = (box2[2].X + box1[2].X) - math.abs(dx)
+    if px <= 0 then
+      --return
+    end
+
+    local dy = box2[1].Y - box1[1].Y
+    local py = (box2[2].Y + box1[2].Y) - math.abs(dy)
+    if py <= 0 then
+      --return
+    end
+
+    local hit = hitG()
+    if (px < py) then
+      local sx = sign(dx)
+      hit.delta.X = px * sx
+      hit.normal.X = sx
+      hit.pos.X = box1[1].X + (box1[2].X * sx)
+      hit.pos.Y = box2[1].Y
+    else 
+      local sy = sign(dy);
+      hit.delta.Y = py * sy;
+      hit.normal.Y = sy;
+      hit.pos.X = box2[1].X;
+      hit.pos.Y = box1[1].Y + (box1[2].Y * sy);
+    end
+    return hit
+end
+
+---@param box1 table
+---@param box2 table
 --box = { pos = Vector, half = Vector }
 function Isaac_Tower.NoType_CheckAABB(box1,box2)
 	local dx = box1.pos.X - box2.pos.X
