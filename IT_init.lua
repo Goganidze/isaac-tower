@@ -357,13 +357,12 @@ local function stonePoopObsLogic(ent, grid)
 			local hit = Isaac_Tower.NoType_intersectAABB(box1,box2)
 
 			if hit then
-				PrintTab(hit)
 
 				local result =  ang == 0 and hit.normal.X == 1
 					or ang == 180 and hit.normal.X == -1
 					or ang == 90 and hit.normal.Y == 1
 					or ang == 270 and hit.normal.Y == -1
-				--print(ang, hit.normal)
+				
 				if result then
 					local fentPos = fent.Position + Vector(10,0):Rotated(fent.AttackAngle)
 					local TarAngle = math.floor((grid.CenterPos-fentPos):GetAngleDegrees())
@@ -373,6 +372,7 @@ local function stonePoopObsLogic(ent, grid)
 						grid.HitPower = grid.HitPower / 4
 					end
 
+					fent.OnGround = true
 					grid.GridList:DestroyGrid(grid.XY)
 					---grid.EditorType = gridType
 					return true
