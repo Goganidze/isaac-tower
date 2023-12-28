@@ -1249,9 +1249,9 @@ local function teleport_hole_collision(_, player, grid)
 			if fent.LastVelocity.X<-1 and fent.CollideWall then
 				avec = Vector(20,20)
 				transit = true
-				fent.Flayer.Sprite.Rotation = 90
-				fent.Flayer.Sprite.Offset = Vector(-12,0)
-				fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+				fent.Flayer.Rotation = 90
+				fent.Flayer.Offset = Vector(-12,0)
+				fent.Flayer.FlipX = not fent.Flayer.FlipX
 			end
 		elseif grid.Rot==4 then
 			if fent.IngoneTransition and fent.IngoneTransition+5>Isaac.GetFrameCount() 
@@ -1265,9 +1265,9 @@ local function teleport_hole_collision(_, player, grid)
 			if fent.LastVelocity.X>1 and fent.CollideWall then
 				avec = Vector(20,0)
 				transit = true
-				fent.Flayer.Sprite.Rotation = 90
-				fent.Flayer.Sprite.Offset = Vector(12,-12)
-				fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+				fent.Flayer.Rotation = 90
+				fent.Flayer.Offset = Vector(12,-12)
+				fent.Flayer.FlipX = not fent.Flayer.FlipX
 			end
 		elseif grid.Rot==3 then
 			if fent.IngoneTransition and fent.IngoneTransition+45>Isaac.GetFrameCount() then
@@ -1282,15 +1282,15 @@ local function teleport_hole_collision(_, player, grid)
 					local fenpos = fent.Position+fent.Velocity
 					if grid.pos.X < fenpos.X and fenpos.X < grid.pos.X+40  then
 						transit = true
-						fent.Flayer.Sprite.Rotation = 180
-						fent.Flayer.Sprite.Offset = -fent.Flayer.DefaultOffset
-						fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+						fent.Flayer.Rotation = 180
+						fent.Flayer.Offset = -fent.Flayer.DefaultOffset
+						fent.Flayer.FlipX = not fent.Flayer.FlipX
 					end
 				else
 					transit = true
-					fent.Flayer.Sprite.Rotation = 180
-					fent.Flayer.Sprite.Offset = -fent.Flayer.DefaultOffset
-					fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+					fent.Flayer.Rotation = 180
+					fent.Flayer.Offset = -fent.Flayer.DefaultOffset
+					fent.Flayer.FlipX = not fent.Flayer.FlipX
 				end
 					
 				avec = Vector(20,10)
@@ -1316,9 +1316,9 @@ local function teleport_hole_collision(_, player, grid)
 
 			Isaac_Tower.scheduleForUpdate(function()
 				player.Visible = true
-				fent.Flayer.Sprite.Offset = fent.Flayer.DefaultOffset
+				fent.Flayer.Offset = fent.Flayer.DefaultOffset
 				if flipX then
-					fent.Flayer.Sprite.FlipX = not fent.Flayer.Sprite.FlipX
+					fent.Flayer.FlipX = not fent.Flayer.FlipX
 				end
 
 				fent.PreviousState = fent.State
@@ -1330,7 +1330,7 @@ local function teleport_hole_collision(_, player, grid)
 				grid.Grid.Target = nil
 				Isaac_Tower.SetScale(1.0,0.2)
 				fent.Self.EntityCollisionClass = entColl --4
-				fent.Flayer.Sprite.Rotation = 0
+				fent.Flayer.Rotation = 0
 				fent.Self:GetData().TSJDNHC_GridColl = gridcoll
 			end, 1, Isaac_Tower.Callbacks.ROOM_LOADING)
 
@@ -1478,11 +1478,11 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 				Isaac_Tower.SmoothPlayerPos = Isaac_Tower.LevelHandler.GetLevelData().SecretRoomEnter
 			end
 			player.Visible = true
-			fent.Flayer.Sprite.Offset = fent.Flayer.DefaultOffset
+			fent.Flayer.Offset = fent.Flayer.DefaultOffset
 
 			grid.Grid.Target = nil
 			player.EntityCollisionClass = entColl
-			fent.Flayer.Sprite.Rotation = 0
+			fent.Flayer.Rotation = 0
 			player:GetData().TSJDNHC_GridColl = gridcoll
 
 			local ent = Isaac.Spawn(Isaac_Tower.ENT.GIB.ID,Isaac_Tower.ENT.GIB.VAR,
@@ -2717,5 +2717,31 @@ function Isaac_Tower.ENT.LOGIC.BloodProjRemove(_, ent)
 	if ent.Child then ent.Child:Die() end
 end
 mod:AddCallback(Isaac_Tower.Callbacks.PROJECTILE_PRE_REMOVE, Isaac_Tower.ENT.LOGIC.BloodProjRemove, 0)
+
+
+
+
+
+
+do	--player animations
+
+	Isaac_Tower.FlayerHandlers.PlayerAnimManager.AddFile("main", "gfx/fakePlayer/player_main.anm2", 
+	{
+		"idle", "walk", "pre_run", "run", "run_change_dir", "walk_jump_up", "walk_jump_down",
+		"duck_idle", "duck_move", "duck_roll", "grab", "stopping_run", "wall_climbing",
+		"slide", "grab_down_appear", "grab_down_idle", "lunge_down", "grab_down_landing", 
+		"pre_super_jump_appear", "pre_super_jump", "pre_super_jump_left", "pre_super_jump_right",
+		"super_jump", "super_jump_collide", "super_jump_fall", "super_jump_landing", "attack_up",
+		"attack_up_loop", "attack_up_end", "wall_climbing_land", "lunge_down_wall", "hit",
+		"hitb", "poke"
+	})
+
+	Isaac_Tower.FlayerHandlers.PlayerAnimManager.AddFile("grab", "gfx/fakePlayer/player_grab.anm2", 
+	{
+		"holding_idle", "holding_move", "holding_jump_up", "holding_jump_down", "holding_appear",
+		"kick_hori", 
+	}, "gfx/fakePlayer/player_sheet_grab_righthand.png")
+
+end
 
 end

@@ -2870,13 +2870,7 @@ function Isaac_Tower.INIT_FLAYER(player)
 		JumpPressed = 0,
 		CanJump = true,
 		grounding = 5,
-		Flayer = {
-			Sprite = Sprite(),
-			Queue = -1,
-			SpeedEffectSprite = Sprite(),
-			RightHandSprite = Sprite(),
-			DefaultOffset = Vector(0,12)
-		},
+		--Flayer = manager.GenPlayerMetaSprite(fent),
 		PosRecord = {},
 		UnStuck = {
 			CounterForce = 0,
@@ -2884,6 +2878,9 @@ function Isaac_Tower.INIT_FLAYER(player)
 			LastPoses = {}
 		}
 	}
+	print("\n\n\n\n\n\n\n\n\n\n\n\n")
+	d.Isaac_Tower_Data.Flayer = Isaac_Tower.FlayerHandlers.PlayerAnimManager.GenPlayerMetaSprite(d.Isaac_Tower_Data)
+	print(d.Isaac_Tower_Data.Flayer)
 	d.Isaac_Tower_Data.GridPoints = {}
 	for i=0,360-30,30 do
 		local ang = i --90*(i)+45
@@ -2903,7 +2900,7 @@ function Isaac_Tower.INIT_FLAYER(player)
 		d.Isaac_Tower_Data.InsideGridPoints[#d.Isaac_Tower_Data.InsideGridPoints+1] = {pos, vec}
 	end
 
-	d.Isaac_Tower_Data.Flayer.Sprite:Load("gfx/fakePlayer/flayer.anm2", true)
+	--[[d.Isaac_Tower_Data.Flayer.Sprite:Load("gfx/fakePlayer/flayer.anm2", true)
 	d.Isaac_Tower_Data.Flayer.Sprite:Play("idle")
 	d.Isaac_Tower_Data.Flayer.Sprite.Offset = Vector(0,12)
 
@@ -2920,7 +2917,7 @@ function Isaac_Tower.INIT_FLAYER(player)
 	d.Isaac_Tower_Data.Flayer.RightHandSprite.Offset = Vector(0,12)
 
 	d.Isaac_Tower_Data.Flayer.Shadow = GenSprite("gfx/fakePlayer/flayer_shadow.anm2","shadow")
-	d.Isaac_Tower_Data.Flayer.Shadow.Color = Color(1,1,1,2)
+	d.Isaac_Tower_Data.Flayer.Shadow.Color = Color(1,1,1,2)]]
 
 	--d.TSJDNHC_GridColFunc = Isaac_Tower.PlatformerCollHandler
 end
@@ -2949,7 +2946,12 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 		zeroOffset = BDCenter*(Scale-1) --BDCenter --+GridListStartPos*(1-Scale)
 	end
 	local fent = player:GetData().Isaac_Tower_Data
-	local spr = player:GetData().Isaac_Tower_Data.Flayer.Sprite
+	---@type Player_AnimManager
+	local spr = fent.Flayer --.Sprite
+	if not spr then return end
+	local RightHandSprite = spr.CurrentRHSpr
+	spr:UpdateParam()
+
 	
 	--print(Isaac.GetFrameCount())
 
@@ -3038,12 +3040,16 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 		end
 	end
 	
-	fent.Flayer.RightHandSprite:SetFrame(spr:GetAnimation(), spr:GetFrame())
+	if RightHandSprite then
+		RightHandSprite:SetFrame(spr:GetAnimation(), spr:GetFrame())
+	end
 	
 	if Scale == 1 then
 		spr:Render(RenderPos)
 		function fent.Flayer.RenderRightHandSprite()
-			fent.Flayer.RightHandSprite:Render(RenderPos)
+			if RightHandSprite then
+				RightHandSprite:Render(RenderPos)
+			end
 		end
 		fent.Flayer.RenderRightHandSprite()
 	else
@@ -3054,9 +3060,11 @@ function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
 		spr:Render(RenderPos+Vector(0,12*(math.abs(Scale)-1))) --+scaledOffset+Vector(0,12*(Scale-1)))
 		
 		function fent.Flayer.RenderRightHandSprite()
-			fent.Flayer.RightHandSprite.Scale = fent.Flayer.RightHandSprite.Scale*Scale
-			fent.Flayer.RightHandSprite:Render(RenderPos+Vector(0,12*(math.abs(Scale)-1)))
-			fent.Flayer.RightHandSprite.Scale = preScale
+			if RightHandSprite then
+				RightHandSprite.Scale = RightHandSprite.Scale*Scale
+				RightHandSprite:Render(RenderPos+Vector(0,12*(math.abs(Scale)-1)))
+				RightHandSprite.Scale = preScale
+			end
 		end
 		fent.Flayer.RenderRightHandSprite()
 		spr.Scale = preScale

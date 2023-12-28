@@ -69,3 +69,20 @@
 ---@field EnemiesList table
 ---@field VisitCount integer
 ---@field FrameCount integer
+
+---@class Player_AnimManager
+---@field Sprs {[string]:Sprite}
+---@field Queue string|integer?
+---@field SpeedEffectSprite Sprite
+---@field RightHandSprs {[string]:Sprite}
+---@field DefaultOffset Vector
+---@field Shadow Sprite
+---@field CurrentSpr Sprite?
+---@field CurrentAnm2 string?
+---@field CurrentRHSpr Sprite?
+---@field Scale Vector
+---@field Color Color
+---@field FlipX boolean
+---@field FlipY boolean
+---@field Offset Vector
+---@field Rotation number

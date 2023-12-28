@@ -4,6 +4,22 @@ return function(mod) --, Isaac_Tower)
 local Isaac = Isaac
 local Isaac_Tower = Isaac_Tower
 
+local function GenSprite(gfx, anim, frame)
+	if gfx then
+		local spr = Sprite()
+		spr:Load(gfx, true)
+		if anim then
+			spr:Play(anim)
+		else
+			spr:Play(spr:GetDefaultAnimation())
+		end
+		if frame then
+			spr:SetFrame(frame)
+		end
+		return spr
+	end
+end
+
 
 Isaac_Tower.FlayerHandlers.WalkSpeed = 6
 Isaac_Tower.FlayerHandlers.FallAccel = 0.4
@@ -18,6 +34,291 @@ Isaac_Tower.FlayerHandlers.SuperJumpSpeed = 8
 local handler = Isaac_Tower.FlayerHandlers
 
 local IsaacTower_GibVariant = Isaac.GetEntityVariantByName('PIZTOW Gibs')
+
+
+
+do
+	handler.PlayerAnimManager = { names = {}, anm2 = {}, AnimMap = {}, rightHand = {} }
+	
+	local manager = handler.PlayerAnimManager
+
+	---@param anm2 string
+	---@param animationMap string[] --Dont work with repentogon
+	---@param RightHandGfx string|string[]?
+	function manager.AddFile(name, anm2, animationMap, RightHandGfx)
+		if anm2 and not manager.anm2[anm2] then
+			manager.anm2[anm2] = name
+			manager.names[name] = anm2
+			if RightHandGfx then
+				manager.rightHand[name] = RightHandGfx
+			end
+		end
+		if manager.anm2[anm2] then
+			if not REPENTOGON then
+				for i,k in pairs(animationMap) do
+					manager.AnimMap[k] = anm2
+				end
+			else
+				local spr = GenSprite(anm2)
+				for i,k in pairs(spr:GetAllAnimationData()) do
+					manager.AnimMap[k:GetName()] = anm2
+				end
+			end
+		end
+	end
+
+	---@return Sprite, Sprite -- Mainspr, RightHandSpr
+	function manager.GetSpriteByName(name)
+		local spr, righthand
+		local categ = manager.names[name] or manager.anm2[name] and name
+		if categ then
+			spr = GenSprite(categ)
+		
+			if manager.rightHand[name] then
+				---@type string|string[]?
+				local gfx = manager.rightHand[name]
+				if gfx == true and REPENTOGON then
+					righthand = GenSprite(categ)
+					local list = spr:GetAllLayers()
+					for i = 0, #list do
+						local layer = list[i]
+						---@type string
+						local gfxname = layer:GetSpritesheetPath()
+						gfxname = string.sub(gfxname, utf8.len(gfxname)-4)
+						righthand:ReplaceSpritesheet(i, gfxname)
+					end
+					righthand:LoadGraphics()
+				else
+					local istab = type(gfx) == "table"
+					righthand = GenSprite(categ)
+					for i=1, righthand:GetLayerCount() do
+						righthand:ReplaceSpritesheet(i-1, istab and gfx[i] or gfx)
+					end
+					righthand:LoadGraphics()
+				end
+			end
+		end
+		return spr, righthand
+	end
+
+	manager.MetaSpr = {}
+	manager.MetaSpr.meta = {}
+	---@class Player_AnimManager
+	manager.MetaSpr.spr = {}
+	
+	manager.MetaSpr.meta.__index = manager.MetaSpr.spr
+	do
+		local manspr = manager.MetaSpr.spr
+		local anm2Table = manager.anm2
+		local AnimMap = manager.AnimMap
+		local names = manager.names
+
+		function manager.MetaSpr.spr.GetSprite(self)
+			return self.CurrentSpr
+		end
+
+		function manager.MetaSpr.spr.Play(self, anim, force)
+			local anm2 = AnimMap[anim]
+			if anm2 and self.CurrentAnm2 ~= anm2 then
+				local name = anm2Table[anm2]
+				if not self.Sprs[name] then
+					self.Sprs[name], self.RightHandSprs[name] = manager.GetSpriteByName(name)
+				end
+				self.Sprs[name]:Play(anim)
+				self.CurrentSpr = self.Sprs[name]
+				self.CurrentRHSpr = self.RightHandSprs[name] or self.CurrentRHSpr
+				self.CurrentAnm2 = anm2
+			else
+				self.CurrentSpr:Play(anim)
+			end
+		end
+
+		function manager.MetaSpr.spr.SetAnimation(self, anim, reset)
+			local anm2 = AnimMap[anim]
+			local frame = self.CurrentSpr:GetFrame()
+			if anm2 and self.CurrentAnm2 ~= anm2 then
+				local name = anm2Table[anm2]
+				if not self.Sprs[name] then
+					self.Sprs[name], self.RightHandSprs[name] = manager.GetSpriteByName(name)
+				end
+				self.Sprs[name]:Play(anim)
+				self.CurrentSpr = self.Sprs
+				self.CurrentRHSpr = self.RightHandSprs[name] or self.CurrentRHSpr
+				self.CurrentAnm2 = anm2
+				if not reset then
+					self.CurrentSpr:SetFrame(frame)
+				end
+			else
+				self.CurrentSpr:Play(anim)
+			end
+		end
+
+		function manager.MetaSpr.spr.PlayOverlay (self, ...)
+			return self.CurrentSpr:PlayOverlay (...)
+		end
+
+		function manager.MetaSpr.spr.Render(self, ...)
+			return self.CurrentSpr:Render(...)
+		end
+
+		function manager.MetaSpr.spr.RenderLayer(self, ...)
+			return self.CurrentSpr:RenderLayer(...)
+		end
+
+		function manager.MetaSpr.spr.GetAnimation(self)
+			return self.CurrentSpr:GetAnimation()
+		end
+
+		function manager.MetaSpr.spr.GetDefaultAnimation(self)
+			return self.CurrentSpr:GetDefaultAnimation()
+		end
+
+		function manager.MetaSpr.spr.GetFilename(self)
+			return self.CurrentSpr:GetFilename()
+		end
+
+		function manager.MetaSpr.spr.GetFrame(self, ...)
+			return self.CurrentSpr:GetFrame(...)
+		end
+
+		function manager.MetaSpr.spr.GetOverlayAnimation(self)
+			return self.CurrentSpr:GetOverlayAnimation()
+		end
+
+		function manager.MetaSpr.spr.GetOverlayFrame(self)
+			return self.CurrentSpr:GetOverlayFrame()
+		end
+
+		function manager.MetaSpr.spr.IsPlaying(self, ...)
+			return self.CurrentSpr:IsPlaying(...)
+		end
+
+		function manager.MetaSpr.spr.IsEventTriggered(self, ...)
+			return self.CurrentSpr:IsEventTriggered(...)
+		end
+
+		function manager.MetaSpr.spr.IsFinished(self, ...)
+			return self.CurrentSpr:IsFinished(...)
+		end
+
+		function manager.MetaSpr.spr.IsOverlayFinished(self, ...)
+			return self.CurrentSpr:IsOverlayFinished(...)
+		end
+
+		function manager.MetaSpr.spr.IsOverlayPlaying(self, ...)
+			return self.CurrentSpr:IsOverlayPlaying(...)
+		end
+
+		function manager.MetaSpr.spr.RemoveOverlay(self, ...)
+			return self.CurrentSpr:RemoveOverlay(...)
+		end
+
+		function manager.MetaSpr.spr.SetFrame(self, frame, isActualeFrame, ...)
+			if type(frame) == "string" then
+				manspr.Play(self, frame, true)
+				self.CurrentSpr:SetFrame(isActualeFrame)
+			else
+				self.CurrentSpr:SetFrame(frame, ...)
+			end
+		end
+
+		function manager.MetaSpr.spr.SetLastFrame(self, ...)
+			return self.CurrentSpr:SetLastFrame(...)
+		end
+
+		function manager.MetaSpr.spr.SetOverlayFrame(self, ...)
+			return self.CurrentSpr:SetOverlayFrame(...)
+		end
+
+		function manager.MetaSpr.spr.SetOverlayRenderPriority(self, ...)
+			self.CurrentSpr:SetOverlayRenderPriority(...)
+		end
+
+		function manager.MetaSpr.spr.Stop(self, ...)
+			self.CurrentSpr:Stop(...)
+		end
+
+		function manager.MetaSpr.spr.Update(self, ...)
+			self.CurrentSpr:Update(...)
+			if self.CurrentRHSpr then
+				self.CurrentRHSpr:SetFrame(self.CurrentRHSpr:GetFrame())
+				if not self.RightHandSprs[anm2Table[self.CurrentAnm2]] then
+					self.CurrentRHSpr = nil
+				end
+			end
+		end
+
+		function manager.MetaSpr.spr.WasEventTriggered(self, ...)
+			return self.CurrentSpr:WasEventTriggered(...)
+		end
+
+		function manager.MetaSpr.spr.GetNullFrame(self, ...)
+			return self.CurrentSpr:GetNullFrame(...)
+		end
+
+
+
+
+
+		function manager.MetaSpr.spr.UpdateParam(self)
+			local curSpr = self.CurrentSpr
+			curSpr.Scale = self.Scale
+			curSpr.Color = self.Color
+			curSpr.FlipX = self.FlipX
+			curSpr.FlipY = self.FlipY
+			curSpr.Offset = self.Offset
+			curSpr.Rotation = self.Rotation
+		end
+	end
+
+	---@return Player_AnimManager
+	function manager.GenPlayerMetaSprite(fent)
+		---@type Player_AnimManager
+		local tab = {
+			CurrentSpr = nil, CurrentAnm2 = nil,
+			Sprs = {}, --{main = Sprite(), grab = Sprite()},
+			Queue = -1,
+			SpeedEffectSprite = Sprite(),
+			RightHandSprs = {},
+			DefaultOffset = Vector(0,12),
+			Shadow = Sprite(),
+			Scale = Vector(1,1), Color = Color(1,1,1,1), FlipX = false, FlipY = false, Offset = Vector(0,12), Rotation = 0,
+		}
+		setmetatable(tab, manager.MetaSpr.meta)
+		
+		tab.Sprs.main, tab.RightHandSprs.main = manager.GetSpriteByName("main")    --:Load(manager.GetAnm2("main"), true)
+		tab.Sprs.main.Offset = Vector(0,12)
+		if tab.RightHandSprs.main then
+			tab.RightHandSprs.main.Offset = Vector(0,12)
+		end
+
+		tab.Sprs.grab, tab.RightHandSprs.grab = manager.GetSpriteByName("grab") --:Load(tab.GetAnm2("grab"), true)
+		tab.Sprs.grab.Offset = Vector(0,12)
+		tab.RightHandSprs.grab.Offset = Vector(0,12)
+
+		tab.SpeedEffectSprite:Load("gfx/fakePlayer/speedEffect.anm2", true)
+		tab.SpeedEffectSprite:Play("effect")
+
+		tab.Shadow = GenSprite("gfx/fakePlayer/flayer_shadow.anm2","shadow")
+		tab.Shadow.Color = Color(1,1,1,2)
+
+		tab.CurrentSpr = tab.Sprs.main
+		tab.CurrentAnm2 = tab.Sprs.main:GetFilename()
+		tab.CurrentRHSpr = tab.RightHandSprs.main
+
+		print("re")
+		return tab
+	end
+
+
+
+
+
+
+end
+
+
+
 
 
 local function SpawnAfterImage(spr, pos, col, AlphaLos)
@@ -330,9 +631,9 @@ local notWallClambingState = {[1]=true, [5] = true,[40] = true} --[1] = true,
 
 ---@param fent Flayer
 ---@return boolean
-function Isaac_Tower.FlayerHandlers.GrabHandler(fent)
+function Isaac_Tower.FlayerHandlers.GrabHandler(fent, spr)
 	local idx = fent.ControllerIndex
-	local spr = fent.Flayer.Sprite
+	--local spr = fent.Flayer.Sprite
 	local Flayer = fent.Flayer
 
 	if Inp.PressGrab(idx) and fent.GrabDelay <= 0 and not fent.GrabPressed then
@@ -441,8 +742,8 @@ function Isaac_Tower.FlayerHandlers.TryTakeDamage(fent, Damage, Flags, Source, D
 	fent.InvulnerabilityFrames = DamageCountdown
 	fent.Velocity = Vector(0,0)
 	fent.RunSpeed = 0
-	fent.Flayer.Sprite.Rotation = 0
-	fent.Flayer.Sprite.Offset = fent.Flayer.DefaultOffset
+	fent.Flayer.Rotation = 0
+	fent.Flayer.Offset = fent.Flayer.DefaultOffset
 
 	if Isaac_Tower.ScoreHandler.Active then
 		Isaac_Tower.ScoreHandler.AddScore(-50)
@@ -514,7 +815,7 @@ Isaac_Tower.FlayerMovementState["Ходьба"] = function(player, fent, spr, id
 		end
 
 		Isaac_Tower.FlayerHandlers.JumpHandler(fent, -6, 15, 15)
-		if Isaac_Tower.FlayerHandlers.GrabHandler(fent) then
+		if Isaac_Tower.FlayerHandlers.GrabHandler(fent, spr) then
 			return
 		end
 	end
@@ -692,7 +993,7 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 		end
 
 		Isaac_Tower.FlayerHandlers.JumpHandler(fent, -6, 15, 15)
-		if Isaac_Tower.FlayerHandlers.GrabHandler(fent) then
+		if Isaac_Tower.FlayerHandlers.GrabHandler(fent, spr) then
 			return
 		end
 	end
@@ -849,7 +1150,7 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 		end
 
 		Isaac_Tower.FlayerHandlers.JumpHandler(fent, -6, 15, 15)
-		if Isaac_Tower.FlayerHandlers.GrabHandler(fent) then
+		if Isaac_Tower.FlayerHandlers.GrabHandler(fent, spr) then
 			return
 		end
 	end
@@ -1124,13 +1425,13 @@ Isaac_Tower.FlayerHandlers.CrashState = { --true or function(fent, target)
 	["Бег"] = true,
 	["Скольжение_Захват"] = true,
 	["Стомп"] = function(fent, target)
-		if fent.Flayer.Sprite:IsPlaying("grab_down_idle") then
+		if fent.Flayer:IsPlaying("grab_down_idle") then
 			return true
 		end
 	end,
 	["Супер_прыжок"] = true,
 	["Супер_прыжок_перенаправление"] = function (fent, target)
-		if fent.Flayer.Sprite:IsFinished(fent.Flayer.Sprite:GetAnimation()) then
+		if fent.Flayer:IsFinished(fent.Flayer:GetAnimation()) then
 			return true
 		end
 	end,
@@ -1241,8 +1542,9 @@ mod:AddPriorityCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, CallbackPriorit
 	local data = target:GetData().Isaac_Tower_Data
 	if data.GrabbedBy then
 		local fent = data.GrabbedBy
-		local spr = fent.Flayer.RightHandSprite
-		spr.Color = fent.Flayer.Sprite.Color
+		local spr = fent.Flayer.CurrentRHSpr
+		if not spr then return end
+		spr.Color = fent.Flayer.Color
 		
 		--local RenderPos =  Pos + fent.Position/(20/13) + fent.Velocity/(20/13)*Isaac_Tower.GetProcentUpdate() + Isaac_Tower.GetRenderZeroPoint()
 		--local RenderPos = TSJDNHC_PT:WorldToScreen(fent.Position+fent.Velocity*Isaac_Tower.GetProcentUpdate())
@@ -1250,7 +1552,7 @@ mod:AddPriorityCallback(Isaac_Tower.Callbacks.ENEMY_POST_RENDER, CallbackPriorit
 		--local RenderPos = TSJDNHC_PT:WorldToScreen(fent.Position + fent.Velocity*Isaac_Tower.GetProcentUpdate())
 
 		--spr:SetFrame(fent.Flayer.Sprite:GetAnimation(), fent.Flayer.Sprite:GetFrame())
-		spr.FlipX = fent.Flayer.Sprite.FlipX
+		spr.FlipX = fent.Flayer.FlipX
 		--if Scale ~= 1 then
 			--local preScale = spr.Scale/1
 			--spr.Scale = spr.Scale * Scale
@@ -1796,7 +2098,7 @@ Isaac_Tower.FlayerMovementState["Бег_по_стене"] = function(player, fen
 				SetState(fent, "Удар_об_потолок")
 				fent.RunSpeed = 0
 				fent.Velocity = Vector(0,0)
-				spr:Play("super_jump_collide")
+				spr:Play("wall_climbing_land")
 				fent.Flayer.Queue = "super_jump_fall"
 			end
 				
@@ -1897,7 +2199,7 @@ Isaac_Tower.FlayerMovementState["Бег_по_стене"] = function(player, fen
 			puf.SpriteScale = Vector(math.min(1,fent.RunSpeed/20), math.min(1,fent.RunSpeed/20))
 		end
 
-		if Isaac_Tower.FlayerHandlers.GrabHandler(fent) then
+		if Isaac_Tower.FlayerHandlers.GrabHandler(fent, spr) then
 			return
 		end
 	end
@@ -1991,7 +2293,7 @@ Isaac_Tower.FlayerMovementState["Удар_об_потолок"] = function(playe
 			--fent.Velocity.X = fent.Velocity.X * 0.9 + targetVel * 0.1 fent.RunSpeed
 			fent.RunSpeed = fent.RunSpeed * 0.9 + targetVel * 0.1
 			
-			if Isaac_Tower.FlayerHandlers.GrabHandler(fent) then
+			if Isaac_Tower.FlayerHandlers.GrabHandler(fent, spr) then
 				return
 			end
 		end
@@ -2073,8 +2375,8 @@ function Isaac_Tower.HandleMoving(player)
 	player = player:ToPlayer() or player
 	local idx = player.ControllerIndex
 	local fent = player:GetData().Isaac_Tower_Data
-	local spr = player:GetData().Isaac_Tower_Data.Flayer and player:GetData().Isaac_Tower_Data.Flayer.Sprite
-	local Flayer = player:GetData().Isaac_Tower_Data.Flayer and player:GetData().Isaac_Tower_Data.Flayer --Flayer.Queue
+	local spr = fent.Flayer and fent.Flayer --.Sprite
+	local Flayer = fent.Flayer and fent.Flayer --Flayer.Queue
 
 	local newVel = Vector(0,0)
 	fent.GrabDelay = fent.GrabDelay or 0
@@ -2090,7 +2392,7 @@ function Isaac_Tower.HandleMoving(player)
 	fent.DontHelpCollisionUpping = nil
 	fent.HelpCollisionHori = nil
 	fent.ShowSpeedEffect = nil
-	
+	if not spr then return end
 
 	fent.Half = fent.DefaultHalf/1 --Vector(15,20)
 	fent.CollisionOffset = Vector(0,0)
