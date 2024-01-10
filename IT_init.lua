@@ -2733,7 +2733,7 @@ do	--player animations
 		"pre_super_jump_appear", "pre_super_jump", "pre_super_jump_left", "pre_super_jump_right",
 		"super_jump", "super_jump_collide", "super_jump_fall", "super_jump_landing", "attack_up",
 		"attack_up_loop", "attack_up_end", "wall_climbing_land", "lunge_down_wall", "hit",
-		"hitb", "poke"
+		"hitb", "poke", "superrun", "grab_air_start", "grab_air_loop", "grab_stop",
 	})
 
 	Isaac_Tower.FlayerHandlers.PlayerAnimManager.AddFile("grab", "gfx/fakePlayer/player_grab.anm2", 

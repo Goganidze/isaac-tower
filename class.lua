@@ -73,6 +73,7 @@
 ---@class Player_AnimManager
 ---@field Sprs {[string]:Sprite}
 ---@field Queue string|integer?
+---@field QueuePrior integer?
 ---@field SpeedEffectSprite Sprite
 ---@field RightHandSprs {[string]:Sprite}
 ---@field DefaultOffset Vector
@@ -86,3 +87,5 @@
 ---@field FlipY boolean
 ---@field Offset Vector
 ---@field Rotation number
+---@field ReplaceOnce {["T"]:string, ["R"]:string}
+
