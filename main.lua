@@ -12,11 +12,13 @@ if Isaac_Tower and Isaac_Tower.CurrentRoom and Isaac.GetPlayer() then
 	reloadData = {roomName =  Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name, inEditor = Isaac_Tower.editor.InEditor}
 end
 Isaac_Tower = {
+	Mod = mod,
 	game = Game(),
 	sprites = {},
 	Renders = {},
 	inDebugVer = true
 }
+local game = Isaac_Tower.game
 --local Isaac_Tower = Isaac_Tower 
 
 local camfunc = include("nocamera")
@@ -2178,7 +2180,8 @@ local function intersectAABB_X(this, box)
     local upbox = Isaac_Tower.rayCast( box.CenterPos+Vector(0,-box.Half.Y), Vector(0,-1), 15, 2)
 
     local smoothup = this.DontHelpCollisionUpping or this.HelpCollisionHori or
-		not (this.Position.Y>=0 and dy>0 and py<20 and (not upbox or upbox.Collision == 0 or upbox.slope) )
+		not (this.Position.Y>=0 and dy>0 and py<5 and (not upbox or upbox.Collision == 0 or upbox.slope) )
+		
 	local sx = sign(dx)
 	local XHelp = this.HelpCollisionHori and ((px - py) < 6) 
 		and not Isaac_Tower.rayCast( box.CenterPos+Vector((box.Half.X+1)*-sx,box.Half.Y-5), Vector(-sx,0), 5, 1) 
@@ -2649,6 +2652,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 					--	fent.UnStuck.Nem = 0
 					end
 				end
+
 				fent.UnStuck.CounterForce = math.min(500, math.max(0, fent.UnStuck.CounterForce - 20))
 				if fent.UnStuck.CounterForce <= 10 then
 					--fent.UnStuck.LastPoses[#fent.UnStuck.LastPoses+1] = fent.Position
@@ -2661,7 +2665,32 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 					fent.UnStuck.LastPoses[26] = nil
 				end
 
-				fent.Position = fent.Position + fent.Velocity -- * Isaac_Tower.UpdateSpeed
+				local vel = fent.Velocity/1
+				---@type ForsedVelocity
+				local ForsedVelocity = fent.ForsedVelocity
+				if ForsedVelocity then
+					local ler = ForsedVelocity.Lerp
+					vel = vel * (1-ler) + ForsedVelocity.Velocity * ler
+				end
+				local UnStickWallVel = fent.UnStickWallVel
+				if UnStickWallVel then
+					local UnStickWallTime = fent.UnStickWallTime
+					fent.UnStickWallMaxTime = fent.UnStickWallMaxTime or UnStickWallTime
+					local lerp = UnStickWallTime / fent.UnStickWallMaxTime
+					Isaac_Tower.DebugRenderText(lerp, Vector(80,80),1)
+					Isaac_Tower.DebugRenderText(UnStickWallTime, Vector(80,100),1)
+					Isaac_Tower.DebugRenderText(UnStickWallTime, Vector(80,120),1)
+					vel.X = vel.X * (1-lerp) + UnStickWallVel.X * lerp
+					vel.Y = vel.Y * (1-lerp)
+					fent.UnStickWallTime = fent.UnStickWallTime - 1
+					if fent.UnStickWallTime <= 0 then
+						fent.UnStickWallTime = nil
+						fent.UnStickWallMaxTime = nil
+						fent.UnStickWallVel = nil
+					end
+				end
+
+				fent.Position = fent.Position + vel -- * Isaac_Tower.UpdateSpeed
 				ent.Position = Vector(-200, fent.Position.Y + 50)
 
 
@@ -2859,9 +2888,9 @@ function Isaac_Tower.INIT_FLAYER(player)
 		Position = player.Position, --Isaac.GetPlayer(pid)
 		Velocity = Vector(0,0),
 		TrueVelocity = Vector(0,0),
-		Half = Vector(12,19), --15 Vector(ent.Size, ent.Size),
-		DefaultHalf = Vector(12,19),
-		DefaultCroachHalf = Vector(12,10), --Vector(12,19),
+		Half = Vector(9.5,19),  --Vector(12,19), --15 Vector(ent.Size, ent.Size),
+		DefaultHalf = Vector(9.5,19),  --Vector(12,19),
+		DefaultCroachHalf = Vector(9.5,10), -- Vector(12,10), --Vector(12,19),
 		CollisionOffset = Vector(0,0),
 		CroachDefaultCollisionOffset = Vector(0,9),
 		jumpDelay = 0,
@@ -2878,9 +2907,8 @@ function Isaac_Tower.INIT_FLAYER(player)
 			LastPoses = {}
 		}
 	}
-	print("\n\n\n\n\n\n\n\n\n\n\n\n")
 	d.Isaac_Tower_Data.Flayer = Isaac_Tower.FlayerHandlers.PlayerAnimManager.GenPlayerMetaSprite(d.Isaac_Tower_Data)
-	print(d.Isaac_Tower_Data.Flayer)
+	
 	d.Isaac_Tower_Data.GridPoints = {}
 	for i=0,360-30,30 do
 		local ang = i --90*(i)+45
@@ -4669,6 +4697,15 @@ end
 
 -----------------------------------------------------------------------------------------------------
 
+Isaac_Tower.DebugFlag = 0
+function Isaac_Tower.debug(num)
+	Isaac_Tower.DebugFlag = Isaac_Tower.DebugFlag ~ 2^(num-1)
+end
+function Isaac_Tower.isdebug(num)
+	return Isaac_Tower.DebugFlag & 2^(num-1) ~= 0
+end
+
+
 local Col0Grid = Sprite()
 Col0Grid:Load("gfx/doubleRender/gridDebug/debug.anm2")
 Col0Grid.Color = Color(0.5,0.5,0.5,0.5)
@@ -4824,7 +4861,41 @@ function Isaac_Tower.DebugRenderThis(spr, pos, time)
 		debugShouldRender[#debugShouldRender+1] = {spr, pos, time}
 	end
 end
+
+local debugtext = {}
+function Isaac_Tower.DebugRenderText(text, pos, time)
+	if text and pos then
+		debugtext[#debugtext+1] = {tostring(text), pos, time or 5}
+	end
+end
+
+
 mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, function(_, Pos, Offset, Scale)
+	if Isaac_Tower.isdebug(1) then
+		for i=0, game:GetNumPlayers()-1 do
+			local fent = Isaac_Tower.GetFlayer(i)
+			local pos = TSJDNHC_PT:WorldToScreen(fent.Position)
+
+			GridCollPoint:Render(pos)
+		end
+	end
+
+	if Isaac_Tower.isdebug(2) then
+		for i=0, game:GetNumPlayers()-1 do
+			local fent = Isaac_Tower.GetFlayer(i)
+			local pos = TSJDNHC_PT:WorldToScreen(fent.Position)
+
+			font:DrawStringScaledUTF8(fent.State, pos.X, pos.Y+10, .5, .5, KColor(1,1,1,1))
+			font:DrawStringScaledUTF8(fent.Flayer and fent.Flayer.CurrentSpr:GetAnimation() or "", pos.X, pos.Y+20, .5, .5, KColor(1,1,1,1))
+
+			font:DrawStringScaledUTF8(string.format("%.2f",tostring(fent.Velocity.X)), pos.X-15, pos.Y+30, .5, .5, KColor(1,1,1,1))
+			font:DrawStringScaledUTF8(string.format("%.2f",tostring(fent.Velocity.Y)), pos.X+15, pos.Y+30, .5, .5, KColor(1,1,1,1))
+
+			font:DrawStringScaledUTF8(fent.RunSpeed, pos.X, pos.Y+40, .5, .5, KColor(1,1,1,1))
+		end
+	end
+
+
 	if debugShouldRender then
 		for i,k in pairs(debugShouldRender) do
 			if k[1] and k[2] then
@@ -4835,6 +4906,23 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, function(_, Pos, O
 			else
 				debugShouldRender[i] = nil
 			end
+		end
+	end
+	if #debugtext > 0 then
+		for i = #debugtext, 1, -1 do
+			local tab = debugtext[i]
+			if tab and tab[1] and tab[2] then
+				font:DrawStringUTF8(tab[1], tab[2].X, tab[2].Y, KColor(1,1,1,1))
+			else
+				debugtext[i] = nil
+				goto skip
+			end
+			if tab[3] and tab[3]>0 then
+				tab[3] = tab[3] - 1
+			else
+				debugtext[i] = nil
+			end
+			::skip::
 		end
 	end
 end)

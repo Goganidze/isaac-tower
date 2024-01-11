@@ -18,7 +18,7 @@
 ---@field JumpPressed integer
 ---@field CanJump boolean
 ---@field grounding integer
----@field Flayer FlayerSprites
+---@field Flayer Player_AnimManager
 ---@field PosRecord table
 ---@field UnStuck table
 ---@field CollideWall integer|nil
@@ -42,6 +42,9 @@
 ---@field InvulnerabilityFrames integer
 ---@field CutsceneLogic function|nil
 ---@field IngoneTransition integer|nil
+---@field ForsedVelocity ForsedVelocity?
+---@field UnStickWallVel Vector?
+---@field UnStickWallTime integer
 
         
 ---@class FlayerSprites
@@ -89,3 +92,9 @@
 ---@field Rotation number
 ---@field ReplaceOnce {["T"]:string, ["R"]:string}
 
+---@class ForsedVelocity
+---@field Lerp number,
+---@field MaxTime integer,
+---@field Time integer,
+---@field Velocity Vector,
+---@field noGrav boolean,

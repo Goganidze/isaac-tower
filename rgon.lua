@@ -249,13 +249,13 @@ return function(mod)
 	end
 
 	function Isaac_Tower.editor.TryOpenClipBroad(str, roomName)
-		local ImGui = Isaac.GetImGui()
+		local ImGui = ImGui --Isaac.GetImGui()
 		local winID = "isaac tower room clipboard"
-		ImGui:RemoveWindow(winID)
-		ImGui:CreateWindow(winID, roomName .. " :Room Data")
-		ImGui:AddInputTextMultiline(winID, "isaac tower room", "", nil, str,30)
-		ImGui:SetVisible(winID, true)
-		ImGui:Show()
+		ImGui.RemoveWindow(winID)
+		ImGui.CreateWindow(winID, roomName .. " :Room Data")
+		ImGui.AddInputTextMultiline(winID, "isaac tower room", "", nil, str,30)
+		ImGui.SetVisible(winID, true)
+		ImGui.Show()
 	end
 
 	function Isaac_Tower.editor.GetEnviAutoSpriteFormat(spr)
@@ -306,4 +306,32 @@ return function(mod)
 	function Isaac_Tower.editor.GetNullLayer(spr,layer)
 		return spr:GetNullFrame(layer)
 	end
+
+
+	function Isaac_Tower.DebugCMDCallback(_, command, param)
+		if command == "itdebug" then
+			local num = tonumber(param)
+			if num then
+				Isaac_Tower.debug(num)
+			end
+		end
+	end
+	mod:AddCallback(ModCallbacks.MC_EXECUTE_CMD, Isaac_Tower.DebugCMDCallback)
+
+	Console.RegisterCommand("itdebug", "Isaac Tower debug", "same as debug", false, AutocompleteType.CUSTOM)
+
+	Isaac_Tower.DebugCommandsList = {
+		{1,"позиция игрока"},
+		{2, "данные игрока"},
+	}
+
+	function Isaac_Tower.DebugCMDAutocomplition(_, comm, param)
+		if comm == "itdebug" then
+			return Isaac_Tower.DebugCommandsList
+		end
+		print(comm, param)
+	end
+	mod:AddCallback(ModCallbacks.MC_CONSOLE_AUTOCOMPLETE, Isaac_Tower.DebugCMDAutocomplition, "itdebug")
+
+
 end
