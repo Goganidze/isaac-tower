@@ -850,13 +850,14 @@ Isaac_Tower.FlayerMovementState = {}
 Isaac_Tower.FlayerMovementState["Ходьба"] = function(player, fent, spr, idx)
 	if player.ControlsEnabled then
 		fent.CanJump = true
-		if fent.StateFrame == 1 and math.abs(fent.Velocity.X) > 0.2 and Inp.PressRun(idx) then
+		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
+		if fent.StateFrame == 1 and fent.OnGround and math.abs(fent.Velocity.X) > 0.2 
+		and Inp.PressRun(idx) and sign(rot) == sign(fent.Velocity.X) then
 			SetState(fent,"НачалоБега")
 			Isaac_Tower.HandleMoving(player) --player:Update()
 			return
 		end
 
-		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
 		if rot<0 then --Inp.PressLeft(idx)>0 then
 			fent.RunSpeed = fent.RunSpeed * .75 + (Inp.PressLeft(idx)*-4) * .25
 			rot = -Isaac_Tower.FlayerHandlers.WalkSpeed --4
@@ -1150,6 +1151,7 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 				fent.CanJump = false
 				fent.grounding = 0
 				spr:Play("wall_climbing", true)
+				fent.JumpActive = 30
 				return
 			elseif fent.CollideWall and not fent.OnGround and Isaac_Tower.FlayerHandlers.IsCanWallClamb(fent, rot) then
 				spr.Rotation = 0
@@ -1946,6 +1948,7 @@ Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player,
 	--end
 	return toReturn
 end
+---@param fent Flayer
 Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 	local Flayer = fent.Flayer
 
@@ -1971,6 +1974,7 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 			--if spr:GetFrame()>7 then
 			--	spr:SetFrame(7)
 			--end
+			SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,0.2), .05)
 		elseif spr:IsPlaying("grab_down_idle") then
 			
 			if fent.Velocity.Y < Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed then
@@ -1989,6 +1993,22 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 					if fent.Velocity.Y > Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed then
 						Isaac_Tower.game:ShakeScreen(10)
 						Isaac_Tower.FlayerHandlers.LiftEnemiesInRadius(fent.Position, math.min(10, 5+fent.Velocity.Y-8))
+
+						local fpos = fent.Position
+						--local solid = Isaac_Tower.GridLists.Solid
+						local Obs = Isaac_Tower.GridLists.Obs
+						for i = -2, 2 do
+							--[[local grid = solid:GetGrid(fpos + Vector(7.5*i, fent.Half.Y+5))
+							if grid and grid.HighImpactDestroy then
+								solid:DestroyGrid(grid.XY)
+							end]]
+							local grid = Obs:GetGrid(fpos + Vector(7.5*i, fent.Half.Y+5))
+							if grid and grid.HighImpactDestroy then
+								grid.HitAngle =  90
+								grid.HitPower = 3
+								Obs:DestroyGrid(grid.XY)
+							end
+						end
 					end
 					--print( fent.CanBreakMetal, fent.Velocity.Y > Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed)
 					if fent.CanBreakMetal then
@@ -2017,12 +2037,13 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 
 			fent.CanBreakPoop = true
 			fent.AttackAngle = 90
+			SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,0.4), .05) --*(math.max(1,fent.StateFrame/60))))
 			if fent.Velocity.Y > Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed then
 				--local off = Isaac.Spawn(1000, IsaacTower_GibVariant, 100, fent.Position, Vector(0,0), player)
 				--off:GetSprite():Load(spr:GetFilename(), true)
 				--off:GetSprite():Play(spr:GetAnimation(), true)
-				SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,0.2*(math.max(1,fent.StateFrame/60))))
-				fent.CanBreakMetal = true
+				--SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,0.2*(math.max(1,fent.StateFrame/60))))
+				--fent.CanBreakMetal = true
 				fent.ShowSpeedEffect = 90
 			end
 		end

@@ -1416,6 +1416,8 @@ end
 ---@field SpriteAnim string
 ---@field Parent table
 ---@field OnCollisionFunc function
+---@field CanBeDestroyedWhenWallClambing boolean --Isaac Tower
+---@field HighImpactDestroy boolean    -- stomp
 
 ---@param pos Vector
 ---@param y number 
@@ -2214,6 +2216,8 @@ function TSJDNHC.Grid.PlaceGrid(self, tab, pos, ttype)
 	end
 end
 
+---@param x integer|Vector
+---@param y integer?
 function TSJDNHC.Grid.DestroyGrid(self, x, y)
 	if x and not y and x.Y then
 		y = x.Y

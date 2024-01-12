@@ -334,6 +334,7 @@ local function stonePoopObsLogic(ent, grid)
 	---@type Flayer
 	local fent = ent:GetData().Isaac_Tower_Data or ent:GetData().Isaac_Tower_Data
 	if fent and fent.CanBreakMetal then
+		
 		local gridType = grid.EditorType
 		if grid.IngoreDown and ent.Position.Y>(grid.CenterPos.Y+grid.Half.Y+40) then return false end
 		if fent.AttackAngle then
@@ -364,6 +365,7 @@ local function stonePoopObsLogic(ent, grid)
 					or ang == 270 and hit.normal.Y == -1
 				
 				if result then
+					
 					local fentPos = fent.Position + Vector(10,0):Rotated(fent.AttackAngle)
 					local TarAngle = math.floor((grid.CenterPos-fentPos):GetAngleDegrees())
 					grid.HitAngle = TarAngle
@@ -377,7 +379,7 @@ local function stonePoopObsLogic(ent, grid)
 					---grid.EditorType = gridType
 					return true
 				else
-					fent.Position = hit.pos
+					--fent.Position = hit.pos
 				end
 			end
 		else
@@ -488,6 +490,7 @@ local stone_poop_2x2Init = function(self, gridList)
 		end
 	end
 	self.OnCollisionFunc = stonePoopObsLogic
+	self.HighImpactDestroy = true
 	gridList:MakeMegaGrid(self.Index, 2, 2)
 end
 local stone_poop_2x2Destroy = function(self, gridList)
@@ -539,6 +542,7 @@ TSJDNHC_PT.AddGridType("stone_poop_1x1", function(self, gridList)
 		end
 	end
 	self.OnCollisionFunc = stonePoopObsLogic
+	self.HighImpactDestroy = true
 end,
 nil,
 function(self, gridList)

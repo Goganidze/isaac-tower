@@ -4979,6 +4979,7 @@ end
 
 local rooms = {
 	--"rooms.test",
+	"rooms.debugroom",
 	"rooms.tutorial",
 }
 
