@@ -3561,10 +3561,11 @@ function Isaac_Tower.EnemyUpdate(_, ent)--IsaacTower_Enemy
 						--		ent.Velocity = ent.Velocity*0.8 + (ent.Position-fent.Position):Resized(dist/20)
 						--	end
 						--else
-							if result == nil then
+						if result == nil then
+							Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, ent)
 							Isaac_Tower.FlayerHandlers.EnemyStandeartCollision(fent, ent, dist)
 							Isaac_Tower.FlayerHandlers.EnemyGrabCollision(fent, ent)
-							Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, ent)
+							--Isaac_Tower.FlayerHandlers.EnemyCrashCollision(fent, ent)
 						end
 					end
 				end

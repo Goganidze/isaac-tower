@@ -31,9 +31,13 @@
 ---@field slopeRot integer
 ---@field SmoothUp boolean
 ---@field OnAttack boolean
+---@field CanBreakPoop boolean
+---@field CanBreakMetal boolean
+---@field ShowSpeedEffect number
 ---@field Shadowposes table
 ---@field ControllerIndex integer
 ---@field JumpActive integer
+---@field GrabDelay integer
 ---@field GrabPressed boolean
 ---@field AttackAngle number
 ---@field UseApperkot boolean
