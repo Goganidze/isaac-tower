@@ -1218,6 +1218,10 @@ mod:AddCallback(ModCallbacks.MC_POST_UPDATE, function()
 	--rta = Isaac.GetFrameCount()-ta
 	--ta = Isaac.GetFrameCount()
 	Isaac_Tower.GameUpdate()
+
+	if not TSJDNHC_PT:GetCameraEnt() then
+		TowerInit()
+	end
 end)
 
 function Isaac_Tower.UpdateSpeedHandler(func, ...)
@@ -2155,7 +2159,8 @@ local function intersectAABB(this, box)
 end
 
 local function intersectAABB_X(this, box)
-    local dx = box.CenterPos.X - (this.Position.X+this.CollisionOffset.X) - this.Velocity.X
+	local thisvel = this.FullVel or this.Velocity
+    local dx = box.CenterPos.X - (this.Position.X+this.CollisionOffset.X) - thisvel.X
     local px = (box.Half.X + this.Half.X) - math.abs(dx)
 
     if px <= 0 then
@@ -2170,7 +2175,7 @@ local function intersectAABB_X(this, box)
       boxHalfY = boxHalfY - (GetDeepSlope(this, box) or 0)
     end
 
-    local dy = boxHalfY - (this.Position.Y+this.CollisionOffset.Y) - this.Velocity.Y
+    local dy = boxHalfY - (this.Position.Y+this.CollisionOffset.Y) - thisvel.Y
     local py = (box.Half.Y + this.Half.Y) - math.abs(dy)
     
     if py <= 0 then
@@ -2210,7 +2215,9 @@ local function intersectAABB_X(this, box)
 end
 
 local function intersectAABB_Y(this, box)
-    local dx = box.CenterPos.X - (this.Position.X+this.CollisionOffset.X) - this.Velocity.X
+	local thisvel =  this.FullVel or this.Velocity
+	print("ics", this.FullVel , this.Velocity)
+    local dx = box.CenterPos.X - (this.Position.X+this.CollisionOffset.X) - thisvel.X
     local px = (box.Half.X + this.Half.X) - math.abs(dx)
 
     if px <= 0 then
@@ -2225,7 +2232,7 @@ local function intersectAABB_Y(this, box)
       boxHalfY = boxHalfY - (GetDeepSlope(this, box) or 0)
     end
 
-    local dy = boxHalfY - (this.Position.Y+this.CollisionOffset.Y) - this.Velocity.Y
+    local dy = boxHalfY - (this.Position.Y+this.CollisionOffset.Y) - thisvel.Y
     local py = (box.Half.Y + this.Half.Y) - math.abs(dy)
     
     if py <= 0 then
@@ -2666,12 +2673,14 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 				end
 
 				local vel = fent.Velocity/1
+				--print("fist", vel)
 				---@type ForsedVelocity
 				local ForsedVelocity = fent.ForsedVelocity
 				if ForsedVelocity then
 					local ler = ForsedVelocity.Lerp
 					vel = vel * (1-ler) + ForsedVelocity.Velocity * ler
 				end
+				--print("focs", vel)
 				local UnStickWallVel = fent.UnStickWallVel
 				if UnStickWallVel then
 					local UnStickWallTime = fent.UnStickWallTime
@@ -2690,6 +2699,8 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 					end
 				end
 
+				--print(vel, fent.Velocity)
+				fent.FullVel = vel
 				fent.Position = fent.Position + vel -- * Isaac_Tower.UpdateSpeed
 				ent.Position = Vector(-200, fent.Position.Y + 50)
 

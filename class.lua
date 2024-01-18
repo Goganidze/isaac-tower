@@ -3,6 +3,7 @@
 ---@field InsideGridPoints table
 ---@field Position Vector
 ---@field Velocity Vector
+---@field FullVel Vector
 ---@field RunSpeed number
 ---@field Self EntityPlayer
 ---@field FrameCount integer

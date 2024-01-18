@@ -419,7 +419,7 @@ local function sign0(num)
 	return num < 0 and -1 or num == 0 and 0 or 1
 end
 
----@param state "Ходьба"|"Бег"|"Аперкот-не-кот"|"Бег_по_стене"|"Бег_смена_направления"|"Захват"|"Захватил ударил"|"Захватил"|"НачалоБега"|"Остановка_бега"|"Присел"|"Скольжение"|"Скольжение_Захват"|"Стомп"|"Стомп_импакт_пол"|"Супер_прыжок"|"Супер_прыжок_перенаправление"|"Супер_прыжок_подготовка"|"Удар_об_потолок"|"Урон"|"Cutscene"|"Впечатался"
+---@param state "Ходьба"|"Бег"|"Аперкот-не-кот"|"Бег_по_стене"|"Бег_смена_направления"|"Захват"|"Захватил ударил"|"Захватил"|"НачалоБега"|"Остановка_бега"|"Присел"|"Скольжение"|"Скольжение_Захват"|"Стомп"|"Стомп_импакт_пол"|"Супер_прыжок"|"Супер_прыжок_перенаправление"|"Супер_прыжок_подготовка"|"Удар_об_потолок"|"Урон"|"Cutscene"|"Впечатался"|"стомп_в_беге"
 local function SetState(fent, state)
 	fent.PreviousState = fent.State
 	fent.State = state
@@ -576,9 +576,9 @@ end
 function Inp.PressJumpOnce(idx, fent)
 	local ret
 	if idx == 0 then
-		ret = Input.IsActionTriggered(ButtonAction.ACTION_ITEM, idx)
+		ret = Input.IsButtonPressed(Keyboard.KEY_V, idx)
 	else
-		ret = Input.IsActionTriggered(ButtonAction.ACTION_MENUCONFIRM, idx)
+		ret = Input.IsActionPressed(ButtonAction.ACTION_MENUCONFIRM, idx)
 	end
 	if ret and not fent.OnGround then
 		fent.PreJumpPressed = 5
@@ -990,7 +990,7 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 		local nextVel = 0
 
 		if fent.CollideWall and not Inp.PressDown(idx) then --and fent.CollideWall == sign0(rot) then
-			print( Isaac_Tower.FlayerHandlers.IsCanWallClamb(fent, rot) )
+			
 			if Isaac_Tower.FlayerHandlers.IsCanWallClamb(fent, rot) then --not fent.OnGround and Isaac_Tower.MovementHandlers.IsCanWallClamb(fent, rot) then
 				spr.Rotation = 0
 				spr.Offset = fent.Flayer.DefaultOffset
@@ -1050,10 +1050,12 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 		--	fent.TempLoseY = nil
 		--	spr:Play("pre_run")
 		elseif fent.CollideWall then
-			SetState(fent, "Впечатался")
+			SetState(fent, "Стомп_импакт_пол")
+			spr:Play("lunge_down_wall")
 		end
 		local curanm = spr:GetAnimation()
 		if rot~=0 and fent.OnGround then
+			fent.IsLunge = nil
 			if math.abs(fent.RunSpeed) < 4 then
 				fent.RunSpeed = 4*sign(rot)
 			end
@@ -1106,7 +1108,7 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 		if Inp.PressDown(idx) then
 			if fent.OnGround then
 				SetState(fent, "Скольжение")
-			else
+			elseif fent.StateFrame > 5 then
 				if fent.CollideWall then
 					spr:Play("lunge_down_wall")
 					fent.Velocity.Y = fent.Velocity.Y*0.9 - 0.0*0.1
@@ -1121,6 +1123,10 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 				else
 					fent.TempLoseY = nil
 					spr:Play("lunge_down")
+					spr:ClearQueue()
+					fent.JumpActive = nil
+					fent.IsLunge = true
+					CleanOnStateChange(fent, "IsLunge")
 					fent.Velocity.Y = 8
 				end
 				--fent.Velocity.Y = 8
@@ -1128,6 +1134,14 @@ Isaac_Tower.FlayerMovementState["НачалоБега"] = function(player, fent,
 			end
 		elseif fent.OnGround and not Inp.PressRun(idx) then
 			SetState(fent, "Остановка_бега") --SetState(fent, "Ходьба")	
+		end
+		if fent.IsLunge then
+			if Inp.PressJumpOnce(fent.ControllerIndex, fent) then
+				print(spr:GetAnimation())
+				SetState(fent, "стомп_в_беге")
+				spr:ClearQueue()
+				return
+			end
 		end
 
 		Isaac_Tower.FlayerHandlers.JumpHandler(fent, -6, 15, 15)
@@ -1191,12 +1205,17 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 				spr:Play("wall_climbing", true)
 				return
 			elseif fent.CollideWall and fent.OnGround then --fent.Velocity.X == 0 then
-				fent.InputWait = fent.InputWait and (fent.InputWait - 1) or 5
+				fent.InputWait = fent.InputWait and (fent.InputWait - 1) or 3
 				if fent.InputWait and fent.InputWait <= 0 then
-					SetState(fent, "Остановка_бега") --fent.State = 5
+					SetState(fent, "Впечатался") --fent.State = 5
+					spr:Play("lunge_down_wall")
 					spr.Rotation = 0
 					spr.Offset = fent.Flayer.DefaultOffset
 					fent.InputWait = nil
+					fent.RunSpeed = 0
+					fent.Velocity = Vector(spr.FlipX and 5 or -5, -4)
+					fent.grounding = 0
+					return
 				end
 			end
 		end
@@ -1265,8 +1284,9 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 				spr.Offset = fent.Flayer.DefaultOffset
 			else --if Inp.PressDownOnce(idx) then
 				if fent.CollideWall then
+					SetState(fent, "Стомп_импакт_пол")
 					spr:Play("lunge_down_wall")
-					fent.Velocity.Y = fent.Velocity.Y*0.9 - 0.0*0.1
+					--[[fent.Velocity.Y = fent.Velocity.Y*0.9 - 0.0*0.1
 					fent.TempLoseY = fent.TempLoseY and math.min(1,fent.TempLoseY + 0.02) or 0
 					Isaac_Tower.FlayerHandlers.SetForsedVelocity(fent, Vector(fent.RunSpeed,0), fent.TempLoseY, 1, false)
 					if fent.Velocity.Y == 0 then
@@ -1274,8 +1294,8 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 						Isaac_Tower.FlayerHandlers.SetForsedVelocity(fent, Vector(spr.FlipX and 5 or -5,-5), 0.5, 10, false)
 						fent.RunSpeed = 0
 						--fent.Velocity = Vector(spr.FlipX and 5 or -5,-2)
-					end
-				else
+					end]]
+				elseif fent.StateFrame > 5 then
 					spr:Play("lunge_down")
 					spr:ClearQueue()
 					fent.JumpActive = nil
@@ -1297,6 +1317,14 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 
 			--fent.AttackAngle = fent.RunSpeed>0 and 0 or 180
 			--fent.ShowSpeedEffect = fent.AttackAngle
+		end
+		if fent.IsLunge then
+			if Inp.PressJumpOnce(fent.ControllerIndex, fent) then
+				print(spr:GetAnimation())
+				SetState(fent, "стомп_в_беге")
+				spr:ClearQueue()
+				return
+			end
 		end
 			
 		if fent.State ~= "Бег" then
@@ -1607,6 +1635,11 @@ Isaac_Tower.FlayerHandlers.CrashState = { --true or function(fent, target)
 	["Скольжение_Захват"] = true,
 	["Стомп"] = function(fent, target)
 		if fent.Flayer:IsPlaying("grab_down_idle") then
+			return true
+		end
+	end,
+	["стомп_в_беге"] = function(fent, target)
+		if fent.Velocity.Y > 0 then
 			return true
 		end
 	end,
@@ -1991,11 +2024,11 @@ Isaac_Tower.FlayerMovementState["Аперкот-не-кот"] = function(player,
 end
 ---@param fent Flayer
 Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
-	local Flayer = fent.Flayer
+	--local Flayer = fent.Flayer
 
-	if fent.StateFrame <= 1 then
+	--if fent.StateFrame <= 1 then
 		--fent.Velocity.Y = 0
-	end
+	--end
 
 	if player.ControlsEnabled then
 		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
@@ -2051,7 +2084,7 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 							end
 						end
 					end
-					--print( fent.CanBreakMetal, fent.Velocity.Y > Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed)
+					
 					if fent.CanBreakMetal then
 						print("bera")
 					end
@@ -2090,6 +2123,92 @@ Isaac_Tower.FlayerMovementState["Стомп"] = function(player, fent, spr, idx)
 		end
 	end
 	return {DontHelpCollisionUpping = true, HelpCollisionHori = false}
+end
+---@param fent Flayer
+Isaac_Tower.FlayerMovementState["стомп_в_беге"] = function(player, fent, spr, idx)
+	--local Flayer = fent.Flayer
+
+	if fent.StateFrame <= 1 then
+		fent.Velocity.Y = -7
+		fent.RunSpeed = 0
+		spr:Play("lunge_drop")
+	end
+
+	if player.ControlsEnabled then
+		local rot = -Inp.PressLeft(idx) + Inp.PressRight(idx)
+		fent.CanJump = false
+		--fent.RunSpeed = fent.RunSpeed * 0.9
+		--if math.abs(fent.RunSpeed)>3 then
+		--	fent.Velocity.X = fent.Velocity.X * 0.8
+		--end
+
+		--if fent.RunSpeed>-3 and fent.RunSpeed<3 then
+		local run = fent.Velocity.X
+		if run <= 0 then
+			fent.Velocity.X = math.max(math.min(-5, run), run + rot*0.3)
+		else
+			fent.Velocity.X = math.min(math.max(5, run), run + rot*0.3)
+			--math.max(-3, run, math.min(3, run, run + sign0(rot)*2*0.2 ))
+		end
+		
+		--if true then --spr:IsPlaying("grab_down_appear") then
+			if fent.Velocity.Y < 0 then
+				fent.Velocity.Y = fent.Velocity.Y * 0.98 + Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed * 0.02
+			elseif fent.Velocity.Y < Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed then
+				fent.Velocity.Y = fent.Velocity.Y * 0.92 + Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed * 0.09 --8
+			else
+				fent.Velocity.Y = fent.Velocity.Y * 0.95 + Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed * 0.06 --8
+			end
+
+			fent.OnAttack = true
+			if fent.OnGround then
+				if not fent.slopeAngle then
+					SetState(fent, "Стомп_импакт_пол")
+					spr:Play("grab_down_landing")
+					if fent.Velocity.Y > Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed then
+						Isaac_Tower.game:ShakeScreen(10)
+						Isaac_Tower.FlayerHandlers.LiftEnemiesInRadius(fent.Position, math.min(10, 5+fent.Velocity.Y-8))
+
+						local fpos = fent.Position
+						local Obs = Isaac_Tower.GridLists.Obs
+						for i = -2, 2 do
+							local grid = Obs:GetGrid(fpos + Vector(7.5*i, fent.Half.Y+5))
+							if grid and grid.HighImpactDestroy then
+								grid.HitAngle =  90
+								grid.HitPower = 3
+								Obs:DestroyGrid(grid.XY)
+							end
+						end
+					end
+				else
+					if Inp.PressDown(idx) then
+						fent.RunSpeed = fent.Velocity.Y * -sign(fent.slopeAngle)
+						SetState(fent, "Скольжение_Захват")
+						fent.SlideTime = math.min(40, fent.Velocity.Y *5)
+					else
+						fent.RunSpeed = fent.Velocity.Y * -sign(fent.slopeAngle) * 0.8
+						if math.abs(fent.RunSpeed) < 2 then
+							SetState(fent, "Стомп_импакт_пол")
+							spr:Play("grab_down_landing")
+						elseif math.abs(fent.RunSpeed) < Isaac_Tower.FlayerHandlers.RunSpeed2 then
+							SetState(fent, "НачалоБега")
+						else
+							player:SetColor(Color(1,1,1,1,0.5,0.5,0.5),3,1,false,false)
+							SetState(fent, "Бег")
+						end
+					end
+				end
+			end
+
+			fent.CanBreakPoop = true
+			fent.AttackAngle = 90
+			SpawnAfterImage(spr, fent.Position+Vector(0,20), Color(1,1,1,0.4), .05)
+			if fent.Velocity.Y > Isaac_Tower.FlayerHandlers.FallBlockBreakSpeed then
+				fent.ShowSpeedEffect = 90
+			end
+		--end
+	end
+	return {DontHelpCollisionUpping = true, HelpCollisionHori = false, donttransformRunSpeedtoX = true,}
 end
 Isaac_Tower.FlayerMovementState["Супер_прыжок_подготовка"] = function(player, fent, spr, idx)
 	local Flayer = fent.Flayer
@@ -2465,6 +2584,23 @@ Isaac_Tower.FlayerMovementState["Стомп_импакт_пол"] = function(pla
 	end
 
 	if spr:IsFinished(spr:GetAnimation()) and Flayer.Queue == -1 or fent.StateFrame > 360 then
+		if fent.NextState then
+			SetState(fent, fent.NextState)
+		else
+			SetState(fent, "Ходьба")
+		end
+	end
+	return toReturn
+end
+Isaac_Tower.FlayerMovementState["Впечатался"] = function(player, fent, spr, idx)
+	local Flayer = fent.Flayer
+	local toReturn = {}
+	--fent.CanJump = false
+	toReturn.donttransformRunSpeedtoX = true
+	--fent.RunSpeed = 0
+	--fent.Velocity = Vector(0,0)
+
+	if fent.OnGround and spr:IsFinished(spr:GetAnimation()) and Flayer.Queue == -1 or fent.StateFrame > 360 then
 		if fent.NextState then
 			SetState(fent, fent.NextState)
 		else
