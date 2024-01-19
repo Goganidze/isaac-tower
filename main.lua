@@ -2216,7 +2216,7 @@ end
 
 local function intersectAABB_Y(this, box)
 	local thisvel =  this.FullVel or this.Velocity
-	print("ics", this.FullVel , this.Velocity)
+	
     local dx = box.CenterPos.X - (this.Position.X+this.CollisionOffset.X) - thisvel.X
     local px = (box.Half.X + this.Half.X) - math.abs(dx)
 
@@ -2506,6 +2506,34 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		
 		for ihhh = 1, repeatNum do
 			if d.TSJDNHC_GridColl>0 then
+				local vel = fent.Velocity/1
+				---@type ForsedVelocity
+				local ForsedVelocity = fent.ForsedVelocity
+				if ForsedVelocity then
+					local ler = ForsedVelocity.Lerp
+					vel = vel * (1-ler) + ForsedVelocity.Velocity * ler
+				end
+				local UnStickWallVel = fent.UnStickWallVel
+				if UnStickWallVel then
+					local UnStickWallTime = fent.UnStickWallTime
+					fent.UnStickWallMaxTime = fent.UnStickWallMaxTime or UnStickWallTime
+					local lerp = UnStickWallTime / fent.UnStickWallMaxTime
+					Isaac_Tower.DebugRenderText(lerp, Vector(80,80),1)
+					Isaac_Tower.DebugRenderText(UnStickWallTime, Vector(80,100),1)
+					Isaac_Tower.DebugRenderText(UnStickWallTime, Vector(80,120),1)
+					vel.X = vel.X * (1-lerp) + UnStickWallVel.X * lerp
+					vel.Y = vel.Y * (1-lerp)
+					fent.UnStickWallTime = fent.UnStickWallTime - 1
+					if fent.UnStickWallTime <= 0 then
+						fent.UnStickWallTime = nil
+						fent.UnStickWallMaxTime = nil
+						fent.UnStickWallVel = nil
+					end
+				end
+
+				fent.FullVel = vel
+
+
 				local indexs = {}
 				local pointIndex = Isaac_Tower.GridLists.Solid:GetGrid(fent.Position)
 				--local pointIndexStr = pointIndex and (math.ceil(pointIndex.XY.X) .. "." .. math.ceil(pointIndex.XY.Y))
@@ -2616,6 +2644,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 
 							if sign(fent.Velocity.X) == sign(hit.delta.X) then
 								fent.Velocity.X = 0
+								vel.X = 0
 							end
 						end
 						fent.UnStuck.CounterForce = fent.UnStuck.CounterForce + math.abs(hit.delta.X)
@@ -2672,7 +2701,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 					fent.UnStuck.LastPoses[26] = nil
 				end
 
-				local vel = fent.Velocity/1
+				--[[local vel = fent.Velocity/1
 				--print("fist", vel)
 				---@type ForsedVelocity
 				local ForsedVelocity = fent.ForsedVelocity
@@ -2700,7 +2729,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 				end
 
 				--print(vel, fent.Velocity)
-				fent.FullVel = vel
+				fent.FullVel = vel]]
 				fent.Position = fent.Position + vel -- * Isaac_Tower.UpdateSpeed
 				ent.Position = Vector(-200, fent.Position.Y + 50)
 
