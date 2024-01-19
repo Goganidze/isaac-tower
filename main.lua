@@ -1567,7 +1567,7 @@ function Isaac_Tower.GerNearestFlayer(pos)
 end
 
 do 
-	Isaac_Tower.ScoreHandler = { Current = 0, Active = false, textArray = {}, RenderPos = Vector(40,20) }
+	Isaac_Tower.ScoreHandler = { Current = 0, Active = true, textArray = {}, RenderPos = Vector(40,20) }
 	Isaac_Tower.ScoreHandler.Font = Font()
 	Isaac_Tower.ScoreHandler.Font:Load("font/upheaval.fnt")
 
