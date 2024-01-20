@@ -1352,7 +1352,7 @@ Isaac_Tower.FlayerMovementState["Бег"] = function(player, fent, spr, idx)
 		end
 
 		Isaac_Tower.FlayerHandlers.JumpHandler(fent, -6, 15, 15)
-		if onground and math.abs(fent.RunSpeed) < handler.RunSpeed3 and fent.JumpActive == 15 then
+		if math.abs(fent.RunSpeed) < handler.RunSpeed3 and fent.JumpActive == 15 then
 			spr:Play("run_jump", true)
 			spr:SetQueue("run",0)
 		end
