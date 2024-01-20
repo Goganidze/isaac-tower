@@ -3,7 +3,7 @@
     "runtime.version": "Lua 5.3",
     "workspace.library": [
         "c:\\Users\\User\\.vscode\\extensions\\filloax.isaac-lua-api-vscode-1.5.0\\out\\emmylua",
-        "c:\\Users\\User\\.vscode\\extensions\\syntaxsculptor.isaac-lua-api-vscode-repentogon-1.5.5\\out\\emmylua"
+        "c:\\Users\\User\\.vscode\\extensions\\syntaxsculptor.isaac-lua-api-vscode-repentogon-1.5.6\\out\\emmylua"
     ],
     "diagnostics.globals": [
         "ActionTriggers",

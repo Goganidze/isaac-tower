@@ -2759,13 +2759,13 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 								Isaac_Tower.DebugRenderThis(GridCollPoint, Isaac.WorldToRenderPosition(hit.pos), 1)]]
 
 							if not ignoreGrounding and not ia.slope then
-								ignoreGrounding = true
+								--ignoreGrounding = true
 							elseif ignoreGrounding and ia.slope then
 								ignoreGrounding = false
 							end
 						end
 					end
-					if not ignoreGrounding and groundMinOffset > -40 and groundMinOffset < 0 then
+					if not ignoreGrounding and groundMinOffset > -16 and groundMinOffset < 0 then -- -40
 						fent.Position.Y = fent.Position.Y - groundMinOffset --+ math.max(0, fent.Velocity.Y-4)
 						fent.OnGround = true
 						fent.jumpDelay = 10
