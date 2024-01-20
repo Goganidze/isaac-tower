@@ -2551,6 +2551,7 @@ Isaac_Tower.FlayerMovementState["Бег_по_стене"] = function(player, fen
 				end
 				fent.CanJump = true
 				fent.InputWait = nil
+				fent.JumpActive = nil
 				Isaac_Tower.HandleMoving(player) --player:Update()
 				return
 			end
