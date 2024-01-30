@@ -1366,26 +1366,30 @@ end
 Isaac_Tower.FlayerMovementState["Бег_смена_направления"] = function(player, fent, spr, idx)
 	local toReturn = {}
 	fent.CanJump = false
-	if spr:GetAnimation() ~= "run_change_dir" then
-		spr:Play("run_change_dir", true)
+	if fent.StateFrame < 3 and spr:GetAnimation() ~= "run_change_dir2" then
+		spr:Play("run_change_dir2", true)
 	end
 		
 	fent.RunSpeed = fent.RunSpeed - sign0(fent.RunSpeed)*0.28   --fent.RunSpeed*0.90 0.14
 	toReturn.newVel = Vector(fent.RunSpeed,0)
 
-	if player.FrameCount%2 == 0 then
+	if player.FrameCount%2 == 0 and fent.OnGround then
 		local vec = Vector(-fent.NewRotate,0)
 		spawnDust(fent.Position+Vector(0,16)+vec*4, vec*12)
 	end
-	if spr:IsFinished("run_change_dir") and fent.OnGround then
-		spr:Play("run", true)
-		SetState(fent, "Бег")--fent.State = 3
-		fent.RunSpeed = Isaac_Tower.FlayerHandlers.RunSpeed2 * fent.NewRotate
-		spr.FlipX = not spr.FlipX
-		fent.CanJump = true
+	if spr:IsFinished("run_change_dir2") or spr:GetAnimation() == "run_change_dir_fall" then
+		if fent.OnGround then
+			spr:Play("run", true)
+			SetState(fent, "Бег")--fent.State = 3
+			fent.RunSpeed = Isaac_Tower.FlayerHandlers.RunSpeed2 * fent.NewRotate
+			spr.FlipX = not spr.FlipX
+			fent.CanJump = true
 
-		spawnSpeedEffect(fent.Position+Vector(spr.FlipX and -26 or 26, -8),
-			Vector(spr.FlipX and -8 or 8, 0), spr.FlipX and 180 or 0,1).Color = Color(1,1,1,0.5)
+			spawnSpeedEffect(fent.Position+Vector(spr.FlipX and -26 or 26, -8),
+				Vector(spr.FlipX and -8 or 8, 0), spr.FlipX and 180 or 0,1).Color = Color(1,1,1,0.5)
+		else
+			spr:Play("run_change_dir_fall")
+		end
 	end
 end
 Isaac_Tower.FlayerMovementState["Присел"] = function(player, fent, spr, idx)
