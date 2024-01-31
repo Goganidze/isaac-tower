@@ -4927,12 +4927,15 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, function(_, Pos, O
 			local pos = TSJDNHC_PT:WorldToScreen(fent.Position)
 
 			font:DrawStringScaledUTF8(fent.State, pos.X, pos.Y+10, .5, .5, KColor(1,1,1,1))
-			font:DrawStringScaledUTF8(fent.Flayer and fent.Flayer.CurrentSpr:GetAnimation() or "", pos.X, pos.Y+20, .5, .5, KColor(1,1,1,1))
+			font:DrawStringScaledUTF8(fent.Flayer and fent.Flayer.CurrentSpr:GetAnimation() or "", pos.X-40, pos.Y+20, .5, .5, KColor(1,1,1,1))
+			font:DrawStringScaledUTF8(fent.Flayer and fent.Flayer.Queue or "", pos.X+60, pos.Y+20, .5, .5, KColor(1,1,1,1))
 
-			font:DrawStringScaledUTF8(string.format("%.2f",tostring(fent.Velocity.X)), pos.X-15, pos.Y+30, .5, .5, KColor(1,1,1,1))
-			font:DrawStringScaledUTF8(string.format("%.2f",tostring(fent.Velocity.Y)), pos.X+15, pos.Y+30, .5, .5, KColor(1,1,1,1))
+			pos.Y = pos.Y + 30
+			font:DrawStringScaledUTF8(string.format("%.2f",tostring(fent.Velocity.X)), pos.X-15, pos.Y, .5, .5, KColor(1,1,1,1))
+			font:DrawStringScaledUTF8(string.format("%.2f",tostring(fent.Velocity.Y)), pos.X+15, pos.Y, .5, .5, KColor(1,1,1,1))
 
-			font:DrawStringScaledUTF8(fent.RunSpeed, pos.X, pos.Y+40, .5, .5, KColor(1,1,1,1))
+			pos.Y = pos.Y + 10
+			font:DrawStringScaledUTF8(fent.RunSpeed, pos.X, pos.Y, .5, .5, KColor(1,1,1,1))
 		end
 	end
 
