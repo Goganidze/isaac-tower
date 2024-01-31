@@ -323,6 +323,9 @@ return function(mod)
 	Isaac_Tower.DebugCommandsList = {
 		{1,"позиция игрока"},
 		{2, "данные игрока"},
+		{3, "хитбокс игрока"},
+		{5, "хитбокс врагов"},
+		{7, "noclip"},
 	}
 
 	function Isaac_Tower.DebugCMDAutocomplition(_, comm, param)

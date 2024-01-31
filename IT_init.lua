@@ -1229,14 +1229,14 @@ local function teleport_hole_collision(_, player, grid)
 		local flipX
 		if grid.Rot==1 then
 			if fent.IngoneTransition and fent.IngoneTransition+5>Isaac.GetFrameCount() 
-			and Isaac_Tower.Input.PressDown(player.ControllerIndex) then
+			and Isaac_Tower.Input.PressDown(player.ControllerIndex) > Isaac_Tower.FlayerHandlers.DeadZone then
 				fent.IngoneTransition = Isaac.GetFrameCount()+1
 				return
 			else
 				fent.IngoneTransition = nil
 			end
 
-			if Isaac_Tower.Input.PressDown(player.ControllerIndex) or 
+			if Isaac_Tower.Input.PressDown(player.ControllerIndex) > Isaac_Tower.FlayerHandlers.DeadZone or 
 			(fent.State == "Стомп_импакт_пол" and fent.OnGround) then
 				--player.Visible = false
 				transit = true

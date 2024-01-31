@@ -2504,8 +2504,9 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 		fent.RepeatingNum = repeatNum
 		local GridListSizeX = Isaac_Tower.GridLists.Solid.X
 		
+		local cangridcollide = d.TSJDNHC_GridColl>0 and not Isaac_Tower.isdebug(7)
 		for ihhh = 1, repeatNum do
-			if d.TSJDNHC_GridColl>0 then
+			if cangridcollide then
 				local vel = fent.Velocity/1
 				---@type ForsedVelocity
 				local ForsedVelocity = fent.ForsedVelocity
@@ -4866,7 +4867,7 @@ local function debugFridRender(_, Pos, Offset, Scale)
 	end
   end
   --Vector(fent.Half.X*i-i,20)
-  if TSJDNHC_PT.Isdebug(5) then
+  --[[if TSJDNHC_PT.Isdebug(5) then
 	for i, ent in pairs(Isaac.FindByType(1000, IsaacTower_Enemy,-1)) do
 		local d = ent:GetData()
 		local fent = d.Isaac_Tower_Data
@@ -4891,7 +4892,7 @@ local function debugFridRender(_, Pos, Offset, Scale)
 		GridCollPoint:Render(Isaac.WorldToRenderPosition(ent.Position+fent.CollisionOffset) + Offset)
 		GridCollPoint.Scale = Vector(0.5,0.5)
 	end
-  end
+  end]]
 
 end
 mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, debugFridRender) --GRID_BACKDROP_RENDER
@@ -4912,9 +4913,10 @@ end
 
 
 mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, function(_, Pos, Offset, Scale)
+	local getf = Isaac_Tower.GetFlayer
 	if Isaac_Tower.isdebug(1) then
 		for i=0, game:GetNumPlayers()-1 do
-			local fent = Isaac_Tower.GetFlayer(i)
+			local fent = getf(i)
 			local pos = TSJDNHC_PT:WorldToScreen(fent.Position)
 
 			GridCollPoint:Render(pos)
@@ -4923,7 +4925,7 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, function(_, Pos, O
 
 	if Isaac_Tower.isdebug(2) then
 		for i=0, game:GetNumPlayers()-1 do
-			local fent = Isaac_Tower.GetFlayer(i)
+			local fent = getf(i)
 			local pos = TSJDNHC_PT:WorldToScreen(fent.Position)
 
 			font:DrawStringScaledUTF8(fent.State, pos.X, pos.Y+10, .5, .5, KColor(1,1,1,1))
@@ -4936,6 +4938,73 @@ mod:AddCallback(TSJDNHC_PT.Callbacks.OVERLAY_BACKDROP_RENDER, function(_, Pos, O
 
 			pos.Y = pos.Y + 10
 			font:DrawStringScaledUTF8(fent.RunSpeed, pos.X, pos.Y, .5, .5, KColor(1,1,1,1))
+		end
+	end
+
+	if Isaac_Tower.isdebug(3) then
+		for pl=0,game:GetNumPlayers()-1 do
+			local ent = Isaac.GetPlayer(pl)
+			local d = ent:GetData()
+			if d.Isaac_Tower_Data then
+				GridCollPoint.Scale = (d.Isaac_Tower_Data.Half/1.5) --Vector(1,1)*
+				GridCollPoint:Render(Isaac.WorldToRenderPosition(d.Isaac_Tower_Data.Position+d.Isaac_Tower_Data.CollisionOffset) + Offset)
+				GridCollPoint.Scale = Vector(0.5,0.5)
+				
+				local pos = Isaac.WorldToRenderPosition(ent.Position) + Offset
+				Isaac.RenderText(d.Isaac_Tower_Data.Velocity.X, pos.X, pos.Y, 2,1,0,1)
+			end
+		end
+	end
+
+	if Isaac_Tower.isdebug(5) then
+		for i, ent in pairs(Isaac.FindByType(1000, IsaacTower_Enemy,-1)) do
+			local d = ent:GetData()
+			local fent = d.Isaac_Tower_Data
+			local fentPos = Isaac.WorldToRenderPosition(ent.Position) + Offset
+			for i,k in pairs(fent.GridPoints) do
+				GridCollPoint:Render(fentPos + (Vector(0,12) + k[1])/1.54 ) --+ Offset
+			end
+	
+			GridCollPoint.Scale = (fent.Half/1.5) --Vector(1,1)*
+			GridCollPoint:Render(Isaac.WorldToRenderPosition(ent.Position+fent.CollisionOffset) + Offset)
+			GridCollPoint.Scale = Vector(0.5,0.5)
+		end
+		for i, ent in pairs(Isaac.FindByType(1000, Isaac_Tower.ENT.Proj.VAR,-1)) do
+			local d = ent:GetData()
+			local fent = d.Isaac_Tower_Data
+			local fentPos = Isaac.WorldToRenderPosition(ent.Position) + Offset
+			for i,k in pairs(fent.GridPoints) do
+				GridCollPoint:Render(fentPos + (Vector(0,12) + k[1])/1.54 ) --+ Offset
+			end
+	
+			GridCollPoint.Scale = (fent.Half/1.5) --Vector(1,1)*
+			GridCollPoint:Render(Isaac.WorldToRenderPosition(ent.Position+fent.CollisionOffset) + Offset)
+			GridCollPoint.Scale = Vector(0.5,0.5)
+		end
+	end
+
+
+
+	if Isaac_Tower.isdebug(7) and not game:IsPaused() then
+		---@type IT_Input
+		local inp = Isaac_Tower.Input
+		for pl=0,game:GetNumPlayers()-1 do
+			local ent = Isaac.GetPlayer(pl)
+			local fent = ent:GetData().Isaac_Tower_Data
+			local indx = ent.ControllerIndex
+			local vec = Vector(0,0)
+
+			local speed = inp.PressRun(indx) and 13 or 5
+
+			vec.X = (-inp.PressLeft(indx) + inp.PressRight(indx)) * speed
+			vec.Y = (-inp.PressUp(indx) + inp.PressDown(indx) ) * speed -- .08
+
+			fent.RunSpeed = 0
+			fent.grounding = 0
+			fent.State = -1
+			fent.Velocity = Vector(0,0)
+			fent.Position = fent.Position + vec
+
 		end
 	end
 
