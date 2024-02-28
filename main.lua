@@ -10,6 +10,8 @@ local Wtr = 20/13
 local reloadData
 if Isaac_Tower and Isaac_Tower.CurrentRoom and Isaac.GetPlayer() then
 	reloadData = {roomName =  Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name, inEditor = Isaac_Tower.editor.InEditor}
+elseif Isaac_Tower and Isaac_Tower.GameState == 1 then
+	reloadData = true
 end
 Isaac_Tower = {
 	Mod = mod,
@@ -1045,23 +1047,27 @@ local function TowerInit(bool)
 		Isaac_Tower.game:GetLevel():RemoveCurses( Isaac_Tower.game:GetLevel():GetCurses() )
 		Isaac_Tower.game:GetHUD():SetVisible(false)
 
+		for i=0, DoorSlot.NUM_DOOR_SLOTS-1 do
+			Isaac_Tower.game:GetRoom():RemoveDoor(i)
+		end
+
 		TSJDNHC_PT:SpawnCamera(true)
 		TSJDNHC_PT:SetFocusMode(2)
 		
 		TSJDNHC_PT.DeleteAllGridList()
-		Isaac_Tower.RoomTransition(Isaac_Tower.StartRoom, true)
+		--Isaac_Tower.RoomTransition(Isaac_Tower.StartRoom, true)
 		--Isaac_Tower.SetRoom(Isaac_Tower.StartRoom)
 
-		for i=0, DoorSlot.NUM_DOOR_SLOTS-1 do
-			Isaac_Tower.game:GetRoom():RemoveDoor(i)
-		end
-		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
+		--Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
 		TSJDNHC_PT:SetRoomShadingVisible(false)
 		TSJDNHC_PT:SetStainVisible(false)
-		TSJDNHC_PT:SetActivity(true)
+		TSJDNHC_PT:SetActivity(false)
 
-		Isaac_Tower.InAction = true
+		Isaac_Tower.InAction = false
 		TSJDNHC_PT:EnableCamera(true, true)
+
+		Isaac_Tower.GameState = 1
+		Isaac_Tower.MainMenu.State = Isaac_Tower.MainMenu.StateType.PRE
     else
 		TSJDNHC_PT.DeleteAllGridList()
 		TSJDNHC_PT:SetActivity(false)
@@ -2463,7 +2469,10 @@ end
 
 function Isaac_Tower.PlatformerCollHandler(_, ent)
 	if ent:GetPlayerType() ~= IsaacTower_Type then return end
-	if not Isaac_Tower.InAction or Isaac_Tower.Pause then return end
+	if not Isaac_Tower.InAction or Isaac_Tower.Pause then 
+		ent.Position = Vector(0,0)
+		return 
+	end
 	local d = ent:GetData()
 	---@type Flayer
 	local fent = d.Isaac_Tower_Data
@@ -2904,6 +2913,7 @@ function Isaac_Tower.PlatformerCollHandler(_, ent)
 end
 mod:AddCallback(ModCallbacks.MC_POST_PLAYER_UPDATE, Isaac_Tower.PlatformerCollHandler)
 
+---@param player  EntityPlayer
 function Isaac_Tower.INIT_FLAYER(player)
 	
 	local d = player:GetData()
@@ -2911,6 +2921,10 @@ function Isaac_Tower.INIT_FLAYER(player)
 	--TSJDNHC_PT:SetFocusEntity(ent, 2)
 	d.TSJDNHC_GridColl = 1
 	ent.GridCollisionClass = 0
+
+	if player.SetCanShoot then
+		player:SetCanShoot(false)
+	end
 
 	--[[d.TSJDNHC_GridPoints = {}
 	for i=0,360-30,30 do   
@@ -3010,6 +3024,8 @@ font:Load("font/upheaval.fnt")
 local nilFunc = function() end
 
 function Isaac_Tower.FlayerRender(_, player, Pos, Offset, Scale)
+	if not Isaac_Tower.InAction then return end
+
 	local zeroOffset
 	if Scale ~= 1 then
 		zeroOffset = BDCenter*(Scale-1) --BDCenter --+GridListStartPos*(1-Scale)
@@ -5090,6 +5106,9 @@ if Isaac_Tower.RG then
 	rgon(mod, Isaac_Tower)
 end
 
+local mainmenu = include("startmenu")
+mainmenu(mod, Isaac_Tower)
+
 local rooms = {
 	--"rooms.test",
 	"rooms.debugroom",
@@ -5104,14 +5123,18 @@ end
 print("Isaac Tower: v.Dev Loaded")
 
 if reloadData then
-	if Isaac.GetPlayer() then
-		for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
-			Isaac.GetPlayer(i):GetData().Isaac_Tower_Data = nil
+	if type(reloadData) == "table" then
+		if Isaac.GetPlayer() then
+			for i=0, Isaac_Tower.game:GetNumPlayers()-1 do
+				Isaac.GetPlayer(i):GetData().Isaac_Tower_Data = nil
+			end
 		end
-	end
-	TowerInit()
-	Isaac_Tower.RoomTransition(reloadData.roomName, true)
-	if reloadData.inEditor then
-		Isaac_Tower.OpenEditor()
+		TowerInit()
+		Isaac_Tower.RoomTransition(reloadData.roomName, true)
+		if reloadData.inEditor then
+			Isaac_Tower.OpenEditor()
+		end
+	elseif reloadData == true then
+		TowerInit()
 	end
 end
