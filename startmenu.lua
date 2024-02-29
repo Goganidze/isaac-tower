@@ -1,5 +1,6 @@
 return function(mod)
     local Isaac = Isaac
+    local Input = Input
     
     if Isaac.GetPlayer() then
         Isaac.ExecuteCommand("clearcache")
@@ -41,6 +42,10 @@ return function(mod)
 
     sprs.btn_start.PlaybackSpeed = 1
     sprs.btn_start.Offset = Vector(-10,-30)
+    sprs.btn_options.PlaybackSpeed = 1
+    sprs.btn_options.Offset = Vector(-10,-10)
+    sprs.btn_exit.PlaybackSpeed = 1
+    sprs.btn_exit.Offset = Vector(-10,-15)
 
 
     mm.StateType = {
@@ -56,6 +61,8 @@ return function(mod)
     mm.globalScale = Vector(1,1)
     mm.globalZero = Vector(0,0)
     local bgSizeZ = 500/300
+
+    local preMousePos = Isaac.WorldToScreen(Input.GetMousePosition(true))-Isaac_Tower.game.ScreenShakeOffset
 
     function mm.MenuRender()
         if Isaac_Tower.GameState ~= 1 then return end
@@ -92,27 +99,48 @@ return function(mod)
         mm.StateFrame = mm.StateFrame + 1
 
         if mm.MenuLogic[mm.State] then
-            mm.MenuLogic[mm.State](mm.globalZero, mm.globalScale)
+            mm.MenuLogic[mm.State](mm.globalZero, mm.globalScale, scrX, scrY)
         end
 
 
         ------------------ worst gui api
         local wma = mm.WGA
-        if not wma.IsStickyMenu then
-            wma.SelectedMenu = "__mainmenu"
+
+        if not Isaac_Tower.game:IsPaused() then
+            if not wma.IsStickyMenu then
+                wma.SelectedMenu = "__mainmenu"
+            end
+            wma.MouseHintText = nil
+
+            local pos = Isaac.WorldToScreen(Input.GetMousePosition(true))-Isaac_Tower.game.ScreenShakeOffset
+            if wma.ControlType == wma.enum.ControlType.CONTROLLER then
+                print("gg", pos:Distance(preMousePos))
+                if pos:Distance(preMousePos) > 3 then
+                    wma.ControlType = wma.enum.ControlType.MOUSE
+                end
+            else
+                local move = wma.input.GetRefMoveVector()
+                print("mm", move)
+                if move:Length() > .2 then
+                    wma.ControlType = wma.enum.ControlType.CONTROLLER
+                end
+            end
+            print("ttt",wma.ControlType)
+            preMousePos = pos
+
+            wma.MousePos = pos
+            
+            wma.DetectMenuButtons(wma.SelectedMenu)
+            wma.RenderMenuButtons(wma.SelectedMenu)
+            wma.HandleWindowControl()
+            wma.RenderWindows()
+
+            wma.DetectSelectedButtonActuale()
+        else
+            wma.RenderMenuButtons(wma.SelectedMenu)
+            wma.RenderWindows()
         end
-        wma.MouseHintText = nil
 
-        local pos = Isaac.WorldToScreen(Input.GetMousePosition(true))-Isaac_Tower.game.ScreenShakeOffset
-
-        wma.MousePos = pos
-        
-        wma.DetectMenuButtons(wma.SelectedMenu)
-		wma.RenderMenuButtons(wma.SelectedMenu)
-        wma.HandleWindowControl()
-        wma.RenderWindows()
-
-        wma.DetectSelectedButtonActuale()
         if wma.MouseHintText then
             local pos = wma.MousePos
             --DrawStringScaledBreakline(font, Isaac_Tower.editor.MouseHintText, pos.X, pos.Y, 0.5, 0.5, Menu.wma.DefTextColor, 60, "Left")
@@ -176,7 +204,7 @@ return function(mod)
             tv.Scale = scale
             tv:Render(zero)
         end,
-        [mm.StateType.MAIN] = function(zero, scale)
+        [mm.StateType.MAIN] = function(zero, scale, scrX, scrY)
             local logo = sprs.logo
             if mm.StateFrame%6 == 0 then
                 logo.Color = Color(1,1,1, (math.sin(mm.StateFrame/2)+5)/7)
@@ -195,11 +223,14 @@ return function(mod)
             tv.Scale = scale
             tv:Render(zero)
 
-            local btStartPos = zero + Vector(300, 300)*scale + mm.ButtonOffset
+            local btStartPos = Vector(scrX, scrY) + Vector(-170, -20)*scale + mm.ButtonOffset
+            local ysi = scale.Y
             for i=1, #mm.menubtns.__mainmenu do
                 ---@type EditorButton
                 local btn = mm.menubtns.__mainmenu[i]
-                btn.pos = btStartPos + Vector(0, i*-120)
+                btn.pos = btStartPos + Vector(0, i*-73*ysi)
+                btn.x = 190 * scale.X
+                btn.y = 70 * ysi
             end
             mm.ButtonOffset.X = mm.ButtonOffset.X * 0.8
         end,
@@ -227,7 +258,7 @@ return function(mod)
     local nilspr = Sprite()
     ---@type EditorButton
     local self
-    self = mm.WGA.AddButton("__mainmenu", "start", Vector(0,0), 190, 70, nilspr , function(button) 
+    self = mm.WGA.AddButton("__mainmenu", "start", Vector(-200,0), 190, 70, nilspr , function(button) 
         if button ~= 0 then return end
     end, function(pos)
         sprs.btn_start:Update()
@@ -238,6 +269,36 @@ return function(mod)
         end
         sprs.btn_start.Scale = mm.globalScale/1
         sprs.btn_start:Render(pos)
+    end)
+    mm.menubtns.__mainmenu[3] = self
+
+    local self
+    self = mm.WGA.AddButton("__mainmenu", "options", Vector(-200,0), 190, 70, nilspr , function(button) 
+        if button ~= 0 then return end
+    end, function(pos)
+        sprs.btn_options:Update()
+        if self.IsSelected then
+            sprs.btn_options:Play("menu_btn_options")
+        else
+            sprs.btn_options:Play("menu_btn_options_r")
+        end
+        sprs.btn_options.Scale = mm.globalScale/1
+        sprs.btn_options:Render(pos)
+    end)
+    mm.menubtns.__mainmenu[2] = self
+
+    local self
+    self = mm.WGA.AddButton("__mainmenu", "exit", Vector(-200,0), 190, 70, nilspr , function(button) 
+        if button ~= 0 then return end
+    end, function(pos)
+        sprs.btn_exit:Update()
+        if self.IsSelected then
+            sprs.btn_exit:Play("menu_btn_exit")
+        else
+            sprs.btn_exit:Play("menu_btn_exit_r")
+        end
+        sprs.btn_exit.Scale = mm.globalScale/1
+        sprs.btn_exit:Render(pos)
     end)
     mm.menubtns.__mainmenu[1] = self
 

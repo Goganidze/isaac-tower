@@ -135,6 +135,12 @@ Menu.wma.FastCreatelist(MenuName, Vector(0,0), Xsize, list,
 
 ]]
 
+---@enum ControlType
+local ControlType = {
+	MOUSE = 1,
+	CONTROLLER = 2,
+}
+
 ---@class wga_menu
 ---@field AddCallback function
 ---@field RemoveCallback function
@@ -152,6 +158,7 @@ Menu.wma.FastCreatelist(MenuName, Vector(0,0), Xsize, list,
 ---@field ScrollOffset Vector
 ---@field LastOrderRender function
 ---@field DetectSelectedButtonActuale function
+---@field ControlType ControlType
 local menuTab = RegisterMod("worst gui api: isaac tower", 1)
 menuTab.Callbacks = {}
 local Callbacks = {
@@ -164,6 +171,7 @@ end
 for i,k in pairs(Callbacks) do
 	addCallbackID(i)
 end
+menuTab.enum = {ControlType = ControlType}
 
 menuTab.MousePos = Vector(0,0)
 menuTab.SelectedMenu = "grid"
@@ -172,6 +180,7 @@ menuTab.MouseSprite = nil
 menuTab.SelectedGridType = ""
 menuTab.GridListMenuPage = 1
 menuTab.DefTextColor = KColor(0.1,0.1,0.2,1)
+menuTab.ControlType = 1
 
 menuTab.MenuData = {}
 menuTab.MenuButtons = {}
@@ -287,6 +296,15 @@ local function findAndRemove(tab, param)
 			table.remove(tab, i)
 		end
 	end
+end
+local getAngleDiv = function(a,b)
+	local r1,r2
+	if a > b then
+		r1,r2 = a-b, b-a+360
+	else
+		r1,r2 = b-a, a-b+360
+	end
+	return r1>r2 and r2 or r1
 end
 
 
@@ -2045,6 +2063,415 @@ if Isaac.GetCursorSprite and Isaac.GetCursorSprite():GetFilename() == "" then
 elseif not Isaac.GetPlayer() and Options.MouseControl == false then
 	menuTab.AutoFakeMouseSprite = true
 end
+
+menuTab.input = {}
+function menuTab.input.IsActionTriggered(action)
+	local conind = Isaac.GetPlayer().ControllerIndex
+	if action == ButtonAction.ACTION_MENUCONFIRM then
+		if menuTab.ControlType == ControlType.MOUSE then
+			menuTab.IsMouseBtnTriggered(0)
+		elseif menuTab.ControlType == ControlType.CONTROLLER then
+			return Input.IsActionTriggered(action, conind)
+		end
+	else
+		return Input.IsActionTriggered(action, conind)
+	end
+end
+menuTab.input.preMoveVector = Vector(0,0)
+menuTab.input.moveVector = Vector(0,0)
+function menuTab.input.GetMoveVector()
+	local ret = Vector(0,0)
+	local p = Isaac.GetPlayer()
+	if p.ControllerIndex == 0 then
+		menuTab.input.moveVector = p:GetShootingJoystick()
+	else
+		menuTab.input.moveVector = p:GetMovementJoystick()
+	end
+
+	if menuTab.input.preMoveVector:Length() < 0.2 then
+		menuTab.input.movewait = 10
+		ret = menuTab.input.moveVector
+	elseif menuTab.input.moveVector:Length() > 0.2 then
+		menuTab.input.movewait = menuTab.input.movewait - 1
+		if menuTab.input.movewait < 0 then
+			menuTab.input.movewait = 5
+			ret = menuTab.input.moveVector
+		end
+	else
+		menuTab.input.movewait = nil
+	end
+
+	menuTab.input.preMoveVector = menuTab.input.moveVector
+	return ret
+end
+
+function menuTab.input.GetRefMoveVector()
+	local p = Isaac.GetPlayer()
+	if p.ControllerIndex == 0 then
+		return p:GetShootingJoystick()
+	else
+		return p:GetMovementJoystick()
+	end
+end
+
+
+
+function menuTab.MouseButtonDetect()
+	local mousePos = menuTab.MousePos
+	local onceTouch = false
+	menuTab.OnFreePos = true
+	for ahhoh = #DetectSelectedButtonBuffer, 1,-1 do
+		local list = DetectSelectedButtonBuffer[ahhoh]
+		local menu = list[1]   --DetectSelectedButtonBuffer[ahhoh]
+		local button = list[2]
+		--if type(menuTab.MenuData[menu]) == "table" then
+		if type(button) == "table" then
+
+			local somethingPressed = false
+			---@param k EditorButton
+			for i, k in pairs(button) do
+				---@type EditorButton
+				if k.canPressed then
+					if not onceTouch and mousePos.X >= k.pos.X and mousePos.Y >= k.pos.Y
+						and mousePos.X < (k.pos.X + k.x) and mousePos.Y < (k.pos.Y + k.y) then
+						menuTab.OnFreePos = false
+						onceTouch = true
+						if not k.IsSelected then
+							k.IsSelected = 0
+							if k.spr then
+								k.spr:SetFrame(1)
+							end
+							menuTab.ManualSelectedButton = {k, menu}
+						else
+							k.IsSelected = k.IsSelected + 1
+							if k.isDrager then
+								if k.dragtype == 1 then
+									local cm = mousePos.X - k.pos.X
+									if cm > k.dragCurPos.X-3 and cm < k.dragCurPos.X+3 then
+										k.dragspr:SetFrame(1)
+									else
+										k.dragspr:SetFrame(0)
+									end
+								elseif k.dragtype == 3 then --DragerSize
+									--local cm = mousePos.X - k.pos.X
+									if k.ishori then
+										local cm = mousePos.X - k.pos.X
+										if cm > (k.dragCurPos.X) and cm < (k.dragCurPos.X+k.DragerSize) then
+											k.dragspr:SetFrame(1)
+										else
+											k.dragspr:SetFrame(0)
+										end
+									else
+										local cm = mousePos.Y - k.pos.Y
+										if cm > (k.dragCurPos.Y) and cm < (k.dragCurPos.Y+k.DragerSize) then
+											k.dragspr:SetFrame(1)
+										else
+											k.dragspr:SetFrame(0)
+										end
+									end
+								end
+							end
+						end
+
+						if not k.BlockPress then
+							somethingPressed = true
+							if menuTab.IsMouseBtnTriggered(0) and not menuTab.MouseDoNotPressOnButtons then
+								if k.isDragZone then
+									menuTab.SelectedDragZone = k
+									--k.dragPrePos = k.dragPrePos or mousePos/1
+									--k.dragCurPos = mousePos
+									k.dragPreMousePos =  mousePos/1
+								elseif k.isDrager then
+									menuTab.SelectedDrager = k
+									if k.dragtype == 1 then
+										k.dragPrePos = Vector(mousePos.X-k.pos.X,0)
+									end
+									--k.dragCurPos = Vector(mousePos.X,0)
+									k.dragPreMousePos = mousePos/1
+								else
+									k.func(0)
+								end
+								break
+							elseif menuTab.IsMouseBtnTriggered(1) and not menuTab.MouseDoNotPressOnButtons then
+								k.func(1)
+								break
+							end
+						else
+							break
+						end
+					else
+						if k.IsSelected then
+							k.IsSelected = nil
+							if k.spr then
+								k.spr:SetFrame(0)
+							end
+							if k.dragspr then
+								k.dragspr:SetFrame(0)
+							end
+						end
+					end
+				end
+				if k.hintText and k.IsSelected and k.IsSelected > 10 then
+					menuTab.MouseHintText = k.hintText
+				end
+			end
+			if menu then
+				menuTab.MenuData[menu].somethingPressed = somethingPressed
+				local wind =  menuTab.MenuData[menu].CalledByWindow
+				if wind then
+					wind.somethingPressed = wind.somethingPressed or somethingPressed
+				end
+				menuTab.MenuData[menu].CalledByWindow = nil
+			end
+		end
+		--if menuTab.MouseDoNotPressOnButtons then
+		menuTab.MouseDoNotPressOnButtons = nil
+		--end
+	end
+	DetectSelectedButtonBuffer = {}
+	DetectSelectedButtonBufferRef = {}
+end
+
+function menuTab.KeyboardButtonDetect()
+	local mousePos = menuTab.MousePos
+	local onceTouch = false
+	menuTab.OnFreePos = true
+
+	if not menuTab.ManualSelectedButton then
+		for ahhoh = #DetectSelectedButtonBuffer, 1,-1 do
+			local list = DetectSelectedButtonBuffer[ahhoh]
+			local menu = list[1]   --DetectSelectedButtonBuffer[ahhoh]
+			local button = list[2]
+			--if type(menuTab.MenuData[menu]) == "table" then
+			if type(button) == "table" then
+				---@param k EditorButton
+				for i, k in pairs(button) do
+					menuTab.ManualSelectedButton = {k, menu}
+					break
+				end
+			end
+		end
+	end
+
+	--------------------------------------
+
+	local moveVector = menuTab.input.GetMoveVector()
+
+	if moveVector:Length() > 0.2 then
+		local curbtn = menuTab.ManualSelectedButton[1]
+		local nangle = moveVector:GetAngleDegrees()
+		local maxdist = 100000000
+		local minangle = 45
+		local curPos = curbtn.pos + Vector(curbtn.x/2,curbtn.y/2)
+		local curbtnname = curbtn.name
+		local targetButton, targetMenu
+		for ahhoh = #DetectSelectedButtonBuffer, 1,-1 do
+			local list = DetectSelectedButtonBuffer[ahhoh]
+			local menu = list[1]   --DetectSelectedButtonBuffer[ahhoh]
+			local button = list[2]
+			--if type(menuTab.MenuData[menu]) == "table" then
+			if type(button) == "table" then
+	
+				local somethingPressed = false
+				---@param k EditorButton
+				for i, k in pairs(button) do
+					local rvec = (k.pos + Vector(k.x/2,k.y/2) ) - curPos
+					if k.name ~= "__blockplashka" and k.name ~= curbtnname then
+						local difangle = getAngleDiv( (rvec):GetAngleDegrees(), nangle )
+						--local dda = getAngleDiv(difangle, minangle)
+						if difangle <= 45 then --minangle+5 then
+							minangle = difangle
+							--print( (curPos-k.pos):GetAngleDegrees(), nangle )
+							local dist = rvec:Length()
+							if maxdist > dist then
+								targetButton, targetMenu = k, menu
+								maxdist = dist
+							end
+						end
+					end
+				end
+			end
+		end
+		if targetButton then
+			local k = menuTab.ManualSelectedButton[1]
+			if k.IsSelected then
+				k.IsSelected = nil
+				if k.spr then
+					k.spr:SetFrame(0)
+				end
+				if k.dragspr then
+					k.dragspr:SetFrame(0)
+				end
+			end
+
+			menuTab.ManualSelectedButton = {targetButton, targetMenu}
+		end
+	end
+
+
+
+	--------------------------------------
+
+	menuTab.OnFreePos = false
+	local k = menuTab.ManualSelectedButton[1]
+	local menu = menuTab.ManualSelectedButton[2]
+	if not k.IsSelected then
+		k.IsSelected = 0
+		if k.spr then
+			k.spr:SetFrame(1)
+		end
+	else
+		k.IsSelected = k.IsSelected + 1
+		if k.isDrager then
+			if k.dragtype == 1 then
+				local cm = mousePos.X - k.pos.X
+				if cm > k.dragCurPos.X-3 and cm < k.dragCurPos.X+3 then
+					k.dragspr:SetFrame(1)
+				else
+					k.dragspr:SetFrame(0)
+				end
+			elseif k.dragtype == 3 then --DragerSize
+				--local cm = mousePos.X - k.pos.X
+				if k.ishori then
+					local cm = mousePos.X - k.pos.X
+					if cm > (k.dragCurPos.X) and cm < (k.dragCurPos.X+k.DragerSize) then
+						k.dragspr:SetFrame(1)
+					else
+						k.dragspr:SetFrame(0)
+					end
+				else
+					local cm = mousePos.Y - k.pos.Y
+					if cm > (k.dragCurPos.Y) and cm < (k.dragCurPos.Y+k.DragerSize) then
+						k.dragspr:SetFrame(1)
+					else
+						k.dragspr:SetFrame(0)
+					end
+				end
+			end
+		end
+	end
+
+	if not k.BlockPress then
+		if menuTab.input.IsActionTriggered(ButtonAction.ACTION_MENUCONFIRM) and not menuTab.MouseDoNotPressOnButtons then
+			if k.isDragZone then
+				menuTab.SelectedDragZone = k
+				--k.dragPrePos = k.dragPrePos or mousePos/1
+				--k.dragCurPos = mousePos
+				k.dragPreMousePos =  mousePos/1
+			elseif k.isDrager then
+				menuTab.SelectedDrager = k
+				if k.dragtype == 1 then
+					k.dragPrePos = Vector(mousePos.X-k.pos.X,0)
+				end
+				--k.dragCurPos = Vector(mousePos.X,0)
+				k.dragPreMousePos = mousePos/1
+			else
+				k.func(0)
+			end
+		elseif menuTab.input.IsActionTriggered(ButtonAction.ACTION_JOINMULTIPLAYER) and not menuTab.MouseDoNotPressOnButtons then
+			k.func(1)
+		end
+	end
+
+	if k.hintText and k.IsSelected and k.IsSelected > 10 then
+		menuTab.MouseHintText = k.hintText
+	end
+	if menu then
+		menuTab.MenuData[menu].somethingPressed = true
+		local wind =  menuTab.MenuData[menu].CalledByWindow
+		if wind then
+			wind.somethingPressed = wind.somethingPressed or true
+		end
+		menuTab.MenuData[menu].CalledByWindow = nil
+	end
+
+	---------------------------------------
+	menuTab.MouseDoNotPressOnButtons = nil
+
+	DetectSelectedButtonBuffer = {}
+	DetectSelectedButtonBufferRef = {}
+end
+
+function menuTab.ButtonDetectUpdate()
+	local mousePos = menuTab.MousePos
+	if menuTab.SelectedDragZone then
+		local k = menuTab.SelectedDragZone
+		if Input.IsMouseBtnPressed(0) then
+			k.dragCurPos = k.dragPrePos + mousePos - k.dragPreMousePos
+			k.func(0, k.dragCurPos, k.dragPrePos)
+		else
+			--k.dragPrePos = Vector(0,0)
+			k.dragPreMousePos = mousePos/1 -- k.dragPrePos
+			k.dragPrePos = k.dragCurPos
+			menuTab.SelectedDragZone = nil
+		end
+
+	elseif menuTab.SelectedDrager then
+		local k = menuTab.SelectedDrager
+		if k.dragtype == 1 then
+			if Input.IsMouseBtnPressed(0) then
+				k.dragCurPos.X = k.dragPrePos.X + mousePos.X - k.dragPreMousePos.X
+				k.dragCurPos.X = math.min( k.x, math.max( 0, k.dragCurPos.X))
+				local proc = k.dragCurPos.X / k.x
+				k.func(0, proc, k.dragPrePos.X / k.x)
+			else
+				--k.dragPrePos = Vector(0,0)
+				k.dragPreMousePos = mousePos/1 -- k.dragPrePos
+				k.dragPrePos = k.dragCurPos
+				menuTab.SelectedDrager = nil
+			end
+		elseif k.dragtype == 3 then
+			if Input.IsMouseBtnPressed(0) then
+				if k.ishori then
+					if math.abs(k.ValueSize)<=k.x then
+						k.dragCurPos.X = 0 -- k.x/2
+						k.func(0, 0, k.dragPrePos.X / k.x)
+					else
+						local vs = k.x/math.abs(k.ValueSize)*k.x
+						local siL =(k.x-vs)
+						
+						k.dragCurPos.X = k.dragPrePos.X + mousePos.X - k.dragPreMousePos.X
+						k.dragCurPos.X = math.min( siL, math.max( 0, k.dragCurPos.X))
+
+						local proc = (k.dragCurPos.X) / (siL) * (math.abs(k.ValueSize) - k.x)
+						
+						k.func(0, proc, k.dragPrePos.X / k.x)
+					end
+				else
+					if math.abs(k.ValueSize)<=k.y then
+						k.dragCurPos.Y = 0 --k.y/2
+						k.func(0, 0, k.dragPrePos.Y / k.y)
+					else
+						local vs = k.y/math.abs(k.ValueSize)*k.y
+						local siL =(k.y-vs)
+						
+						k.dragCurPos.Y = k.dragPrePos.Y + mousePos.Y - k.dragPreMousePos.Y
+						k.dragCurPos.Y = math.min( siL, math.max( 0, k.dragCurPos.Y))
+
+						local proc = (k.dragCurPos.Y) / (siL) * (math.abs(k.ValueSize) - k.y)
+						
+						k.func(0, proc, k.dragPrePos.Y / k.y)
+					end
+				end
+			else
+				k.dragPreMousePos = mousePos/1
+				k.dragPrePos = k.dragCurPos/1
+				menuTab.SelectedDrager = nil
+			end
+		end
+	end
+end
+
+function menuTab.DetectSelectedButtonActuale()
+	if menuTab.ControlType == ControlType.MOUSE then
+		menuTab.MouseButtonDetect()
+	elseif menuTab.ControlType == ControlType.CONTROLLER then
+		menuTab.KeyboardButtonDetect()
+	end
+	menuTab.ButtonDetectUpdate()
+end
+
+--[[
 function menuTab.DetectSelectedButtonActuale()
 	local mousePos = menuTab.MousePos
 	local onceTouch = false
@@ -2057,14 +2484,9 @@ function menuTab.DetectSelectedButtonActuale()
 		if type(button) == "table" then
 
 			local somethingPressed = false
-			--for i, dt in pairs(menuTab.MenuData[menu].sortList) do
 			---@param k EditorButton
 			for i, k in pairs(button) do
 				---@type EditorButton
-				--local k = menuTab.MenuData[menu].Buttons[dt.btn]
-				--if not k then
-				--	print("Not exist Button ", k, menu, dt.btn)
-				--end
 				if k.canPressed then
 					if not onceTouch and mousePos.X >= k.pos.X and mousePos.Y >= k.pos.Y
 						and mousePos.X < (k.pos.X + k.x) and mousePos.Y < (k.pos.Y + k.y) then
@@ -2193,29 +2615,10 @@ function menuTab.DetectSelectedButtonActuale()
 		elseif k.dragtype == 3 then
 			if Input.IsMouseBtnPressed(0) then
 				if k.ishori then
-					--[[k.IsSelected = k.IsSelected and (k.IsSelected + 1) or 1
-					local ValueSizetrue = (1- math.abs( k.ValueSize ) / (k.x))/2
-					local siL, siR = k.x*(1-ValueSizetrue), k.x*ValueSizetrue
-					
-					k.dragCurPos.X = k.dragPrePos.X + mousePos.X - k.dragPreMousePos.X
-					--k.dragCurPos.X = math.min( k.x-ValueSizetrue, math.max( ValueSizetrue, k.dragCurPos.X))
-					k.dragCurPos.X = math.min( siL, math.max( siR, k.dragCurPos.X))
-					local proc = (k.dragCurPos.X-siR) / siL * k.ValueSize
-					k.func(0, proc, k.dragPrePos.X / k.x)]]
-
 					if math.abs(k.ValueSize)<=k.x then
 						k.dragCurPos.X = 0 -- k.x/2
 						k.func(0, 0, k.dragPrePos.X / k.x)
 					else
-						--[[local vs = k.x/math.abs(k.ValueSize)/2*k.x   --math.abs(k.ValueSize)/2
-						local siL, siR =(k.x-vs), vs --, (k.y-vs) --, k.y
-						
-						k.dragCurPos.X = k.dragPrePos.X + mousePos.X - k.dragPreMousePos.X
-						k.dragCurPos.X = math.min( siL, math.max( siR, k.dragCurPos.X))
-
-						local proc = (k.dragCurPos.X-siR) / (siL-siR) * (math.abs(k.ValueSize) - k.x)
-						
-						k.func(0, proc, k.dragPrePos.X / k.x)]]
 						local vs = k.x/math.abs(k.ValueSize)*k.x
 						local siL =(k.x-vs)
 						
@@ -2231,16 +2634,6 @@ function menuTab.DetectSelectedButtonActuale()
 						k.dragCurPos.Y = 0 --k.y/2
 						k.func(0, 0, k.dragPrePos.Y / k.y)
 					else
-						--[[local vs = k.y/math.abs(k.ValueSize)/2*k.y
-						local siL, siR =(k.y-vs), vs
-						
-						k.dragCurPos.Y = k.dragPrePos.Y + mousePos.Y - k.dragPreMousePos.Y
-						k.dragCurPos.Y = math.min( siL, math.max( siR, k.dragCurPos.Y))
-
-						local proc = (k.dragCurPos.Y-siR) / (siL-siR) * (math.abs(k.ValueSize) - k.y)
-						
-						k.func(0, proc, k.dragPrePos.Y / k.y)]]
-
 						local vs = k.y/math.abs(k.ValueSize)*k.y
 						local siL =(k.y-vs)
 						
@@ -2253,14 +2646,14 @@ function menuTab.DetectSelectedButtonActuale()
 					end
 				end
 			else
-				--k.dragPrePos = Vector(0,0)
-				k.dragPreMousePos = mousePos/1 -- k.dragPrePos
+				k.dragPreMousePos = mousePos/1
 				k.dragPrePos = k.dragCurPos/1
 				menuTab.SelectedDrager = nil
 			end
 		end
 	end
 end
+]]
 
 function menuTab.HandleWindowControl()
 	local mousePos = menuTab.MousePos
