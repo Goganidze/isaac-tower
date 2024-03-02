@@ -9,7 +9,7 @@ local pairs = pairs
 local Wtr = 20/13
 local reloadData
 if Isaac_Tower and Isaac_Tower.CurrentRoom and Isaac.GetPlayer() then
-	reloadData = {roomName =  Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name, inEditor = Isaac_Tower.editor.InEditor}
+	reloadData = {roomName =  Isaac_Tower.CurrentRoom and Isaac_Tower.CurrentRoom.Name, inEditor = Isaac_Tower.editor.InEditor, gameState = Isaac_Tower.GameState}
 elseif Isaac_Tower and Isaac_Tower.GameState == 1 then
 	reloadData = true
 end
@@ -366,6 +366,8 @@ function Isaac_Tower.GameExit()
 	Isaac_Tower.CurrentRoom = nil
 	Isaac_Tower.CloseEditor()
 	Isaac_Tower.InAction = false
+	Isaac_Tower.GameState = 0
+	Isaac_Tower.MainMenu.State = Isaac_Tower.MainMenu.StateType.PRE
 end
 mod:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, Isaac_Tower.GameExit)
 
@@ -1074,6 +1076,20 @@ local function TowerInit(bool)
     end
 end
 mod:AddPriorityCallback(ModCallbacks.MC_POST_GAME_STARTED, CallbackPriority.LATE, TowerInit)
+
+--num: 1 = gameplay
+function Isaac_Tower.StartGame(num)
+	if num == 1 then
+		Isaac_Tower.InAction = true
+		TSJDNHC_PT:EnableCamera(true, true)
+		Isaac_Tower.RoomTransition(Isaac_Tower.StartRoom, true)
+		Isaac_Tower.SetRoom(Isaac_Tower.StartRoom)
+
+		Isaac_Tower.autoRoomClamp(Isaac_Tower.GridLists.Solid)
+		Isaac_Tower.GameState = 2
+		Isaac_Tower.MainMenu.State = Isaac_Tower.MainMenu.StateType.PRE
+	end
+end
 
 local function Init_Player(_,player)
 	if player:GetPlayerType() == IsaacTower_Type and not player:GetData().Isaac_Tower_Data then
@@ -5130,6 +5146,9 @@ if reloadData then
 			end
 		end
 		TowerInit()
+		if reloadData.gameState == 2 then
+			Isaac_Tower.StartGame(1)
+		end
 		Isaac_Tower.RoomTransition(reloadData.roomName, true)
 		if reloadData.inEditor then
 			Isaac_Tower.OpenEditor()

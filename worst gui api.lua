@@ -159,6 +159,7 @@ local ControlType = {
 ---@field LastOrderRender function
 ---@field DetectSelectedButtonActuale function
 ---@field ControlType ControlType
+---@field ManualSelectedButton {[1]:EditorButton, [2]:integer}|nil
 local menuTab = RegisterMod("worst gui api: isaac tower", 1)
 menuTab.Callbacks = {}
 local Callbacks = {
@@ -2114,6 +2115,14 @@ function menuTab.input.GetRefMoveVector()
 	end
 end
 
+function menuTab.UnFocusMenu(menu)
+	if menuTab.ManualSelectedButton and menuTab.ManualSelectedButton[2] == menu then
+		if menuTab.ManualSelectedButton[1] then
+			menuTab.ManualSelectedButton[1].IsSelected = nil
+		end
+		menuTab.ManualSelectedButton = nil
+	end
+end
 
 
 function menuTab.MouseButtonDetect()

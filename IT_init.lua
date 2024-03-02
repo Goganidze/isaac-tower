@@ -1502,7 +1502,7 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 					fent.Position = fent.Position*0.7 + Isaac_Tower.LevelHandler.GetSpawnPosition()*0.3
 				end
 
-				if not ent or ent:GetSprite():WasEventTriggered("break") then
+				if returnScale and (not ent or ent:GetSprite():WasEventTriggered("break")) then
 					spr.Scale = spr.Scale * 0.9 + returnScale*0.15
 		
 					if spr.Scale.X > returnScale.X then

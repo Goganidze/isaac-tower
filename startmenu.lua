@@ -52,6 +52,7 @@ return function(mod)
         PRE = 1,
         TURNON = 2,
         MAIN = 3,
+        EXIT = 4,
         FADEOUT = 10,
     }
 
@@ -98,15 +99,16 @@ return function(mod)
         -------------------Update
         mm.StateFrame = mm.StateFrame + 1
 
+        local result
         if mm.MenuLogic[mm.State] then
-            mm.MenuLogic[mm.State](mm.globalZero, mm.globalScale, scrX, scrY)
+            result = mm.MenuLogic[mm.State](mm.globalZero, mm.globalScale, scrX, scrY)
         end
 
 
         ------------------ worst gui api
         local wma = mm.WGA
 
-        if not Isaac_Tower.game:IsPaused() then
+        if not Isaac_Tower.game:IsPaused() and (not result or not result.NoDetectBtns) then
             if not wma.IsStickyMenu then
                 wma.SelectedMenu = "__mainmenu"
             end
@@ -114,18 +116,15 @@ return function(mod)
 
             local pos = Isaac.WorldToScreen(Input.GetMousePosition(true))-Isaac_Tower.game.ScreenShakeOffset
             if wma.ControlType == wma.enum.ControlType.CONTROLLER then
-                print("gg", pos:Distance(preMousePos))
                 if pos:Distance(preMousePos) > 3 then
                     wma.ControlType = wma.enum.ControlType.MOUSE
                 end
             else
                 local move = wma.input.GetRefMoveVector()
-                print("mm", move)
                 if move:Length() > .2 then
                     wma.ControlType = wma.enum.ControlType.CONTROLLER
                 end
             end
-            print("ttt",wma.ControlType)
             preMousePos = pos
 
             wma.MousePos = pos
@@ -181,6 +180,7 @@ return function(mod)
                     mm.SetState(mm.StateType.TURNON)
                 end
             end
+            return {NoDetectBtns = true}
         end,
         [mm.StateType.TURNON] = function(zero, scale)
             local tv = sprs.tv
@@ -194,7 +194,11 @@ return function(mod)
                 mm.SetState(mm.StateType.MAIN)
                 logo.Color = Color(1,1,1,1)
                 mm.ButtonOffset = Vector(100,0)
-
+                for i=1, #mm.menubtns.__mainmenu do
+                    ---@type EditorButton
+                    local btn = mm.menubtns.__mainmenu[i]
+                    btn.visible = true
+                end
             end
             logo.Scale = scale
             logo:Render(Vector(zero.X,0))
@@ -203,6 +207,7 @@ return function(mod)
 
             tv.Scale = scale
             tv:Render(zero)
+            return {NoDetectBtns = true}
         end,
         [mm.StateType.MAIN] = function(zero, scale, scrX, scrY)
             local logo = sprs.logo
@@ -234,6 +239,53 @@ return function(mod)
             end
             mm.ButtonOffset.X = mm.ButtonOffset.X * 0.8
         end,
+        [mm.StateType.EXIT] = function(zero, scale, scrX, scrY)
+            local hide
+            if mm.StateFrame < 2 then
+                sprs.tv:Play("tv_off", true)
+            elseif mm.StateFrame > 30 then
+                Isaac_Tower.game:Fadeout(1, 2)
+                mm.SetState(mm.StateType.PRE)
+                hide = true
+            end
+            local alpha = (30-mm.StateFrame)/30
+
+            local logo = sprs.logo
+            if mm.StateFrame%6 == 0 then
+                logo.Color = Color(1,1,1, alpha)
+            end
+            logo.Scale = scale
+            logo:Render(Vector(zero.X,0))
+
+
+            --[[local tv_light = sprs.tv_light
+            tv_light:Update()
+            tv_light.Scale = scale
+            tv_light:Render(zero)]]
+
+            local tv = sprs.tv
+            tv:Update()
+            tv.Scale = scale
+            tv:Render(zero)
+            
+            local btStartPos = Vector(scrX, scrY) + Vector(-170, -20)*scale + mm.ButtonOffset
+            local ysi = scale.Y
+            for i=1, #mm.menubtns.__mainmenu do
+                ---@type EditorButton
+                local btn = mm.menubtns.__mainmenu[i]
+                btn.pos = btStartPos + Vector(0, i*-73*ysi)
+                btn.x = 190 * scale.X
+                btn.y = 70 * ysi
+
+                if hide then
+                    btn.visible = false
+                end
+            end
+            mm.ButtonOffset.X = mm.ButtonOffset.X * 0.90 + 0.1 * 310
+
+            Isaac_Tower.RenderBlack(1-alpha)
+            return {NoDetectBtns = true}
+        end,
     }
 
 
@@ -260,45 +312,56 @@ return function(mod)
     local self
     self = mm.WGA.AddButton("__mainmenu", "start", Vector(-200,0), 190, 70, nilspr , function(button) 
         if button ~= 0 then return end
-    end, function(pos)
-        sprs.btn_start:Update()
-        if self.IsSelected then
-            sprs.btn_start:Play("menu_btn_start")
-        else
-            sprs.btn_start:Play("menu_btn_start_r")
+        Isaac_Tower.StartGame(1)
+        mm.WGA.UnFocusMenu("__mainmenu")
+    end, function(pos, visible)
+        if visible then
+            sprs.btn_start:Update()
+            if self.IsSelected then
+                sprs.btn_start:Play("menu_btn_start")
+            else
+                sprs.btn_start:Play("menu_btn_start_r")
+            end
+            sprs.btn_start.Scale = mm.globalScale/1
+            sprs.btn_start:Render(pos)
         end
-        sprs.btn_start.Scale = mm.globalScale/1
-        sprs.btn_start:Render(pos)
     end)
     mm.menubtns.__mainmenu[3] = self
 
     local self
     self = mm.WGA.AddButton("__mainmenu", "options", Vector(-200,0), 190, 70, nilspr , function(button) 
         if button ~= 0 then return end
-    end, function(pos)
-        sprs.btn_options:Update()
-        if self.IsSelected then
-            sprs.btn_options:Play("menu_btn_options")
-        else
-            sprs.btn_options:Play("menu_btn_options_r")
+    end, function(pos, visible)
+        if visible then
+            sprs.btn_options:Update()
+            if self.IsSelected then
+                sprs.btn_options:Play("menu_btn_options")
+            else
+                sprs.btn_options:Play("menu_btn_options_r")
+            end
+            sprs.btn_options.Scale = mm.globalScale/1
+            sprs.btn_options:Render(pos)
         end
-        sprs.btn_options.Scale = mm.globalScale/1
-        sprs.btn_options:Render(pos)
     end)
     mm.menubtns.__mainmenu[2] = self
 
     local self
     self = mm.WGA.AddButton("__mainmenu", "exit", Vector(-200,0), 190, 70, nilspr , function(button) 
         if button ~= 0 then return end
-    end, function(pos)
-        sprs.btn_exit:Update()
-        if self.IsSelected then
-            sprs.btn_exit:Play("menu_btn_exit")
-        else
-            sprs.btn_exit:Play("menu_btn_exit_r")
+        --Isaac_Tower.game:Fadeout(0.2, 2)
+        mm.SetState(mm.StateType.EXIT)
+        mm.WGA.UnFocusMenu("__mainmenu")
+    end, function(pos, visible)
+        if visible then
+            sprs.btn_exit:Update()
+            if self.IsSelected then
+                sprs.btn_exit:Play("menu_btn_exit")
+            else
+                sprs.btn_exit:Play("menu_btn_exit_r")
+            end
+            sprs.btn_exit.Scale = mm.globalScale/1
+            sprs.btn_exit:Render(pos)
         end
-        sprs.btn_exit.Scale = mm.globalScale/1
-        sprs.btn_exit:Render(pos)
     end)
     mm.menubtns.__mainmenu[1] = self
 
