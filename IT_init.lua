@@ -1454,8 +1454,9 @@ end)
 
 Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, function(_, player, grid)
 	local fent = player:GetData().Isaac_Tower_Data
-	if Isaac_Tower.LevelHandler.CurrentGetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom
-		or not Isaac_Tower.LevelHandler.IsVisited(grid.TargetRoom) then
+	if fent.State ~= "Cutscene" 
+	and ( Isaac_Tower.LevelHandler.CurrentGetRoomType() == Isaac_Tower.editor.RoomTypes.secretroom
+		or not Isaac_Tower.LevelHandler.IsVisited(grid.TargetRoom) ) then
 		
 		fent.Velocity = Vector(0,0)
 		grid.Grid.Target = player
@@ -1472,6 +1473,7 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 		fent.Self:GetData().TSJDNHC_GridColl = 0
 		local returnScale
 		local movePlayer = false
+		local t = Isaac.GetFrameCount()
 
 		Isaac_Tower.scheduleForUpdate(function()
 			if movePlayer then
@@ -1501,7 +1503,7 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 				else
 					fent.Position = fent.Position*0.7 + Isaac_Tower.LevelHandler.GetSpawnPosition()*0.3
 				end
-
+				--print(movePlayer, returnScale, spr.Scale, (not ent or ent:GetSprite():WasEventTriggered("break")))
 				if returnScale and (not ent or ent:GetSprite():WasEventTriggered("break")) then
 					spr.Scale = spr.Scale * 0.9 + returnScale*0.15
 		
