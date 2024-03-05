@@ -1473,7 +1473,6 @@ Isaac_Tower.AddDirectCallback(mod, Isaac_Tower.Callbacks.SPECIAL_COLLISION, func
 		fent.Self:GetData().TSJDNHC_GridColl = 0
 		local returnScale
 		local movePlayer = false
-		local t = Isaac.GetFrameCount()
 
 		Isaac_Tower.scheduleForUpdate(function()
 			if movePlayer then
